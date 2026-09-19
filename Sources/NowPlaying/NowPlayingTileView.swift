@@ -23,7 +23,7 @@ final class NowPlayingTileView: TileView {
         let card = TileGeometry.artworkRect(in: bounds)
         let path = TileGeometry.cardPath(in: card)
 
-        let coverArt = settings.showsArtwork && state.origin == .mediaRemote ? state.artwork : nil
+        let coverArt = settings.showsArtwork && state.hasCoverArt ? state.artwork : nil
 
         if let coverArt {
             NSGraphicsContext.saveGraphicsState()

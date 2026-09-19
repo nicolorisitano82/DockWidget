@@ -1,10 +1,14 @@
 import AppKit
 
-/// Feeds the tile from whichever channel this process is actually allowed to use.
+/// Feeds every consumer from whichever channel this process is allowed to use.
 ///
-/// 1. MediaRemote, if it answers — every player, artwork, position, transport control.
-/// 2. Otherwise the playback broadcasts Music and Spotify post to every process:
-///    no permission prompt, but title/artist only and no control.
+/// Three channels, best first:
+/// 1. **MediaRemote** — only answers inside the Dock's plug-in host. Full
+///    metadata, artwork and transport control. When we are that process, we
+///    also republish everything for the others and take their commands.
+/// 2. **The published feed** — what the plug-in wrote. This is how the manager
+///    window and the overlay agent see a cover at all.
+/// 3. **Music and Spotify broadcasts** — no permission, no artwork, no control.
 final class NowPlayingSource {
     static let shared = NowPlayingSource()
 
@@ -15,8 +19,9 @@ final class NowPlayingSource {
     private var observers: [NSObjectProtocol] = []
     private var distributedObservers: [NSObjectProtocol] = []
     private var resyncTimer: Timer?
-    private var loggedChannel: NowPlayingState.Origin?
     private var started = false
+    private var owningChannel: NowPlayingState.Origin = .none
+    private var loggedChannel: NowPlayingState.Origin?
 
     private static let broadcasts: [(name: String, bundleID: String)] = [
         ("com.apple.Music.playerInfo", "com.apple.Music"),
@@ -25,7 +30,6 @@ final class NowPlayingSource {
     ]
 
     /// Registers a listener, starting the channels on the first one.
-    /// The host window and the Dock plug-in both watch the same source.
     @discardableResult
     func addListener(_ handler: @escaping (NowPlayingState) -> Void) -> UUID {
         let token = UUID()
@@ -39,6 +43,8 @@ final class NowPlayingSource {
         listeners.removeValue(forKey: token)
         if listeners.isEmpty { stop() }
     }
+
+    // MARK: Channels
 
     private func start() {
         guard !started else { return }
@@ -55,8 +61,8 @@ final class NowPlayingSource {
             }
             refreshFromMediaRemote()
 
-            // A cheap safety net: notifications do get missed when a player
-            // restarts, and a stuck progress bar is the visible symptom.
+            // Notifications do get missed when a player restarts, and a stuck
+            // progress bar is the visible symptom.
             let timer = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
                 guard let self, self.mediaRemoteAnswered, self.state.isPlaying else { return }
                 self.refreshFromMediaRemote()
@@ -64,6 +70,10 @@ final class NowPlayingSource {
             RunLoop.main.add(timer, forMode: .common)
             resyncTimer = timer
         }
+
+        let feedObserver = NowPlayingFeed.observe { [weak self] in self?.adoptPublishedState() }
+        distributedObservers.append(feedObserver)
+        adoptPublishedState()
 
         for broadcast in Self.broadcasts {
             let token = DistributedNotificationCenter.default().addObserver(
@@ -89,24 +99,49 @@ final class NowPlayingSource {
         MediaRemoteBridge.shared.readNowPlaying { [weak self] fetched in
             guard let self else { return }
             guard var fetched else {
-                // Empty answer: either nothing is playing or we are not trusted.
-                // Only clear the tile if MediaRemote is the channel we are on.
-                if self.mediaRemoteAnswered, self.state.origin == .mediaRemote {
-                    self.publish(NowPlayingState())
+                // An empty answer means "nothing playing" only if this process is
+                // the one MediaRemote talks to; otherwise it means "not you".
+                if self.mediaRemoteAnswered {
+                    self.publish(NowPlayingState(), from: .mediaRemote)
                 }
                 return
             }
-            self.mediaRemoteAnswered = true
+            if !self.mediaRemoteAnswered {
+                self.mediaRemoteAnswered = true
+                self.startServingCommands()
+            }
             MediaRemoteBridge.shared.readIsPlaying { isPlaying in
                 fetched.isPlaying = isPlaying
-                self.publish(fetched)
+                self.publish(fetched, from: .mediaRemote)
             }
         }
     }
 
+    /// Only the privileged reader runs this: it answers the commands the
+    /// overlay and the manager cannot send themselves.
+    private func startServingCommands() {
+        let token = NowPlayingFeed.observeCommands { [weak self] command in
+            let bridge = MediaRemoteBridge.shared
+            switch command {
+            case .togglePlayPause: bridge.send(.togglePlayPause)
+            case .next: bridge.send(.next)
+            case .previous: bridge.send(.previous)
+            }
+            // The registry takes a moment to settle after a command.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                self?.refreshFromMediaRemote()
+            }
+        }
+        distributedObservers.append(token)
+        Diagnostics.write("servo i comandi di riproduzione per gli altri processi")
+    }
+
+    private func adoptPublishedState() {
+        guard !mediaRemoteAnswered, let published = NowPlayingFeed.read() else { return }
+        publish(published, from: .published)
+    }
+
     private func handleBroadcast(_ note: Notification, bundleID: String) {
-        // MediaRemote wins when it works: it knows about every player, not just this one.
-        guard !mediaRemoteAnswered else { return }
         guard let info = note.userInfo else { return }
 
         var next = NowPlayingState()
@@ -135,7 +170,7 @@ final class NowPlayingSource {
             next.elapsedSampledAt = state.elapsedSampledAt
         }
         next.artwork = playerIcon(for: bundleID)
-        publish(next)
+        publish(next, from: .broadcast)
     }
 
     private func playerIcon(for bundleID: String) -> NSImage? {
@@ -147,19 +182,36 @@ final class NowPlayingSource {
         return NSWorkspace.shared.icon(forFile: url.path)
     }
 
-    /// One line per channel change, so which channel answered can be read back
-    /// from the system log — the plug-in has no other way to report.
-    private func logChannel(_ origin: NowPlayingState.Origin) {
-        guard loggedChannel != origin else { return }
-        loggedChannel = origin
-        NSLog("[dockwidgets] canale now playing: %@", origin.rawValue)
+    // MARK: Publishing
+
+    private func rank(_ origin: NowPlayingState.Origin) -> Int {
+        switch origin {
+        case .mediaRemote: return 3
+        case .published: return 2
+        case .broadcast: return 1
+        case .none: return 0
+        }
     }
 
-    private func publish(_ next: NowPlayingState) {
-        logChannel(next.origin)
+    private func publish(_ next: NowPlayingState, from channel: NowPlayingState.Origin) {
+        // A weaker channel never overwrites a stronger one, but the channel that
+        // owns the state may always update it — including to "nothing playing".
+        guard rank(channel) >= rank(owningChannel) else { return }
+        owningChannel = channel
         state = next
+        logChannel(channel)
+
+        if channel == .mediaRemote {
+            NowPlayingFeed.publish(next)
+        }
         for listener in listeners.values {
             listener(next)
         }
+    }
+
+    private func logChannel(_ origin: NowPlayingState.Origin) {
+        guard loggedChannel != origin else { return }
+        loggedChannel = origin
+        Diagnostics.write("canale now playing: \(origin.rawValue)")
     }
 }

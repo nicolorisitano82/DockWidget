@@ -159,12 +159,26 @@ final class ManagerViewController: NSViewController {
 
     @objc private func toggleInstalled() {
         let widget = WidgetCatalog.all[selectedIndex]
+        if dockSwitch.state == .on, !isInstalledInApplications {
+            dockSwitch.state = .off
+            let alert = NSAlert()
+            alert.messageText = "Sposta prima Dock Widgets in Applicazioni"
+            alert.informativeText = "Questa copia gira da \(Bundle.main.bundleURL.deletingLastPathComponent().path). Il Dock punterebbe lì, e quella cartella viene ricreata a ogni compilazione: la tile resterebbe orfana."
+            alert.runModal()
+            return
+        }
         if dockSwitch.state == .on {
             DockTiles.add(widget.helperURL)
         } else {
             DockTiles.remove(widget.helperURL)
         }
         refreshInstallState()
+    }
+
+    /// A widget pinned from a build folder breaks on the next build.
+    private var isInstalledInApplications: Bool {
+        let path = Bundle.main.bundleURL.standardizedFileURL.path
+        return path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/")
     }
 
     private func refreshInstallState() {

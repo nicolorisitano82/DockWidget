@@ -16,8 +16,8 @@ osascript -e 'quit app "Dock Widgets"' 2>/dev/null || true
 echo "→ tolgo dal Dock le voci che non esistono più"
 defaults export com.apple.dock - | python3 -c '
 import sys, plistlib
-prefs = plistlib.load(sys.stdin.buffer)
-stale = ("DockClock.app", "DockNowPlaying.app")
+prefs = plistlib.loads(sys.stdin.buffer.read())
+stale = ("DockClock.app", "DockNowPlaying.app", "/dock/build/")
 
 def url(entry):
     return entry.get("tile-data", {}).get("file-data", {}).get("_CFURLString", "")

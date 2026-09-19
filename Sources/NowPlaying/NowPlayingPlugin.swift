@@ -15,6 +15,7 @@ final class NowPlayingDockTilePlugin: TilePlugin {
     override var tickInterval: TimeInterval { 1 }
 
     override func didAttach() {
+        Diagnostics.write("tile In riproduzione attiva — MediaRemote linkato: \(MediaRemoteBridge.shared.isLinked)")
         listenerToken = NowPlayingSource.shared.addListener { [weak self] state in
             self?.apply(state)
         }

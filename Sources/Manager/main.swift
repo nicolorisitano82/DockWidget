@@ -38,6 +38,15 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
+if let flag = CommandLine.arguments.firstIndex(of: "--probe-dock") {
+    let reportPath = flag + 1 < CommandLine.arguments.count
+        ? CommandLine.arguments[flag + 1]
+        : NSTemporaryDirectory() + "dockprobe.txt"
+    _ = NSApplication.shared
+    DockProbe.run(reportPath: reportPath)
+    exit(0)
+}
+
 let application = NSApplication.shared
 let delegate = ManagerAppDelegate()
 application.delegate = delegate

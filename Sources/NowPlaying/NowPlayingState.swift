@@ -6,6 +6,8 @@ struct NowPlayingState {
         case mediaRemote
         /// Music/Spotify broadcasts — title and artist only, no artwork, no control.
         case broadcast
+        /// Relayed by the Dock plug-in, which is the only process MediaRemote answers.
+        case published
         case none
     }
 
@@ -14,6 +16,10 @@ struct NowPlayingState {
     var album: String?
     var isPlaying = false
     var artwork: NSImage?
+    /// The bytes as the player published them, kept so they can be relayed
+    /// without a re-encode.
+    var artworkData: Data?
+    var artworkIdentifier: String?
     var playerBundleID: String?
     var origin: Origin = .none
 
@@ -24,6 +30,9 @@ struct NowPlayingState {
     var elapsedSampledAt = Date()
 
     var hasTrack: Bool { !(title ?? "").isEmpty }
+
+    /// True when `artwork` is real cover art rather than a stand-in player icon.
+    var hasCoverArt: Bool { origin == .mediaRemote || origin == .published }
 
     var subtitle: String? {
         let parts = [artist, album].compactMap { $0 }.filter { !$0.isEmpty }

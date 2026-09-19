@@ -19,6 +19,7 @@ final class MediaRemoteBridge {
         static let artist = "kMRMediaRemoteNowPlayingInfoArtist"
         static let album = "kMRMediaRemoteNowPlayingInfoAlbum"
         static let artworkData = "kMRMediaRemoteNowPlayingInfoArtworkData"
+        static let artworkIdentifier = "kMRMediaRemoteNowPlayingInfoArtworkIdentifier"
         static let elapsed = "kMRMediaRemoteNowPlayingInfoElapsedTime"
         static let duration = "kMRMediaRemoteNowPlayingInfoDuration"
         static let playbackRate = "kMRMediaRemoteNowPlayingInfoPlaybackRate"
@@ -78,6 +79,8 @@ final class MediaRemoteBridge {
             return
         }
         getInfo(.main) { info in
+            Diagnostics.once("mediaremote-answer",
+                             "MediaRemote ha restituito \(info.count) chiavi: \(info.keys.sorted().prefix(8))")
             guard !info.isEmpty else {
                 completion(nil)
                 return
@@ -98,6 +101,10 @@ final class MediaRemoteBridge {
             }
             if let data = info[InfoKey.artworkData] as? Data {
                 state.artwork = NSImage(data: data)
+                state.artworkData = data
+                let identifier = info[InfoKey.artworkIdentifier]
+                state.artworkIdentifier = (identifier as? String)
+                    ?? (identifier as? NSNumber)?.stringValue
             }
             self.resolvePlayerBundleID { bundleID in
                 state.playerBundleID = bundleID
