@@ -32,7 +32,7 @@ enum DockTiles {
         entries().contains { url(of: $0).map { samePath($0, appURL) } ?? false }
     }
 
-    static func add(_ appURL: URL) {
+    static func add(_ appURL: URL, restart: Bool = true) {
         guard let defaults, !contains(appURL) else { return }
         var list = entries()
         list.append([
@@ -47,10 +47,10 @@ enum DockTiles {
         ])
         defaults.set(list, forKey: key)
         defaults.synchronize()
-        restartDock()
+        if restart { restartDock() }
     }
 
-    static func remove(_ appURL: URL) {
+    static func remove(_ appURL: URL, restart: Bool = true) {
         guard let defaults else { return }
         let remaining = entries().filter { entry in
             guard let entryURL = url(of: entry) else { return true }
@@ -59,7 +59,7 @@ enum DockTiles {
         guard remaining.count != entries().count else { return }
         defaults.set(remaining, forKey: key)
         defaults.synchronize()
-        restartDock()
+        if restart { restartDock() }
     }
 
     static func restartDock() {

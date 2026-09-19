@@ -126,6 +126,7 @@ final class NowPlayingSource {
             case .togglePlayPause: bridge.send(.togglePlayPause)
             case .next: bridge.send(.next)
             case .previous: bridge.send(.previous)
+            case .seek(let seconds): bridge.setElapsedTime(seconds)
             }
             // The registry takes a moment to settle after a command.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {

@@ -23,6 +23,7 @@ final class NowPlayingSettingsModel {
 
     private func persist() {
         SettingsStore.shared.set([
+            NowPlayingSettings.Key.mode: value.mode.rawValue,
             NowPlayingSettings.Key.showsArtwork: value.showsArtwork,
             NowPlayingSettings.Key.showsProgress: value.showsProgress,
             NowPlayingSettings.Key.dimsWhenPaused: value.dimsWhenPaused,

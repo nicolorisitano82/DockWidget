@@ -5,29 +5,25 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>it</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dock Widgets</string>
+	<string>Barra In riproduzione</string>
 	<key>CFBundleExecutable</key>
-	<string>DockWidgets</string>
-	<key>CFBundleIconFile</key>
-	<string>AppIcon</string>
+	<string>NowPlayingBar</string>
 	<key>CFBundleIdentifier</key>
-	<string>dev.nicolo.dockwidgets</string>
+	<string>dev.nicolo.dockwidgets.bar</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Dock Widgets</string>
+	<string>Barra In riproduzione</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.utilities</string>
-	<key>LSUIElement</key>
-	<true/>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSPrincipalClass</key>

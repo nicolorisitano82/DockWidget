@@ -19,6 +19,9 @@ final class NowPlayingTileView: TileView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        // In bar mode this tile is only an anchor for the overlay, which draws
+        // over it: anything here would show through underneath.
+        guard settings.mode == .tile else { return }
         let palette = self.palette
         let card = TileGeometry.artworkRect(in: bounds)
         let path = TileGeometry.cardPath(in: card)

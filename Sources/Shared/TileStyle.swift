@@ -32,21 +32,16 @@ struct TilePalette {
 }
 
 enum TileGeometry {
-    /// Dock icon artwork does not fill its slot; it sits in a squircle inset from the edges.
-    /// Matching that inset is what makes a widget sit level with the icons beside it.
-    static let artworkInset: CGFloat = 0.075
-    static let cornerRatio: CGFloat = 0.2237
+    /// A macOS icon's art fills 824 points of a 1024-point canvas; the rest is
+    /// the margin its shadow lives in. Drawing wider than this makes a widget
+    /// sit visibly larger than the icons beside it.
+    static let artworkSideRatio: CGFloat = 824.0 / 1024.0
+    /// The squircle's corner radius, as a fraction of the art's own side.
+    static let cornerRatio: CGFloat = 185.4 / 824.0
 
     static func artworkRect(in bounds: NSRect) -> NSRect {
-        let side = min(bounds.width, bounds.height)
-        let inset = side * artworkInset
-        let square = NSRect(
-            x: bounds.midX - side / 2 + inset,
-            y: bounds.midY - side / 2 + inset,
-            width: side - inset * 2,
-            height: side - inset * 2
-        )
-        return square
+        let side = min(bounds.width, bounds.height) * artworkSideRatio
+        return NSRect(x: bounds.midX - side / 2, y: bounds.midY - side / 2, width: side, height: side)
     }
 
     static func cardPath(in rect: NSRect) -> NSBezierPath {

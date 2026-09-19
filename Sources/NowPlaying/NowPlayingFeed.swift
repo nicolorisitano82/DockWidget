@@ -98,14 +98,40 @@ enum NowPlayingFeed {
 
     // MARK: Commands
 
-    enum Command: String {
-        case togglePlayPause, next, previous
+    enum Command {
+        case togglePlayPause
+        case next
+        case previous
+        case seek(TimeInterval)
+
+        /// Commands travel as the notification's object, so they are a string.
+        var wire: String {
+            switch self {
+            case .togglePlayPause: return "togglePlayPause"
+            case .next: return "next"
+            case .previous: return "previous"
+            case .seek(let seconds): return "seek:\(seconds)"
+            }
+        }
+
+        init?(wire: String) {
+            if wire.hasPrefix("seek:"), let seconds = TimeInterval(wire.dropFirst(5)) {
+                self = .seek(seconds)
+                return
+            }
+            switch wire {
+            case "togglePlayPause": self = .togglePlayPause
+            case "next": self = .next
+            case "previous": self = .previous
+            default: return nil
+            }
+        }
     }
 
     /// Asks the privileged reader to run a transport command.
     static func send(_ command: Command) {
         DistributedNotificationCenter.default().postNotificationName(
-            commandRequested, object: command.rawValue, userInfo: nil, deliverImmediately: true
+            commandRequested, object: command.wire, userInfo: nil, deliverImmediately: true
         )
     }
 
@@ -113,7 +139,7 @@ enum NowPlayingFeed {
         DistributedNotificationCenter.default().addObserver(
             forName: commandRequested, object: nil, queue: .main
         ) { note in
-            guard let raw = note.object as? String, let command = Command(rawValue: raw) else { return }
+            guard let raw = note.object as? String, let command = Command(wire: raw) else { return }
             handler(command)
         }
     }

@@ -7,6 +7,9 @@ final class NowPlayingPaneController: PaneViewController {
     private var trackLabel: NSTextField?
     private var lastToken = ""
     private var listenerToken: UUID?
+    private var widthRowView: NSView?
+    private var widthField: NSTextField?
+    private var accessibilityNote: NSTextField?
 
     override func makeTileView() -> TileView {
         NowPlayingTileView(frame: NSRect(x: 0, y: 0, width: 128, height: 128))
@@ -19,6 +22,7 @@ final class NowPlayingPaneController: PaneViewController {
             self?.nowPlayingTile.state = state
             self?.updateSourceLabels()
         }
+        updateModeControls()
     }
 
     override func refreshTick() -> Bool {
@@ -29,6 +33,36 @@ final class NowPlayingPaneController: PaneViewController {
     }
 
     override func buildControls(in stack: NSStackView) {
+        let mode = NSSegmentedControl(
+            labels: NowPlayingSettings.Mode.allCases.map(\.label),
+            trackingMode: .selectOne,
+            target: self,
+            action: #selector(modeChanged)
+        )
+        mode.selectedSegment = NowPlayingSettings.Mode.allCases.firstIndex(of: model.value.mode) ?? 0
+        stack.addArrangedSubview(labeled("Formato", mode))
+
+        let spec = BarLayout.nowPlaying
+        let width = NSStepper()
+        width.minValue = Double(spec.minimumSpacers)
+        width.maxValue = Double(spec.maximumSpacers)
+        width.increment = 1
+        width.integerValue = spec.spacerCount
+        width.target = self
+        width.action = #selector(widthChanged)
+        widthField = NSTextField(labelWithString: widthLabel(for: spec.spacerCount))
+        let widthRow = NSStackView(views: [width, widthField!])
+        widthRow.orientation = .horizontal
+        widthRow.spacing = 8
+        widthRowView = labeled("Larghezza", widthRow)
+        stack.addArrangedSubview(widthRowView!)
+
+        accessibilityNote = NSTextField(wrappingLabelWithString: "")
+        accessibilityNote!.font = .systemFont(ofSize: 11)
+        accessibilityNote!.textColor = .secondaryLabelColor
+        accessibilityNote!.preferredMaxLayoutWidth = 392
+        stack.addArrangedSubview(accessibilityNote!)
+
         stack.addArrangedSubview(checkbox("Mostra la copertina", isOn: model.value.showsArtwork,
                                           action: #selector(artworkChanged)))
         stack.addArrangedSubview(checkbox("Mostra l'avanzamento", isOn: model.value.showsProgress,
@@ -62,6 +96,46 @@ final class NowPlayingPaneController: PaneViewController {
         note.textColor = .secondaryLabelColor
         note.preferredMaxLayoutWidth = 392
         stack.addArrangedSubview(note)
+    }
+
+    @objc private func modeChanged(_ sender: NSSegmentedControl) {
+        model.value.mode = NowPlayingSettings.Mode.allCases[sender.selectedSegment]
+        applyMode()
+        reloadTile()
+    }
+
+    @objc private func widthChanged(_ sender: NSStepper) {
+        let spec = BarLayout.nowPlaying
+        let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
+        sender.integerValue = count
+        SettingsStore.shared.set(Double(count), for: spec.spacerCountKey)
+        widthField?.stringValue = widthLabel(for: count)
+        if model.value.mode == .bar { applyMode() }
+    }
+
+    private func widthLabel(for count: Int) -> String {
+        let spec = BarLayout.nowPlaying
+        return count == spec.minimumSpacers ? "\(count) spazi (minimo)" : "\(count) spazi"
+    }
+
+    private func applyMode() {
+        WidgetInstaller.applyNowPlayingMode(model.value.mode)
+        updateModeControls()
+    }
+
+    private func updateModeControls() {
+        let isBar = model.value.mode == .bar
+        widthRowView?.isHidden = !isBar
+        guard let note = accessibilityNote else { return }
+        if !isBar {
+            note.stringValue = ""
+            note.isHidden = true
+            return
+        }
+        note.isHidden = false
+        note.stringValue = DockAccessibility.isTrusted
+            ? "La barra segue le tile vuote nel Dock e cresce con la magnification."
+            : "Serve l'accesso Accessibilità: la barra lo chiede al primo avvio, in Impostazioni di Sistema → Privacy e sicurezza → Accessibilità."
     }
 
     private func updateSourceLabels() {

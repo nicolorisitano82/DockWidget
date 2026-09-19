@@ -34,6 +34,7 @@ final class MediaRemoteBridge {
     private typealias GetPIDFn = @convention(c) (DispatchQueue, @escaping (Int32) -> Void) -> Void
     private typealias RegisterFn = @convention(c) (DispatchQueue) -> Void
     private typealias SendCommandFn = @convention(c) (UInt32, CFDictionary?) -> Bool
+    private typealias SetElapsedFn = @convention(c) (Double) -> Void
 
     private let handle: UnsafeMutableRawPointer?
     private let getInfo: GetInfoFn?
@@ -41,6 +42,7 @@ final class MediaRemoteBridge {
     private let getPID: GetPIDFn?
     private let register: RegisterFn?
     private let sendCommandFn: SendCommandFn?
+    private let setElapsedFn: SetElapsedFn?
 
     private init() {
         let library = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY)
@@ -54,6 +56,7 @@ final class MediaRemoteBridge {
         getPID = symbol("MRMediaRemoteGetNowPlayingApplicationPID", as: GetPIDFn.self)
         register = symbol("MRMediaRemoteRegisterForNowPlayingNotifications", as: RegisterFn.self)
         sendCommandFn = symbol("MRMediaRemoteSendCommand", as: SendCommandFn.self)
+        setElapsedFn = symbol("MRMediaRemoteSetElapsedTime", as: SetElapsedFn.self)
     }
 
     /// The framework loaded and the symbols are there. It says nothing about
@@ -64,6 +67,11 @@ final class MediaRemoteBridge {
 
     func registerForNotifications() {
         register?(.main)
+    }
+
+    /// Scrubs the current track. Silently does nothing where the symbol is gone.
+    func setElapsedTime(_ seconds: TimeInterval) {
+        setElapsedFn?(seconds)
     }
 
     @discardableResult

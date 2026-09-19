@@ -12,6 +12,9 @@ echo "→ chiudo le versioni in esecuzione"
 osascript -e 'quit app "DockClock"' 2>/dev/null || true
 osascript -e 'quit app "DockNowPlaying"' 2>/dev/null || true
 osascript -e 'quit app "Dock Widgets"' 2>/dev/null || true
+# The overlay agent must go too, or the freshly installed one sees a duplicate
+# of itself and quits.
+pkill -f "NowPlayingBar.app/Contents/MacOS/NowPlayingBar" 2>/dev/null || true
 
 echo "→ tolgo dal Dock le voci che non esistono più"
 defaults export com.apple.dock - | python3 -c '

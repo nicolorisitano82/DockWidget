@@ -168,9 +168,9 @@ final class ManagerViewController: NSViewController {
             return
         }
         if dockSwitch.state == .on {
-            DockTiles.add(widget.helperURL)
+            WidgetInstaller.install(widget)
         } else {
-            DockTiles.remove(widget.helperURL)
+            WidgetInstaller.uninstall(widget)
         }
         refreshInstallState()
     }

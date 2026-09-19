@@ -3,8 +3,13 @@ import AppKit
 final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private var controller: ManagerViewController?
+    private var statusItem: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        statusItem = StatusItemController { [weak self] widget in
+            self?.showWindow(selecting: widget)
+        }
+
         let controller = ManagerViewController()
         let window = NSWindow(contentViewController: controller)
         window.title = "Dock Widgets"
@@ -15,10 +20,30 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         self.window = window
         self.controller = controller
 
+        reconcileBar()
+
         if let index = requestedWidgetIndex() {
             controller.select(index)
         }
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Bringing the manager up is the natural moment to put the bar back the
+    /// way it should be: the agent dies with a logout or a crash, and the run of
+    /// empty tiles can end up the wrong length — a stored width below the
+    /// widget's minimum, or tiles the user dragged out.
+    private func reconcileBar() {
+        guard NowPlayingSettings.current.mode == .bar,
+              let widget = WidgetCatalog.widget(id: "nowplaying"),
+              widget.isInstalled else { return }
+
+        let wanted = BarLayout.nowPlaying.spacerCount
+        if DockSpacers.count(after: widget.helperURL) != wanted {
+            DockSpacers.set(count: wanted, after: widget.helperURL)
+        }
+        if !BarAgent.isRunning {
+            BarAgent.start()
+        }
     }
 
     /// `--widget <id>`, passed when a widget's tile is clicked in the Dock.
@@ -30,12 +55,21 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        window?.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        showWindow(selecting: nil)
         return true
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    /// Closing the window leaves the menu-bar item behind; this app has no
+    /// Dock tile to go back to.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    private func showWindow(selecting widget: WidgetDescriptor?) {
+        if let widget, let index = WidgetCatalog.all.firstIndex(where: { $0.id == widget.id }) {
+            controller?.select(index)
+        }
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
 }
 
 if let flag = CommandLine.arguments.firstIndex(of: "--probe-dock") {
@@ -50,5 +84,5 @@ if let flag = CommandLine.arguments.firstIndex(of: "--probe-dock") {
 let application = NSApplication.shared
 let delegate = ManagerAppDelegate()
 application.delegate = delegate
-application.setActivationPolicy(.regular)
+application.setActivationPolicy(.accessory)
 application.run()

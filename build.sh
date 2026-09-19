@@ -21,10 +21,12 @@ SHARED=("$ROOT"/Sources/Shared/*.swift)
 CLOCK=("$ROOT"/Sources/Clock/*.swift)
 NOWPLAYING=("$ROOT"/Sources/NowPlaying/*.swift)
 MANAGER=("$ROOT"/Sources/Manager/*.swift)
+BAR_AGENT=("$ROOT"/Sources/NowPlayingBar/*.swift)
 WIDGET_HOST=("$ROOT"/Sources/WidgetHost/*.swift)
 
 MANAGER_APP="$BUILD/DockWidgets.app"
 WIDGETS_DIR="$MANAGER_APP/Contents/Library/Widgets"
+AGENTS_DIR="$MANAGER_APP/Contents/Library/LoginItems"
 SIGN_QUEUE=()
 
 rm -rf "$BUILD"
@@ -104,6 +106,15 @@ swift_build "$MANAGER_APP/Contents/MacOS/DockWidgets" DockWidgets app \
 cp "$ROOT/Resources/Manager-Info.plist" "$MANAGER_APP/Contents/Info.plist"
 printf 'APPL????' > "$MANAGER_APP/Contents/PkgInfo"
 build_icons manager "$MANAGER_APP/Contents/Resources/AppIcon.icns"
+
+echo "→ agent barra"
+AGENT_APP="$AGENTS_DIR/NowPlayingBar.app"
+mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
+swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
+  "${SHARED[@]}" "${NOWPLAYING[@]}" "${BAR_AGENT[@]}"
+cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
+printf 'APPL????' > "$AGENT_APP/Contents/PkgInfo"
+SIGN_QUEUE+=("$AGENT_APP")
 
 echo "→ widget"
 make_widget "Orologio" "ClockHost" "clock" \
