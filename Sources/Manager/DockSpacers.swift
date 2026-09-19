@@ -36,7 +36,7 @@ enum DockSpacers {
 
     /// Removes every spacer of ours and lays `count` of them right after the
     /// widget's tile.
-    static func arrange(count: Int, ownedBy id: String, after widget: WidgetDescriptor, restart: Bool = true) {
+    static func arrange(count: Int, ownedBy id: String, after widget: WidgetDescriptor) {
         var list = DockTiles.entries().filter { owner(of: $0) != id }
         // Unmarked spacers left by an older version, right where ours go.
         if let anchor = list.firstIndex(where: { DockTiles.entry($0, belongsTo: widget) }) {
@@ -47,7 +47,7 @@ enum DockSpacers {
         if count > 0, let anchor = list.firstIndex(where: { DockTiles.entry($0, belongsTo: widget) }) {
             list.insert(contentsOf: Array(repeating: spacer(ownedBy: id), count: count), at: anchor + 1)
         }
-        DockTiles.write(list, restart: restart)
+        DockTiles.write(list)
     }
 
     /// Takes out every spacer of ours, plus — when the widget is given — the
@@ -56,8 +56,7 @@ enum DockSpacers {
     /// That second sweep is for spacers made before they carried a marker:
     /// without it they stay in the Dock forever, with nothing left to say whose
     /// they were.
-    static func removeAll(ownedBy id: String, adjacentTo widget: WidgetDescriptor? = nil,
-                          restart: Bool = true) {
+    static func removeAll(ownedBy id: String, adjacentTo widget: WidgetDescriptor? = nil) {
         var list = DockTiles.entries()
         let before = list.count
 
@@ -69,7 +68,7 @@ enum DockSpacers {
         list = list.filter { owner(of: $0) != id }
 
         guard list.count != before else { return }
-        DockTiles.write(list, restart: restart)
+        DockTiles.write(list)
     }
 
     private static func isSpacer(_ entry: [String: Any]) -> Bool {

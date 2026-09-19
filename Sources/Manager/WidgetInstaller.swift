@@ -7,21 +7,23 @@ import AppKit
 /// the Dock with nothing left to identify them by.
 enum WidgetInstaller {
     static func install(_ widget: WidgetDescriptor) {
-        DockTiles.add(widget, restart: false)
-        if wantsBar(widget) {
-            DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
-                                ownedBy: widget.id, after: widget, restart: false)
+        DockTiles.transaction {
+            DockTiles.add(widget)
+            if wantsBar(widget) {
+                DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
+                                    ownedBy: widget.id, after: widget)
+            }
         }
-        DockTiles.restartDock()
         if wantsBar(widget) { BarAgent.start() }
     }
 
     static func uninstall(_ widget: WidgetDescriptor) {
         // The spacers are marked as ours, so they come out wherever the user
         // dragged them — before the tile they were anchored to goes away.
-        DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget, restart: false)
-        DockTiles.remove(widget, restart: false)
-        DockTiles.restartDock()
+        DockTiles.transaction {
+            DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
+            DockTiles.remove(widget)
+        }
         if widget.id == "nowplaying" { BarAgent.stop() }
     }
 
@@ -30,13 +32,13 @@ enum WidgetInstaller {
         guard let widget = WidgetCatalog.widget(id: "nowplaying") else { return }
         switch mode {
         case .tile:
-            DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget, restart: false)
+            DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
             DockTiles.restartDock()
             BarAgent.stop()
         case .bar:
-            DockTiles.add(widget, restart: false)
+            DockTiles.add(widget)
             DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
-                                ownedBy: widget.id, after: widget, restart: false)
+                                ownedBy: widget.id, after: widget)
             DockTiles.restartDock()
             BarAgent.start()
         }
@@ -54,12 +56,13 @@ enum WidgetInstaller {
         SettingsStore.shared.set(installed.map(\.id), for: restoreKey)
         guard !installed.isEmpty else { return }
 
-        for widget in installed {
-            DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget, restart: false)
-            DockTiles.remove(widget, restart: false)
+        DockTiles.transaction {
+            for widget in installed {
+                DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
+                DockTiles.remove(widget)
+            }
         }
         BarAgent.stop()
-        DockTiles.restartDock()
     }
 
     /// Puts back what the last quit took away.
@@ -68,16 +71,17 @@ enum WidgetInstaller {
         SettingsStore.shared.set(nil, for: restoreKey)
 
         var wantsAgent = false
+        DockTiles.transaction {
         for id in ids {
             guard let widget = WidgetCatalog.widget(id: id), !widget.isInstalled else { continue }
-            DockTiles.add(widget, restart: false)
+            DockTiles.add(widget)
             if wantsBar(widget) {
                 DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
-                                    ownedBy: widget.id, after: widget, restart: false)
+                                    ownedBy: widget.id, after: widget)
                 wantsAgent = true
             }
         }
-        DockTiles.restartDock()
+        }
         if wantsAgent { BarAgent.start() }
     }
 

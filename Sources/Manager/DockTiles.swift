@@ -14,10 +14,34 @@ enum DockTiles {
         defaults?.array(forKey: key) as? [[String: Any]] ?? []
     }
 
-    static func write(_ entries: [[String: Any]], restart: Bool) {
+    static func write(_ entries: [[String: Any]]) {
         defaults?.set(entries, forKey: key)
         defaults?.synchronize()
-        if restart { restartDock() }
+    }
+
+    /// Every change to the Dock's items belongs inside one of these.
+    ///
+    /// A running Dock rewrites the whole item list whenever it feels like it,
+    /// and saves the copy it holds in memory as it quits — either one silently
+    /// undoes what we just wrote, which is how a removed widget's spacers came
+    /// back. Suspended it cannot write, and killed outright it cannot save, so
+    /// the Dock that launchd brings back reads exactly what we left.
+    static func transaction(_ body: () -> Void) {
+        signal("-STOP")
+        defer { signal("-KILL") }
+        body()
+    }
+
+    static func restartDock() {
+        signal("-KILL")
+    }
+
+    private static func signal(_ name: String) {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+        task.arguments = [name, "Dock"]
+        try? task.run()
+        task.waitUntilExit()
     }
 
     static func url(of entry: [String: Any]) -> URL? {
@@ -51,7 +75,7 @@ enum DockTiles {
         entries().contains { self.entry($0, belongsTo: widget) }
     }
 
-    static func add(_ widget: WidgetDescriptor, restart: Bool = true) {
+    static func add(_ widget: WidgetDescriptor) {
         guard !contains(widget) else { return }
         var list = entries()
         list.append([
@@ -65,20 +89,14 @@ enum DockTiles {
                 "bundle-identifier": widget.bundleID,
             ],
         ])
-        write(list, restart: restart)
+        write(list)
     }
 
-    static func remove(_ widget: WidgetDescriptor, restart: Bool = true) {
+    static func remove(_ widget: WidgetDescriptor) {
         let list = entries()
         let remaining = list.filter { !entry($0, belongsTo: widget) }
         guard remaining.count != list.count else { return }
-        write(remaining, restart: restart)
+        write(remaining)
     }
 
-    static func restartDock() {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
-        task.arguments = ["Dock"]
-        try? task.run()
-    }
 }

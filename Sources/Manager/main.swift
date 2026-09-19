@@ -43,7 +43,9 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         // around, or a width the user lowered below the widget's minimum.
         let wanted = BarLayout.nowPlaying.spacerCount
         if !DockSpacers.isArranged(count: wanted, ownedBy: widget.id, after: widget) {
-            DockSpacers.arrange(count: wanted, ownedBy: widget.id, after: widget)
+            DockTiles.transaction {
+                DockSpacers.arrange(count: wanted, ownedBy: widget.id, after: widget)
+            }
         }
         if !BarAgent.isRunning {
             BarAgent.start()

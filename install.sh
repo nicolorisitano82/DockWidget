@@ -48,6 +48,6 @@ mv /Applications/DockWidgets.app.new /Applications/DockWidgets.app
 rm -rf /Applications/DockWidgets.app.old
 touch /Applications/DockWidgets.app
 
-killall Dock 2>/dev/null || true
+killall -KILL Dock 2>/dev/null || true
 open /Applications/DockWidgets.app
 echo "Fatto."
