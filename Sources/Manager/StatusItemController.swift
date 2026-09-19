@@ -5,6 +5,7 @@ import AppKit
 /// It never shows in the Dock — the Dock is where the widgets live, and an app
 /// icon sitting next to them would be one tile of confusion.
 final class StatusItemController {
+    private let loginItemTag = 900
     private let statusItem: NSStatusItem
     private let onOpen: (WidgetDescriptor?) -> Void
 
@@ -38,17 +39,14 @@ final class StatusItemController {
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
-
-        for (index, widget) in WidgetCatalog.all.enumerated() {
-            let item = NSMenuItem(title: widget.name, action: #selector(toggleWidget(_:)), keyEquivalent: "")
-            item.target = self
-            item.tag = index
-            item.state = widget.isInstalled ? .on : .off
-            menu.addItem(item)
-        }
+        let login = NSMenuItem(title: "Apri al login", action: #selector(toggleLogin(_:)), keyEquivalent: "")
+        login.target = self
+        login.tag = loginItemTag
+        login.state = LoginItem.isEnabled ? .on : .off
+        menu.addItem(login)
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Esci", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Esci e libera il Dock", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         return menu
@@ -57,28 +55,33 @@ final class StatusItemController {
     /// The checkmarks must be right at the moment the menu opens, not at the
     /// moment it was built.
     func refresh(_ menu: NSMenu) {
-        for item in menu.items where item.tag < WidgetCatalog.all.count && item.action == #selector(toggleWidget(_:)) {
-            item.state = WidgetCatalog.all[item.tag].isInstalled ? .on : .off
+        for item in menu.items {
+            if item.tag == loginItemTag {
+                item.state = LoginItem.isEnabled ? .on : .off
+                item.title = LoginItem.needsApproval ? "Apri al login (da approvare)" : "Apri al login"
+            }
         }
+    }
+
+    @objc private func toggleLogin(_ sender: NSMenuItem) {
+        let error = LoginItem.set(sender.state != .on)
+        sender.state = LoginItem.isEnabled ? .on : .off
+        guard let error else { return }
+        let alert = NSAlert()
+        alert.messageText = "Non sono riuscito a impostare l'apertura al login"
+        alert.informativeText = error.localizedDescription
+        alert.runModal()
     }
 
     @objc private func openManager() {
         onOpen(nil)
     }
 
-    @objc private func toggleWidget(_ sender: NSMenuItem) {
-        let widget = WidgetCatalog.all[sender.tag]
-        if widget.isInstalled {
-            WidgetInstaller.uninstall(widget)
-        } else {
-            WidgetInstaller.install(widget)
-        }
-        sender.state = widget.isInstalled ? .on : .off
-    }
-
     @objc private func quit() {
-        // Quitting takes away this menu, nothing else: the tiles are drawn by
-        // the Dock's own plug-in host and the bar by its own agent.
+        // The widgets outlive this process — the Dock draws the tiles itself —
+        // so leaving them behind would mean a Dock full of widgets nothing is
+        // managing. They come back at the next launch.
+        WidgetInstaller.uninstallAllForQuit()
         NSApp.terminate(nil)
     }
 

@@ -29,6 +29,10 @@ final class SettingsStore {
         defaults.string(forKey: key) ?? fallback
     }
 
+    func strings(_ key: String) -> [String]? {
+        defaults.stringArray(forKey: key)
+    }
+
     func double(_ key: String, or fallback: Double) -> Double {
         defaults.object(forKey: key) as? Double ?? fallback
     }

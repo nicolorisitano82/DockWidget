@@ -7,18 +7,20 @@ import AppKit
 /// the Dock with nothing left to identify them by.
 enum WidgetInstaller {
     static func install(_ widget: WidgetDescriptor) {
-        DockTiles.add(widget.helperURL, restart: false)
+        DockTiles.add(widget, restart: false)
         if wantsBar(widget) {
-            DockSpacers.set(count: BarLayout.nowPlaying.spacerCount,
-                            after: widget.helperURL, restart: false)
+            DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
+                                ownedBy: widget.id, after: widget, restart: false)
         }
         DockTiles.restartDock()
         if wantsBar(widget) { BarAgent.start() }
     }
 
     static func uninstall(_ widget: WidgetDescriptor) {
-        DockSpacers.set(count: 0, after: widget.helperURL, restart: false)
-        DockTiles.remove(widget.helperURL, restart: false)
+        // The spacers are marked as ours, so they come out wherever the user
+        // dragged them — before the tile they were anchored to goes away.
+        DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget, restart: false)
+        DockTiles.remove(widget, restart: false)
         DockTiles.restartDock()
         if widget.id == "nowplaying" { BarAgent.stop() }
     }
@@ -28,16 +30,55 @@ enum WidgetInstaller {
         guard let widget = WidgetCatalog.widget(id: "nowplaying") else { return }
         switch mode {
         case .tile:
-            DockSpacers.set(count: 0, after: widget.helperURL, restart: false)
+            DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget, restart: false)
             DockTiles.restartDock()
             BarAgent.stop()
         case .bar:
-            DockTiles.add(widget.helperURL, restart: false)
-            DockSpacers.set(count: BarLayout.nowPlaying.spacerCount,
-                            after: widget.helperURL, restart: false)
+            DockTiles.add(widget, restart: false)
+            DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
+                                ownedBy: widget.id, after: widget, restart: false)
             DockTiles.restartDock()
             BarAgent.start()
         }
+    }
+
+    /// What was in the Dock when the user quit, so the next launch can put it back.
+    private static let restoreKey = "session.restore"
+
+    /// Quitting puts the Dock back the way the user had it before Dock Widgets.
+    ///
+    /// Only on a deliberate quit: doing this on logout would empty the Dock at
+    /// every restart and leave it empty until the manager was opened again.
+    static func uninstallAllForQuit() {
+        let installed = WidgetCatalog.all.filter(\.isInstalled)
+        SettingsStore.shared.set(installed.map(\.id), for: restoreKey)
+        guard !installed.isEmpty else { return }
+
+        for widget in installed {
+            DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget, restart: false)
+            DockTiles.remove(widget, restart: false)
+        }
+        BarAgent.stop()
+        DockTiles.restartDock()
+    }
+
+    /// Puts back what the last quit took away.
+    static func restoreAfterQuit() {
+        guard let ids = SettingsStore.shared.strings(restoreKey), !ids.isEmpty else { return }
+        SettingsStore.shared.set(nil, for: restoreKey)
+
+        var wantsAgent = false
+        for id in ids {
+            guard let widget = WidgetCatalog.widget(id: id), !widget.isInstalled else { continue }
+            DockTiles.add(widget, restart: false)
+            if wantsBar(widget) {
+                DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
+                                    ownedBy: widget.id, after: widget, restart: false)
+                wantsAgent = true
+            }
+        }
+        DockTiles.restartDock()
+        if wantsAgent { BarAgent.start() }
     }
 
     private static func wantsBar(_ widget: WidgetDescriptor) -> Bool {

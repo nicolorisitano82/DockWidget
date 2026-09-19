@@ -27,18 +27,16 @@ enum BarAgent {
         task.executableURL = executable
         do {
             try task.run()
+            Diagnostics.write("barra generata come processo figlio, pid \(task.processIdentifier)")
         } catch {
             Diagnostics.write("avvio della barra non riuscito: \(error.localizedDescription)")
             return
         }
 
-        // Best effort: an ad-hoc signature is not always enough for the
-        // login-item registry, and the bar still works for this session.
-        do {
-            try SMAppService.loginItem(identifier: identifier).register()
-        } catch {
-            Diagnostics.write("registrazione come elemento di login non riuscita: \(error.localizedDescription)")
-        }
+        // Deliberately not registered as a login item of its own: launchd
+        // would start a second copy, and macOS kills a registered helper that
+        // anything but launchd launched — a Launch Constraint Violation. The
+        // manager opens at login instead, and starts the bar from there.
     }
 
     static func stop() {

@@ -20,6 +20,7 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         self.window = window
         self.controller = controller
 
+        WidgetInstaller.restoreAfterQuit()
         reconcileBar()
 
         if let index = requestedWidgetIndex() {
@@ -33,13 +34,16 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     /// empty tiles can end up the wrong length — a stored width below the
     /// widget's minimum, or tiles the user dragged out.
     private func reconcileBar() {
-        guard NowPlayingSettings.current.mode == .bar,
-              let widget = WidgetCatalog.widget(id: "nowplaying"),
-              widget.isInstalled else { return }
+        let mode = NowPlayingSettings.current.mode
+        guard let widget = WidgetCatalog.widget(id: "nowplaying") else { return }
+        Diagnostics.write("reconcile: modo \(mode.rawValue), nel dock \(widget.isInstalled), agent \(BarAgent.isRunning)")
+        guard mode == .bar, widget.isInstalled else { return }
 
+        // Spacers can end up in the wrong place or the wrong number: dragged
+        // around, or a width the user lowered below the widget's minimum.
         let wanted = BarLayout.nowPlaying.spacerCount
-        if DockSpacers.count(after: widget.helperURL) != wanted {
-            DockSpacers.set(count: wanted, after: widget.helperURL)
+        if !DockSpacers.isArranged(count: wanted, ownedBy: widget.id, after: widget) {
+            DockSpacers.arrange(count: wanted, ownedBy: widget.id, after: widget)
         }
         if !BarAgent.isRunning {
             BarAgent.start()

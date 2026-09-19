@@ -36,8 +36,16 @@ echo "→ rimuovo i bundle vecchi"
 rm -rf /Applications/DockClock.app /Applications/DockNowPlaying.app
 
 echo "→ installo DockWidgets.app"
-rm -rf /Applications/DockWidgets.app
-cp -R "$APP" /Applications/
+# Swapped into place instead of removed and recopied: the Dock watches the
+# files behind its tiles, and a bundle that disappears even for a moment gets
+# its tiles dropped from the Dock at the next save.
+rm -rf /Applications/DockWidgets.app.new
+cp -R "$APP" /Applications/DockWidgets.app.new
+if [ -d /Applications/DockWidgets.app ]; then
+  mv /Applications/DockWidgets.app /Applications/DockWidgets.app.old
+fi
+mv /Applications/DockWidgets.app.new /Applications/DockWidgets.app
+rm -rf /Applications/DockWidgets.app.old
 touch /Applications/DockWidgets.app
 
 killall Dock 2>/dev/null || true

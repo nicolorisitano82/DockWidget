@@ -15,7 +15,19 @@ BUILD="$ROOT/build"
 SDK="$(xcrun --show-sdk-path)"
 DEPLOY="14.0"
 ARCHS="${ARCHS:-$(uname -m)}"
-SIGN_IDENTITY="${SIGN_IDENTITY:--}"
+# A stable signature is not cosmetic here: TCC ties the Accessibility consent
+# the bar needs to the app's designated requirement, and an ad-hoc signature
+# changes with every build. Tools/make-signing-cert.sh creates this identity.
+LOCAL_IDENTITY="Dock Widgets Dev"
+if [ -z "${SIGN_IDENTITY:-}" ]; then
+  if security find-identity -v -p codesigning 2>/dev/null | grep -q "$LOCAL_IDENTITY"; then
+    SIGN_IDENTITY="$LOCAL_IDENTITY"
+  else
+    SIGN_IDENTITY="-"
+    echo "⚠︎  nessuna identità di firma: build ad-hoc, il permesso di Accessibilità decadrà"
+    echo "   crea l'identità con ./Tools/make-signing-cert.sh"
+  fi
+fi
 
 SHARED=("$ROOT"/Sources/Shared/*.swift)
 CLOCK=("$ROOT"/Sources/Clock/*.swift)
@@ -123,7 +135,9 @@ make_widget "In riproduzione" "NowPlayingHost" "nowplaying" \
   "NowPlayingWidget" "NowPlayingDockTilePlugin" "nowplaying" "NowPlaying.app" "${NOWPLAYING[@]}"
 
 for target in "${SIGN_QUEUE[@]}" "$MANAGER_APP"; do
-  codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" >/dev/null 2>&1
+  codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" || {
+    echo "firma fallita: $target"; exit 1;
+  }
 done
 touch "$MANAGER_APP"
 

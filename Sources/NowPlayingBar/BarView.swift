@@ -13,6 +13,20 @@ final class BarView: NSView {
     /// Anchor tile plus spacers: how many Dock cells the bar covers.
     var tileCount = BarLayout.nowPlaying.spacerCount + 1
 
+    /// What the pointer is over, and what it is holding down. A control that
+    /// does not answer the pointer feels broken, so both are drawn.
+    private enum Target: Equatable {
+        case previous, playPause, next, artwork, progress
+    }
+
+    private var hovered: Target? {
+        didSet { if hovered != oldValue { needsDisplay = true } }
+    }
+
+    private var pressed: Target? {
+        didSet { if pressed != oldValue { needsDisplay = true } }
+    }
+
     var onCommand: ((NowPlayingFeed.Command) -> Void)?
     var onOpenPlayer: (() -> Void)?
 
@@ -90,9 +104,10 @@ final class BarView: NSView {
                        withAttributes: [.font: font, .foregroundColor: palette.secondary])
         }
 
-        drawSymbol("backward.fill", in: metrics.previous, color: palette.primary)
-        drawSymbol(state.isPlaying ? "pause.fill" : "play.fill", in: metrics.playPause, color: palette.primary)
-        drawSymbol("forward.fill", in: metrics.next, color: palette.primary)
+        drawControl("backward.fill", in: metrics.previous, target: .previous, palette: palette)
+        drawControl(state.isPlaying ? "pause.fill" : "play.fill", in: metrics.playPause,
+                    target: .playPause, palette: palette)
+        drawControl("forward.fill", in: metrics.next, target: .next, palette: palette)
     }
 
     private func drawArtwork(in rect: NSRect) {
@@ -108,13 +123,20 @@ final class BarView: NSView {
         }
         NSGraphicsContext.saveGraphicsState()
         path.addClip()
+        defer {
+            NSGraphicsContext.restoreGraphicsState()
+            if hovered == .artwork || pressed == .artwork {
+                NSColor(calibratedWhite: pressed == .artwork ? 0 : 1,
+                        alpha: pressed == .artwork ? 0.18 : 0.14).setFill()
+                path.fill()
+            }
+        }
         let size = artwork.size
         let scale = max(rect.width / size.width, rect.height / size.height)
         let box = NSRect(x: rect.midX - size.width * scale / 2, y: rect.midY - size.height * scale / 2,
                          width: size.width * scale, height: size.height * scale)
         artwork.draw(in: box, from: .zero, operation: .sourceOver, fraction: 1,
                      respectFlipped: true, hints: nil)
-        NSGraphicsContext.restoreGraphicsState()
     }
 
     private func drawText(in rect: NSRect, palette: TilePalette) {
@@ -147,7 +169,9 @@ final class BarView: NSView {
         return style
     }
 
-    private func drawProgress(in rect: NSRect, palette: TilePalette) {
+    private func drawProgress(in rect0: NSRect, palette: TilePalette) {
+        let isActive = hovered == .progress || pressed == .progress
+        let rect = isActive ? rect0.insetBy(dx: 0, dy: -rect0.height * 0.35) : rect0
         let radius = rect.height / 2
         NSColor(calibratedWhite: SystemAppearance.shared.isDark ? 1 : 0, alpha: 0.18).setFill()
         NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
@@ -157,6 +181,31 @@ final class BarView: NSView {
                             width: max(rect.height, rect.width * CGFloat(progress)), height: rect.height)
         palette.accent.setFill()
         NSBezierPath(roundedRect: filled, xRadius: radius, yRadius: radius).fill()
+
+        if isActive {
+            let knob = rect.height * 1.7
+            let centre = NSPoint(x: filled.maxX, y: rect.midY)
+            palette.primary.setFill()
+            NSBezierPath(ovalIn: NSRect(x: centre.x - knob / 2, y: centre.y - knob / 2,
+                                        width: knob, height: knob)).fill()
+        }
+    }
+
+    /// A control with its pointer states: a ring of background on hover, a
+    /// stronger one plus a touch of shrink while held.
+    private func drawControl(_ name: String, in rect: NSRect, target: Target, palette: TilePalette) {
+        let isPressed = pressed == target
+        let isHovered = hovered == target
+
+        if isHovered || isPressed {
+            let dark = SystemAppearance.shared.isDark
+            let alpha: CGFloat = isPressed ? (dark ? 0.26 : 0.18) : (dark ? 0.14 : 0.09)
+            NSColor(calibratedWhite: dark ? 1 : 0, alpha: alpha).setFill()
+            NSBezierPath(ovalIn: rect).fill()
+        }
+
+        let box = isPressed ? rect.insetBy(dx: rect.width * 0.06, dy: rect.height * 0.06) : rect
+        drawSymbol(name, in: box, color: isPressed ? palette.accent : palette.primary)
     }
 
     private func drawSymbol(_ name: String, in rect: NSRect, color: NSColor) {
@@ -173,22 +222,66 @@ final class BarView: NSView {
 
     // MARK: Interaction
 
-    override func mouseDown(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
+    private func target(at point: NSPoint) -> Target? {
         let metrics = Metrics(bounds: bounds, tileCount: tileCount)
+        let slack = metrics.controlSide * 0.12
+        if metrics.playPause.insetBy(dx: -slack, dy: -slack).contains(point) { return .playPause }
+        if metrics.next.insetBy(dx: -slack, dy: -slack).contains(point) { return .next }
+        if metrics.previous.insetBy(dx: -slack, dy: -slack).contains(point) { return .previous }
+        if metrics.progress.insetBy(dx: 0, dy: -metrics.progress.height * 1.5).contains(point) { return .progress }
+        if metrics.artwork.contains(point) { return .artwork }
+        return nil
+    }
 
-        if metrics.playPause.insetBy(dx: -4, dy: -4).contains(point) {
-            onCommand?(.togglePlayPause)
-        } else if metrics.next.insetBy(dx: -4, dy: -4).contains(point) {
-            onCommand?(.next)
-        } else if metrics.previous.insetBy(dx: -4, dy: -4).contains(point) {
-            onCommand?(.previous)
-        } else if metrics.progress.insetBy(dx: 0, dy: -6).contains(point), let duration = state.duration {
-            let fraction = min(max((point.x - metrics.progress.minX) / metrics.progress.width, 0), 1)
+    private func perform(_ target: Target, at point: NSPoint) {
+        switch target {
+        case .playPause: onCommand?(.togglePlayPause)
+        case .next: onCommand?(.next)
+        case .previous: onCommand?(.previous)
+        case .artwork: onOpenPlayer?()
+        case .progress:
+            guard let duration = state.duration else { return }
+            let bar = Metrics(bounds: bounds, tileCount: tileCount).progress
+            let fraction = min(max((point.x - bar.minX) / bar.width, 0), 1)
             onCommand?(.seek(duration * Double(fraction)))
-        } else if metrics.artwork.contains(point) {
-            onOpenPlayer?()
         }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        pressed = target(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        // The highlight follows the pointer off the control and back on, the
+        // way a button behaves everywhere else.
+        guard pressed != nil else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        hovered = target(at: point)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        defer { pressed = nil }
+        guard let pressed, target(at: point) == pressed else { return }
+        perform(pressed, at: point)
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        hovered = target(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hovered = nil
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        // .activeAlways because the bar never becomes the key window.
+        addTrackingArea(NSTrackingArea(rect: .zero,
+                                       options: [.mouseEnteredAndExited, .mouseMoved,
+                                                 .activeAlways, .inVisibleRect],
+                                       owner: self))
     }
 
     override func rightMouseDown(with event: NSEvent) {

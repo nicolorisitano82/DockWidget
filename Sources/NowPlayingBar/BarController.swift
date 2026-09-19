@@ -27,6 +27,7 @@ final class BarController {
         panel.hasShadow = false
         panel.isMovable = false
         panel.hidesOnDeactivate = false
+        panel.acceptsMouseMovedEvents = true
         panel.contentView = barView
 
         barView.onCommand = { command in NowPlayingFeed.send(command) }

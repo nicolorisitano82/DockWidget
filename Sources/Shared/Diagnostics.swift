@@ -27,12 +27,15 @@ enum Diagnostics {
         let directory = logURL.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         guard let data = line.data(using: .utf8) else { return }
-        if let handle = try? FileHandle(forWritingTo: logURL) {
-            defer { try? handle.close() }
-            _ = try? handle.seekToEnd()
-            try? handle.write(contentsOf: data)
-        } else {
-            try? data.write(to: logURL)
+
+        // Three processes write here — the plug-in inside the Dock, the manager
+        // and the agent. Seeking to the end and writing is two steps and they
+        // clobber each other; O_APPEND makes a small write atomic.
+        let descriptor = open(logURL.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+        guard descriptor >= 0 else { return }
+        defer { close(descriptor) }
+        data.withUnsafeBytes { buffer in
+            _ = Darwin.write(descriptor, buffer.baseAddress, buffer.count)
         }
     }
 }

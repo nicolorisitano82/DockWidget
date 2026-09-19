@@ -15,7 +15,10 @@ struct WidgetDescriptor {
             .appendingPathComponent(helperBundleName, isDirectory: true)
     }
 
-    var isInstalled: Bool { DockTiles.contains(helperURL) }
+    /// Matches the identifier the build script gives the widget's app bundle.
+    var bundleID: String { "dev.nicolo.dockwidgets.\(id)" }
+
+    var isInstalled: Bool { DockTiles.contains(self) }
 
     var icon: NSImage {
         NSWorkspace.shared.icon(forFile: helperURL.path)
