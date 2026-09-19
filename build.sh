@@ -64,6 +64,12 @@ swift_build() {
   fi
 }
 
+# A malformed Info.plist does not fail loudly: the app simply becomes
+# unlaunchable and the Dock shows it with a prohibition sign.
+check_plist() {
+  plutil -lint "$1" >/dev/null || { echo "Info.plist non valido: $1"; exit 1; }
+}
+
 fill_plist() {
   sed -e "s/__DISPLAY_NAME__/$2/g" \
       -e "s/__EXECUTABLE__/$3/g" \
@@ -100,6 +106,8 @@ make_widget() {
   fill_plist "$ROOT/Resources/Plugin-Info.plist" "$display" "$executable" \
     "dev.nicolo.dockwidgets.$widget_id.tile" "$plugin" "$principal" > "$plugin_bundle/Contents/Info.plist"
   printf 'APPL????' > "$app/Contents/PkgInfo"
+  check_plist "$app/Contents/Info.plist"
+  check_plist "$plugin_bundle/Contents/Info.plist"
 
   build_icons "$icon_kind" "$app/Contents/Resources/AppIcon.icns"
 
@@ -117,6 +125,7 @@ mkdir -p "$MANAGER_APP/Contents/MacOS" "$MANAGER_APP/Contents/Resources" "$WIDGE
 swift_build "$MANAGER_APP/Contents/MacOS/DockWidgets" DockWidgets app \
   "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${MANAGER[@]}"
 cp "$ROOT/Resources/Manager-Info.plist" "$MANAGER_APP/Contents/Info.plist"
+check_plist "$MANAGER_APP/Contents/Info.plist"
 printf 'APPL????' > "$MANAGER_APP/Contents/PkgInfo"
 build_icons manager "$MANAGER_APP/Contents/Resources/AppIcon.icns"
 
@@ -126,6 +135,7 @@ mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
 swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
   "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${OVERLAY[@]}"
 cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
+check_plist "$AGENT_APP/Contents/Info.plist"
 printf 'APPL????' > "$AGENT_APP/Contents/PkgInfo"
 SIGN_QUEUE+=("$AGENT_APP")
 
@@ -140,6 +150,7 @@ make_bar_widget() {
   fill_plist "$ROOT/Resources/BarWidget-Info.plist" "$display" "$executable" \
     "dev.nicolo.dockwidgets.$widget_id" "" > "$app/Contents/Info.plist"
   printf 'APPL????' > "$app/Contents/PkgInfo"
+  check_plist "$app/Contents/Info.plist"
   build_icons "$icon_kind" "$app/Contents/Resources/AppIcon.icns"
   SIGN_QUEUE+=("$app")
 }
