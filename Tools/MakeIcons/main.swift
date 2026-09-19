@@ -38,6 +38,39 @@ final class ManagerIconView: TileView {
     }
 }
 
+/// The actions widget's icon: its own cells, two by two.
+final class ActionsIconView: TileView {
+    override func draw(_ dirtyRect: NSRect) {
+        let card = drawCard()
+        let slots = ActionsSettings.defaults
+        let gap = card.width * 0.07
+        let side = (card.width * 0.74 - gap) / 2
+        let origin = NSPoint(x: card.midX - side - gap / 2, y: card.midY - side - gap / 2)
+
+        for (index, slot) in slots.enumerated() {
+            let box = NSRect(x: origin.x + CGFloat(index % 2) * (side + gap),
+                             y: origin.y + CGFloat(1 - index / 2) * (side + gap),
+                             width: side, height: side)
+            let radius = side * 0.28
+            slot.background.setFill()
+            NSBezierPath(roundedRect: box, xRadius: radius, yRadius: radius).fill()
+
+            let glyph = box.insetBy(dx: side * 0.26, dy: side * 0.26)
+            let configuration = NSImage.SymbolConfiguration(pointSize: glyph.height, weight: .semibold)
+                .applying(NSImage.SymbolConfiguration(hierarchicalColor: slot.icon))
+            guard let image = NSImage(systemSymbolName: slot.symbol, accessibilityDescription: nil)?
+                .withSymbolConfiguration(configuration) else { continue }
+            let size = image.size
+            let scale = min(glyph.width / size.width, glyph.height / size.height)
+            image.draw(in: NSRect(x: glyph.midX - size.width * scale / 2,
+                                  y: glyph.midY - size.height * scale / 2,
+                                  width: size.width * scale, height: size.height * scale),
+                       from: .zero, operation: .sourceOver, fraction: 1,
+                       respectFlipped: true, hints: nil)
+        }
+    }
+}
+
 func makeView(side: CGFloat) -> NSView {
     let frame = NSRect(x: 0, y: 0, width: side, height: side)
     switch kind {
@@ -49,6 +82,10 @@ func makeView(side: CGFloat) -> NSView {
         components.year = 2026; components.month = 1; components.day = 1
         components.hour = 10; components.minute = 9; components.second = 36
         view.fixedDate = Calendar.current.date(from: components)
+        return view
+    case "actions":
+        let view = ActionsIconView(frame: frame)
+        view.reloadSettings()
         return view
     case "manager":
         let view = ManagerIconView(frame: frame)

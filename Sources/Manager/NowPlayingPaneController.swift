@@ -2,7 +2,7 @@ import AppKit
 
 final class NowPlayingPaneController: PaneViewController {
     private let model = NowPlayingSettingsModel()
-    private var nowPlayingTile: NowPlayingTileView { tileView as! NowPlayingTileView }
+    private var nowPlayingTile: NowPlayingTileView { stageView as! NowPlayingTileView }
     private var channelLabel: NSTextField?
     private var trackLabel: NSTextField?
     private var lastToken = ""

@@ -138,4 +138,13 @@ enum BarLayout {
         defaultSpacers: 3,
         maximumSpacers: 8
     )
+
+    /// Two tiles: four square cells, each half a tile wide.
+    static let actions = Spec(
+        id: "actions",
+        anchorTitle: "Azioni",
+        minimumSpacers: 1,
+        defaultSpacers: 1,
+        maximumSpacers: 4
+    )
 }

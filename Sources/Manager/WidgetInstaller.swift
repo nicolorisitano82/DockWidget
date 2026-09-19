@@ -9,9 +9,8 @@ enum WidgetInstaller {
     static func install(_ widget: WidgetDescriptor) {
         DockTiles.transaction {
             DockTiles.add(widget)
-            if wantsBar(widget) {
-                DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
-                                    ownedBy: widget.id, after: widget)
+            if let spec = widget.barSpec() {
+                DockSpacers.arrange(count: spec.spacerCount, ownedBy: widget.id, after: widget)
             }
         }
         if wantsBar(widget) { BarAgent.start() }
@@ -24,7 +23,9 @@ enum WidgetInstaller {
             DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
             DockTiles.remove(widget)
         }
-        if widget.id == "nowplaying" { BarAgent.stop() }
+        if !WidgetCatalog.all.contains(where: { $0.isInstalled && $0.barSpec() != nil }) {
+            BarAgent.stop()
+        }
     }
 
     /// Switches the now-playing widget between the square tile and the wide bar.
@@ -75,9 +76,8 @@ enum WidgetInstaller {
         for id in ids {
             guard let widget = WidgetCatalog.widget(id: id), !widget.isInstalled else { continue }
             DockTiles.add(widget)
-            if wantsBar(widget) {
-                DockSpacers.arrange(count: BarLayout.nowPlaying.spacerCount,
-                                    ownedBy: widget.id, after: widget)
+            if let spec = widget.barSpec() {
+                DockSpacers.arrange(count: spec.spacerCount, ownedBy: widget.id, after: widget)
                 wantsAgent = true
             }
         }
@@ -86,6 +86,6 @@ enum WidgetInstaller {
     }
 
     private static func wantsBar(_ widget: WidgetDescriptor) -> Bool {
-        widget.id == "nowplaying" && NowPlayingSettings.current.mode == .bar
+        widget.barSpec() != nil
     }
 }

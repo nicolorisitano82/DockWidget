@@ -21,7 +21,7 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         self.controller = controller
 
         WidgetInstaller.restoreAfterQuit()
-        reconcileBar()
+        reconcileBars()
 
         if let index = requestedWidgetIndex() {
             controller.select(index)
@@ -29,25 +29,35 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    /// Bringing the manager up is the natural moment to put the bar back the
-    /// way it should be: the agent dies with a logout or a crash, and the run of
-    /// empty tiles can end up the wrong length — a stored width below the
-    /// widget's minimum, or tiles the user dragged out.
-    private func reconcileBar() {
-        let mode = NowPlayingSettings.current.mode
-        guard let widget = WidgetCatalog.widget(id: "nowplaying") else { return }
-        Diagnostics.write("reconcile: modo \(mode.rawValue), nel dock \(widget.isInstalled), agent \(BarAgent.isRunning)")
-        guard mode == .bar, widget.isInstalled else { return }
+    /// Bringing the manager up is the natural moment to put the bars back the
+    /// way they should be: the agent dies with a logout or a crash, and a run
+    /// of empty tiles can end up the wrong length or in the wrong place.
+    ///
+    /// The Dock is only restarted when something actually has to change — a
+    /// transaction costs the user a Dock restart.
+    private func reconcileBars() {
+        var repairs: [() -> Void] = []
+        var needsAgent = false
 
-        // Spacers can end up in the wrong place or the wrong number: dragged
-        // around, or a width the user lowered below the widget's minimum.
-        let wanted = BarLayout.nowPlaying.spacerCount
-        if !DockSpacers.isArranged(count: wanted, ownedBy: widget.id, after: widget) {
-            DockTiles.transaction {
-                DockSpacers.arrange(count: wanted, ownedBy: widget.id, after: widget)
+        for widget in WidgetCatalog.all {
+            guard widget.isInstalled, let spec = widget.barSpec() else {
+                if DockSpacers.count(ownedBy: widget.id) > 0 {
+                    repairs.append { DockSpacers.removeAll(ownedBy: widget.id) }
+                }
+                continue
+            }
+            needsAgent = true
+            if !DockSpacers.isArranged(count: spec.spacerCount, ownedBy: widget.id, after: widget) {
+                repairs.append {
+                    DockSpacers.arrange(count: spec.spacerCount, ownedBy: widget.id, after: widget)
+                }
             }
         }
-        if !BarAgent.isRunning {
+
+        if !repairs.isEmpty {
+            DockTiles.transaction { repairs.forEach { $0() } }
+        }
+        if needsAgent, !BarAgent.isRunning {
             BarAgent.start()
         }
     }

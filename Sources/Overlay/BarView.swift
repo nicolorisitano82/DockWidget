@@ -5,13 +5,10 @@ import AppKit
 /// Every measurement is a fraction of the view's height, because that height is
 /// whatever the Dock says right now: the bar grows and shrinks with the
 /// magnification of the icons beside it.
-final class BarView: NSView {
+final class BarView: BarContentView {
     var state = NowPlayingState() {
         didSet { needsDisplay = true }
     }
-
-    /// Anchor tile plus spacers: how many Dock cells the bar covers.
-    var tileCount = BarLayout.nowPlaying.spacerCount + 1
 
     /// What the pointer is over, and what it is holding down. A control that
     /// does not answer the pointer feels broken, so both are drawn.
@@ -30,6 +27,10 @@ final class BarView: NSView {
     var onCommand: ((NowPlayingFeed.Command) -> Void)?
     var onOpenPlayer: (() -> Void)?
 
+    override func reloadSettings() {
+        needsDisplay = true
+    }
+
     private var palette: TilePalette {
         TilePalette.resolve(dark: SystemAppearance.shared.isDark,
                             accent: NowPlayingSettings.current.accent)
@@ -45,17 +46,7 @@ final class BarView: NSView {
         let next: NSRect
         let controlSide: CGFloat
 
-        init(bounds: NSRect, tileCount: Int) {
-            // The bar spans one anchor tile plus its spacers, all the same
-            // width, so one tile's width gives the icon size the Dock is using
-            // — and the bar has to be exactly that tall to sit level with the
-            // icons beside it.
-            let tileWidth = bounds.width / CGFloat(max(tileCount, 1))
-            let iconSide = tileWidth * TileGeometry.artworkSideRatio
-            let plate = NSRect(x: bounds.minX + (tileWidth - iconSide) / 2,
-                               y: bounds.midY - iconSide / 2,
-                               width: bounds.width - (tileWidth - iconSide),
-                               height: iconSide)
+        init(plate: NSRect) {
             self.plate = plate
 
             let padding = plate.height * 0.10
@@ -81,7 +72,7 @@ final class BarView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let metrics = Metrics(bounds: bounds, tileCount: tileCount)
+        let metrics = Metrics(plate: plate)
         let palette = self.palette
         let dark = SystemAppearance.shared.isDark
 
@@ -228,7 +219,7 @@ final class BarView: NSView {
     // MARK: Interaction
 
     private func target(at point: NSPoint) -> Target? {
-        let metrics = Metrics(bounds: bounds, tileCount: tileCount)
+        let metrics = Metrics(plate: plate)
         let slack = metrics.controlSide * 0.12
         if metrics.playPause.insetBy(dx: -slack, dy: -slack).contains(point) { return .playPause }
         if metrics.next.insetBy(dx: -slack, dy: -slack).contains(point) { return .next }
@@ -246,7 +237,7 @@ final class BarView: NSView {
         case .artwork: onOpenPlayer?()
         case .progress:
             guard let duration = state.duration else { return }
-            let bar = Metrics(bounds: bounds, tileCount: tileCount).progress
+            let bar = Metrics(plate: plate).progress
             let fraction = min(max((point.x - bar.minX) / bar.width, 0), 1)
             onCommand?(.seek(duration * Double(fraction)))
         }

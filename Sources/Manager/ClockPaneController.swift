@@ -2,7 +2,7 @@ import AppKit
 
 final class ClockPaneController: PaneViewController {
     private let model = ClockSettingsModel()
-    private var clockTile: ClockTileView { tileView as! ClockTileView }
+    private var clockTile: ClockTileView { stageView as! ClockTileView }
     private var lastToken = Int.min
 
     override func makeTileView() -> TileView {

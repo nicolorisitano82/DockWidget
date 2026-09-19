@@ -7,6 +7,11 @@ struct WidgetDescriptor {
     let summary: String
     /// Bundle name under `DockWidgets.app/Contents/Library/Widgets`.
     let helperBundleName: String
+    /// Shown in the sidebar. An SF Symbol rather than the helper's app icon,
+    /// which is a picture of the widget and reads as noise at 22 points.
+    let symbol: String
+    /// The overlay this widget uses, when it is showing as a bar.
+    let barSpec: () -> BarLayout.Spec?
     let makePane: () -> PaneViewController
 
     var helperURL: URL {
@@ -21,7 +26,10 @@ struct WidgetDescriptor {
     var isInstalled: Bool { DockTiles.contains(self) }
 
     var icon: NSImage {
-        NSWorkspace.shared.icon(forFile: helperURL.path)
+        let configuration = NSImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+        return NSImage(systemSymbolName: symbol, accessibilityDescription: name)?
+            .withSymbolConfiguration(configuration)
+            ?? NSWorkspace.shared.icon(forFile: helperURL.path)
     }
 }
 
@@ -30,8 +38,10 @@ enum WidgetCatalog {
         WidgetDescriptor(
             id: "clock",
             name: "Orologio",
-            summary: "Quadrante analogico o digitale, con secondi e data.",
+            summary: "Cinque quadranti, con secondi e data.",
             helperBundleName: "Orologio.app",
+            symbol: "clock.fill",
+            barSpec: { nil },
             makePane: { ClockPaneController() }
         ),
         WidgetDescriptor(
@@ -39,7 +49,18 @@ enum WidgetCatalog {
             name: "In riproduzione",
             summary: "Copertina, stato della riproduzione e avanzamento del brano.",
             helperBundleName: "NowPlaying.app",
+            symbol: "music.note",
+            barSpec: { NowPlayingSettings.current.mode == .bar ? BarLayout.nowPlaying : nil },
             makePane: { NowPlayingPaneController() }
+        ),
+        WidgetDescriptor(
+            id: "actions",
+            name: "Azioni",
+            summary: "Quattro celle: un'icona, i tuoi colori, un'azione a testa.",
+            helperBundleName: "Azioni.app",
+            symbol: "square.grid.2x2.fill",
+            barSpec: { BarLayout.actions },
+            makePane: { ActionsPaneController() }
         ),
     ]
 

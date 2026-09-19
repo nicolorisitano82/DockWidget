@@ -3,7 +3,10 @@ import AppKit
 /// Shared scaffolding: a live tile over a dock-like strip, a column of
 /// controls, and the footer that puts the app in the Dock.
 class PaneViewController: NSViewController {
-    private(set) var tileView: TileView!
+    private(set) var stageView: NSView!
+
+    /// Most panes preview a square tile; a bar widget previews a strip.
+    var tileView: TileView? { stageView as? TileView }
     private var timer: Timer?
 
     private let controlsStack = NSStackView()
@@ -11,6 +14,9 @@ class PaneViewController: NSViewController {
     // MARK: Subclass hooks
 
     func makeTileView() -> TileView { TileView(frame: NSRect(x: 0, y: 0, width: 128, height: 128)) }
+    /// Override to preview something other than a square tile.
+    func makeStageView() -> NSView { makeTileView() }
+    var stageSize: NSSize { NSSize(width: 128, height: 128) }
     func buildControls(in stack: NSStackView) {}
     /// Called once a second; return true when the tile needs redrawing.
     func refreshTick() -> Bool { true }
@@ -58,15 +64,16 @@ class PaneViewController: NSViewController {
         strip.layer?.borderColor = NSColor.separatorColor.cgColor
         strip.translatesAutoresizingMaskIntoConstraints = false
 
-        let tile = makeTileView()
-        tile.reloadSettings()
+        let tile = makeStageView()
+        (tile as? TileView)?.reloadSettings()
+        (tile as? BarContentView)?.reloadSettings()
         tile.translatesAutoresizingMaskIntoConstraints = false
-        tileView = tile
+        stageView = tile
         strip.addSubview(tile)
 
         NSLayoutConstraint.activate([
-            tile.widthAnchor.constraint(equalToConstant: 128),
-            tile.heightAnchor.constraint(equalToConstant: 128),
+            tile.widthAnchor.constraint(equalToConstant: stageSize.width),
+            tile.heightAnchor.constraint(equalToConstant: stageSize.height),
             tile.centerXAnchor.constraint(equalTo: strip.centerXAnchor),
             tile.topAnchor.constraint(equalTo: strip.topAnchor, constant: 8),
             tile.bottomAnchor.constraint(equalTo: strip.bottomAnchor, constant: -8),
@@ -81,7 +88,7 @@ class PaneViewController: NSViewController {
         super.viewDidAppear()
         let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             guard let self, self.refreshTick() else { return }
-            self.tileView.needsDisplay = true
+            self.stageView.needsDisplay = true
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
@@ -94,8 +101,9 @@ class PaneViewController: NSViewController {
     }
 
     func reloadTile() {
-        tileView.reloadSettings()
-        tileView.needsDisplay = true
+        (stageView as? TileView)?.reloadSettings()
+        (stageView as? BarContentView)?.reloadSettings()
+        stageView.needsDisplay = true
     }
 
     // MARK: Controls

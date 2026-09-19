@@ -33,6 +33,16 @@ final class NowPlayingSettingsModel {
 }
 
 enum AccentPalette {
+    /// Icon colours: the accents plus the two neutrals an icon usually wants.
+    static var icons: [(name: String, hex: String)] {
+        [("Bianco", "#FFFFFF"), ("Nero", "#1C1C1E")] + swatches
+    }
+
+    /// Cell backgrounds: the accents plus a dark neutral.
+    static var surfaces: [(name: String, hex: String)] {
+        swatches + [("Ardesia", "#2C2C2E")]
+    }
+
     static let swatches: [(name: String, hex: String)] = [
         ("Rosso", "#FF453A"),
         ("Arancione", "#FF9F0A"),
@@ -52,11 +62,13 @@ final class AccentSwatchView: NSView {
     }
     var onSelect: ((String) -> Void)?
 
+    private let entries: [(name: String, hex: String)]
     private let diameter: CGFloat = 22
     private let spacing: CGFloat = 12
 
-    init(selectedHex: String) {
+    init(selectedHex: String, entries: [(name: String, hex: String)] = AccentPalette.swatches) {
         self.selectedHex = selectedHex
+        self.entries = entries
         super.init(frame: .zero)
     }
 
@@ -64,7 +76,7 @@ final class AccentSwatchView: NSView {
     required init?(coder: NSCoder) { fatalError() }
 
     override var intrinsicContentSize: NSSize {
-        let count = CGFloat(AccentPalette.swatches.count)
+        let count = CGFloat(entries.count)
         return NSSize(width: count * diameter + (count - 1) * spacing, height: diameter + 6)
     }
 
@@ -73,7 +85,7 @@ final class AccentSwatchView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        for (index, swatch) in AccentPalette.swatches.enumerated() {
+        for (index, swatch) in entries.enumerated() {
             let box = rect(at: index)
             let color = NSColor(hexString: swatch.hex) ?? .systemBlue
             color.setFill()
@@ -89,7 +101,7 @@ final class AccentSwatchView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        for (index, swatch) in AccentPalette.swatches.enumerated() where rect(at: index).insetBy(dx: -4, dy: -4).contains(point) {
+        for (index, swatch) in entries.enumerated() where rect(at: index).insetBy(dx: -4, dy: -4).contains(point) {
             selectedHex = swatch.hex
             onSelect?(swatch.hex)
             return

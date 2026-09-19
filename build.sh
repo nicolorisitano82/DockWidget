@@ -33,7 +33,8 @@ SHARED=("$ROOT"/Sources/Shared/*.swift)
 CLOCK=("$ROOT"/Sources/Clock/*.swift)
 NOWPLAYING=("$ROOT"/Sources/NowPlaying/*.swift)
 MANAGER=("$ROOT"/Sources/Manager/*.swift)
-BAR_AGENT=("$ROOT"/Sources/NowPlayingBar/*.swift)
+OVERLAY=("$ROOT"/Sources/Overlay/*.swift)
+ACTIONS=("$ROOT"/Sources/Actions/*.swift)
 WIDGET_HOST=("$ROOT"/Sources/WidgetHost/*.swift)
 
 MANAGER_APP="$BUILD/DockWidgets.app"
@@ -109,12 +110,12 @@ make_widget() {
 echo "→ strumento icone"
 swiftc -swift-version 5 -O -sdk "$SDK" -target "$(uname -m)-apple-macos${DEPLOY}" \
   -module-name makeicons -o "$BUILD/tmp/makeicons" \
-  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "$ROOT/Tools/MakeIcons/main.swift"
+  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "$ROOT/Tools/MakeIcons/main.swift"
 
 echo "→ manager"
 mkdir -p "$MANAGER_APP/Contents/MacOS" "$MANAGER_APP/Contents/Resources" "$WIDGETS_DIR"
 swift_build "$MANAGER_APP/Contents/MacOS/DockWidgets" DockWidgets app \
-  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${MANAGER[@]}"
+  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${MANAGER[@]}"
 cp "$ROOT/Resources/Manager-Info.plist" "$MANAGER_APP/Contents/Info.plist"
 printf 'APPL????' > "$MANAGER_APP/Contents/PkgInfo"
 build_icons manager "$MANAGER_APP/Contents/Resources/AppIcon.icns"
@@ -123,16 +124,32 @@ echo "→ agent barra"
 AGENT_APP="$AGENTS_DIR/NowPlayingBar.app"
 mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
 swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
-  "${SHARED[@]}" "${NOWPLAYING[@]}" "${BAR_AGENT[@]}"
+  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${OVERLAY[@]}"
 cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
 printf 'APPL????' > "$AGENT_APP/Contents/PkgInfo"
 SIGN_QUEUE+=("$AGENT_APP")
+
+# A bar widget has no plug-in: the overlay is drawn over its tile, so the tile
+# itself never has to render anything.
+make_bar_widget() {
+  local display="$1" executable="$2" widget_id="$3" icon_kind="$4" bundle_name="$5"
+  local app="$WIDGETS_DIR/$bundle_name"
+  echo "  · $display"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+  swift_build "$app/Contents/MacOS/$executable" "$executable" app "${WIDGET_HOST[@]}"
+  fill_plist "$ROOT/Resources/BarWidget-Info.plist" "$display" "$executable" \
+    "dev.nicolo.dockwidgets.$widget_id" "" > "$app/Contents/Info.plist"
+  printf 'APPL????' > "$app/Contents/PkgInfo"
+  build_icons "$icon_kind" "$app/Contents/Resources/AppIcon.icns"
+  SIGN_QUEUE+=("$app")
+}
 
 echo "→ widget"
 make_widget "Orologio" "ClockHost" "clock" \
   "ClockWidget" "ClockDockTilePlugin" "clock" "Orologio.app" "${CLOCK[@]}"
 make_widget "In riproduzione" "NowPlayingHost" "nowplaying" \
   "NowPlayingWidget" "NowPlayingDockTilePlugin" "nowplaying" "NowPlaying.app" "${NOWPLAYING[@]}"
+make_bar_widget "Azioni" "ActionsHost" "actions" "actions" "Azioni.app"
 
 for target in "${SIGN_QUEUE[@]}" "$MANAGER_APP"; do
   codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" || {

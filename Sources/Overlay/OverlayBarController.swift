@@ -1,21 +1,25 @@
 import AppKit
 
 /// Keeps a borderless panel glued to the Dock's spacer tiles.
-final class BarController {
+final class OverlayBarController {
     static let stopNotification = Notification.Name("dev.nicolo.dockwidgets.barShouldStop")
 
+    private let spec: BarLayout.Spec
+    private let content: BarContentView
+    private let isEnabled: () -> Bool
     private let panel: NSPanel
-    private let barView: BarView
     private var timer: Timer?
     private var isHot = false
-    private var listenerToken: UUID?
+    private var settingsObserver: NSObjectProtocol?
     private var cachedElements: [AXUIElement] = []
     private var lastResolve = Date.distantPast
     private var lastFrame = CGRect.zero
 
-    init() {
-        barView = BarView(frame: NSRect(x: 0, y: 0, width: 200, height: 50))
-        panel = NSPanel(contentRect: barView.frame,
+    init(spec: BarLayout.Spec, content: BarContentView, isEnabled: @escaping () -> Bool = { true }) {
+        self.spec = spec
+        self.content = content
+        self.isEnabled = isEnabled
+        panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 200, height: 50),
                         styleMask: [.borderless, .nonactivatingPanel],
                         backing: .buffered,
                         defer: false)
@@ -28,15 +32,13 @@ final class BarController {
         panel.isMovable = false
         panel.hidesOnDeactivate = false
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = barView
-
-        barView.onCommand = { command in NowPlayingFeed.send(command) }
-        barView.onOpenPlayer = { [weak self] in self?.openPlayer() }
+        panel.contentView = content
     }
 
     func start() {
-        listenerToken = NowPlayingSource.shared.addListener { [weak self] state in
-            self?.barView.state = state
+        settingsObserver = SettingsStore.shared.observeChanges { [weak self] in
+            self?.content.reloadSettings()
+            self?.invalidateElements()
         }
         for name in [NSWorkspace.didLaunchApplicationNotification,
                      NSWorkspace.didTerminateApplicationNotification,
@@ -50,13 +52,13 @@ final class BarController {
         ) { [weak self] _ in self?.invalidateElements() }
 
         setCadence(hot: false)
-        Diagnostics.write("barra avviata")
+        Diagnostics.write("barra \(spec.id) avviata")
     }
 
     func stop() {
         timer?.invalidate()
-        if let listenerToken {
-            NowPlayingSource.shared.removeListener(listenerToken)
+        if let settingsObserver {
+            DistributedNotificationCenter.default().removeObserver(settingsObserver)
         }
         panel.orderOut(nil)
     }
@@ -70,7 +72,6 @@ final class BarController {
     /// Walking the Dock's item list costs far more than reading two attributes,
     /// so the elements are resolved once and reused until the layout changes.
     private func resolveElements() {
-        let spec = BarLayout.nowPlaying
         let items = DockAccessibility.barElements(anchorTitle: spec.anchorTitle,
                                                   spacerCount: spec.spacerCount)
         cachedElements = items.map(\.element)
@@ -83,7 +84,7 @@ final class BarController {
         }
         guard !cachedElements.isEmpty else { return nil }
 
-        barView.tileCount = cachedElements.count
+        content.tileCount = cachedElements.count
         let frames = cachedElements.compactMap(DockAccessibility.frame)
         guard frames.count == cachedElements.count, let first = frames.first else {
             // A stale element means the Dock relaunched or the tiles changed.
@@ -108,7 +109,7 @@ final class BarController {
     }
 
     private func tick() {
-        guard let frame = currentFrame(), frame.width > 20, frame.height > 10 else {
+        guard isEnabled(), let frame = currentFrame(), frame.width > 20, frame.height > 10 else {
             if panel.isVisible { panel.orderOut(nil) }
             setCadence(hot: false)
             return
@@ -117,7 +118,7 @@ final class BarController {
         if frame != lastFrame {
             lastFrame = frame
             panel.setFrame(frame, display: false)
-            barView.needsDisplay = true
+            content.needsDisplay = true
         }
         if !panel.isVisible {
             panel.orderFrontRegardless()
@@ -128,11 +129,4 @@ final class BarController {
         setCadence(hot: band.contains(pointer))
     }
 
-    private func openPlayer() {
-        guard let bundleID = NowPlayingSource.shared.state.playerBundleID,
-              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.activates = true
-        NSWorkspace.shared.openApplication(at: url, configuration: configuration)
-    }
 }
