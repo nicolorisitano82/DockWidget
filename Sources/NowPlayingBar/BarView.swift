@@ -63,7 +63,7 @@ final class BarView: NSView {
             let artworkSide = content.height
             artwork = NSRect(x: content.minX, y: content.minY, width: artworkSide, height: artworkSide)
 
-            controlSide = content.height * 0.62
+            controlSide = content.height * 0.70
             let controlsWidth = controlSide * 3 + padding * 2
             let controlsX = content.maxX - controlsWidth
             let controlsY = content.midY - controlSide / 2
@@ -204,8 +204,13 @@ final class BarView: NSView {
             NSBezierPath(ovalIn: rect).fill()
         }
 
-        let box = isPressed ? rect.insetBy(dx: rect.width * 0.06, dy: rect.height * 0.06) : rect
-        drawSymbol(name, in: box, color: isPressed ? palette.accent : palette.primary)
+        // The circle is the whole cell; the glyph sits well inside it, or the
+        // two touch and the highlight reads as a smudge around the icon.
+        var glyph = rect.insetBy(dx: rect.width * 0.24, dy: rect.height * 0.24)
+        if isPressed {
+            glyph = glyph.insetBy(dx: glyph.width * 0.07, dy: glyph.height * 0.07)
+        }
+        drawSymbol(name, in: glyph, color: isPressed ? palette.accent : palette.primary)
     }
 
     private func drawSymbol(_ name: String, in rect: NSRect, color: NSColor) {

@@ -2,8 +2,27 @@ import AppKit
 
 struct ClockSettings: Equatable {
     enum Style: String, CaseIterable {
-        case analog, digital
-        var label: String { self == .analog ? "Analogico" : "Digitale" }
+        case analog, digital, flip, rings, minimal
+
+        var label: String {
+            switch self {
+            case .analog: return "Analogico"
+            case .digital: return "Digitale"
+            case .flip: return "Flip"
+            case .rings: return "Anelli"
+            case .minimal: return "Minimale"
+            }
+        }
+
+        var face: ClockFace {
+            switch self {
+            case .analog: return AnalogFace()
+            case .digital: return DigitalFace()
+            case .flip: return FlipFace()
+            case .rings: return RingsFace()
+            case .minimal: return MinimalFace()
+            }
+        }
     }
 
     enum HourFormat: String, CaseIterable {

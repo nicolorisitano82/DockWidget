@@ -17,13 +17,11 @@ final class ClockPaneController: PaneViewController {
     }
 
     override func buildControls(in stack: NSStackView) {
-        let style = NSSegmentedControl(
-            labels: ClockSettings.Style.allCases.map(\.label),
-            trackingMode: .selectOne,
-            target: self,
-            action: #selector(styleChanged)
-        )
-        style.selectedSegment = ClockSettings.Style.allCases.firstIndex(of: model.value.style) ?? 0
+        let style = NSPopUpButton()
+        style.addItems(withTitles: ClockSettings.Style.allCases.map(\.label))
+        style.selectItem(at: ClockSettings.Style.allCases.firstIndex(of: model.value.style) ?? 0)
+        style.target = self
+        style.action = #selector(styleChanged)
         stack.addArrangedSubview(labeled("Quadrante", style))
 
         let format = NSPopUpButton()
@@ -47,8 +45,8 @@ final class ClockPaneController: PaneViewController {
         stack.addArrangedSubview(swatches)
     }
 
-    @objc private func styleChanged(_ sender: NSSegmentedControl) {
-        model.value.style = ClockSettings.Style.allCases[sender.selectedSegment]
+    @objc private func styleChanged(_ sender: NSPopUpButton) {
+        model.value.style = ClockSettings.Style.allCases[sender.indexOfSelectedItem]
         reloadTile()
     }
 
