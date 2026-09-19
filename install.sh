@@ -48,6 +48,12 @@ mv /Applications/DockWidgets.app.new /Applications/DockWidgets.app
 rm -rf /Applications/DockWidgets.app.old
 touch /Applications/DockWidgets.app
 
+# LaunchServices caches an app's Info.plist. Without this, a widget that gains
+# a Dock tile plug-in keeps being loaded from the old description and the Dock
+# never asks for the plug-in.
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+[ -x "$LSREGISTER" ] && "$LSREGISTER" -f /Applications/DockWidgets.app 2>/dev/null || true
+
 killall -KILL Dock 2>/dev/null || true
 open /Applications/DockWidgets.app
 echo "Fatto."

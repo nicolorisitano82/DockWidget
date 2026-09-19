@@ -35,6 +35,7 @@ NOWPLAYING=("$ROOT"/Sources/NowPlaying/*.swift)
 MANAGER=("$ROOT"/Sources/Manager/*.swift)
 OVERLAY=("$ROOT"/Sources/Overlay/*.swift)
 ACTIONS=("$ROOT"/Sources/Actions/*.swift)
+BLANK_TILE=("$ROOT"/Sources/BlankTile/*.swift)
 WIDGET_HOST=("$ROOT"/Sources/WidgetHost/*.swift)
 
 MANAGER_APP="$BUILD/DockWidgets.app"
@@ -139,28 +140,13 @@ check_plist "$AGENT_APP/Contents/Info.plist"
 printf 'APPL????' > "$AGENT_APP/Contents/PkgInfo"
 SIGN_QUEUE+=("$AGENT_APP")
 
-# A bar widget has no plug-in: the overlay is drawn over its tile, so the tile
-# itself never has to render anything.
-make_bar_widget() {
-  local display="$1" executable="$2" widget_id="$3" icon_kind="$4" bundle_name="$5"
-  local app="$WIDGETS_DIR/$bundle_name"
-  echo "  · $display"
-  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-  swift_build "$app/Contents/MacOS/$executable" "$executable" app "${WIDGET_HOST[@]}"
-  fill_plist "$ROOT/Resources/BarWidget-Info.plist" "$display" "$executable" \
-    "dev.nicolo.dockwidgets.$widget_id" "" > "$app/Contents/Info.plist"
-  printf 'APPL????' > "$app/Contents/PkgInfo"
-  check_plist "$app/Contents/Info.plist"
-  build_icons "$icon_kind" "$app/Contents/Resources/AppIcon.icns"
-  SIGN_QUEUE+=("$app")
-}
-
 echo "→ widget"
 make_widget "Orologio" "ClockHost" "clock" \
   "ClockWidget" "ClockDockTilePlugin" "clock" "Orologio.app" "${CLOCK[@]}"
 make_widget "In riproduzione" "NowPlayingHost" "nowplaying" \
   "NowPlayingWidget" "NowPlayingDockTilePlugin" "nowplaying" "NowPlaying.app" "${NOWPLAYING[@]}"
-make_bar_widget "Azioni" "ActionsHost" "actions" "actions" "Azioni.app"
+make_widget "Azioni" "ActionsHost" "actions" \
+  "BlankWidget" "BlankDockTilePlugin" "actions" "Azioni.app" "${BLANK_TILE[@]}"
 
 for target in "${SIGN_QUEUE[@]}" "$MANAGER_APP"; do
   codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" || {
