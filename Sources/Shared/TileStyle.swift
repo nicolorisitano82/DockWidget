@@ -27,7 +27,10 @@ struct TilePalette {
             card: NSColor(calibratedWhite: 1.0, alpha: 1.0),
             cardEdge: NSColor(calibratedWhite: 0.0, alpha: 0.16),
             primary: NSColor(calibratedWhite: 0.11, alpha: 1.0),
-            secondary: NSColor(calibratedWhite: 0.42, alpha: 1.0),
+            // Measured, not guessed: a calibrated grey lightens on its way to
+            // sRGB, and 0.42 landed at 4.0:1 on the white panel — under the
+            // 4.5:1 that small text needs.
+            secondary: NSColor(calibratedWhite: 0.34, alpha: 1.0),
             faint: NSColor(calibratedWhite: 0.0, alpha: 0.16),
             accent: accent
         )

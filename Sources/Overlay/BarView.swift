@@ -77,12 +77,7 @@ final class BarView: BarContentView {
         let palette = self.palette
         let dark = SystemAppearance.shared.isDark
 
-        // A faint plate: the Dock's glass is behind us and can be any colour.
-        let platePath = NSBezierPath(roundedRect: metrics.plate,
-                                     xRadius: metrics.plate.height * 0.26,
-                                     yRadius: metrics.plate.height * 0.26)
-        NSColor(calibratedWhite: dark ? 1 : 0, alpha: dark ? 0.10 : 0.06).setFill()
-        platePath.fill()
+        drawWidgetBackground()
 
         drawArtwork(in: metrics.artwork)
 
