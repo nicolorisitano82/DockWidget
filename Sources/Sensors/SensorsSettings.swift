@@ -60,7 +60,7 @@ struct SensorsSettings: Equatable {
     /// again brings back exactly what was there.
     func visibleBarSensors(count: Int) -> [SensorID] {
         var visible = Array(barSensors.prefix(count))
-        for candidate in SensorID.allCases where visible.count < count {
+        for candidate in SensorID.available where visible.count < count {
             if !visible.contains(candidate) { visible.append(candidate) }
         }
         return visible

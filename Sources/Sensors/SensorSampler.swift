@@ -17,6 +17,8 @@ final class SensorSampler {
         .cpu: CPUReader(), .memory: MemoryReader(), .disk: DiskReader(),
         .network: NetworkReader(), .battery: BatteryReader(),
         .power: PowerReader(), .thermal: ThermalReader(),
+        .cpuPower: DomainPowerReader(id: .cpuPower, domain: .cpu, scale: 20),
+        .gpuPower: DomainPowerReader(id: .gpuPower, domain: .gpu, scale: 20),
     ]
     private var listeners: [UUID: (ids: Set<SensorID>, handler: () -> Void)] = [:]
     private var timer: Timer?

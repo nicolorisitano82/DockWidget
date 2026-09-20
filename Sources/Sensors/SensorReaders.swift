@@ -195,3 +195,19 @@ struct ThermalReader: SensorReader {
         }
     }
 }
+
+/// Power drawn by one part of the chip, from IOReport's energy counters.
+struct DomainPowerReader: SensorReader {
+    let id: SensorID
+    let domain: IOReportPower.Domain
+    /// The soft full scale for the ring; the number itself is never clipped.
+    let scale: Double
+
+    mutating func read() -> Reading {
+        guard let watts = IOReportPower.shared.watts(for: domain) else { return .unavailable }
+        return Reading(fraction: min(watts / scale, 1),
+                       text: SensorFormat.watts(watts),
+                       caption: domain == .cpu ? "CPU" : "GPU",
+                       raw: watts)
+    }
+}

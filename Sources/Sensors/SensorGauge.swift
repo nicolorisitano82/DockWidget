@@ -46,8 +46,11 @@ enum SensorGauge {
     static func symbol(_ name: String, in rect: NSRect, color: NSColor) {
         let configuration = NSImage.SymbolConfiguration(pointSize: rect.height, weight: .semibold)
             .applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
-        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration) else { return }
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+            ?? NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+        guard let image else { return }
         let size = image.size
         let scale = min(rect.width / size.width, rect.height / size.height)
         image.draw(in: NSRect(x: rect.midX - size.width * scale / 2,

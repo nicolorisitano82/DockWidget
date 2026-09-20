@@ -2,6 +2,19 @@ import Foundation
 
 enum SensorID: String, Codable, CaseIterable {
     case cpu, memory, disk, network, battery, power, thermal
+    case cpuPower, gpuPower
+
+    /// The sensors this machine can actually answer for. The per-domain power
+    /// counters exist everywhere and move only on some hardware.
+    static var available: [SensorID] {
+        allCases.filter { id in
+            switch id {
+            case .cpuPower: return IOReportPower.shared.isAvailable(.cpu)
+            case .gpuPower: return IOReportPower.shared.isAvailable(.gpu)
+            default: return true
+            }
+        }
+    }
 
     var label: String {
         switch self {
@@ -12,6 +25,8 @@ enum SensorID: String, Codable, CaseIterable {
         case .battery: return "Batteria"
         case .power: return "Consumo"
         case .thermal: return "Stato termico"
+        case .cpuPower: return "Potenza CPU"
+        case .gpuPower: return "Potenza GPU"
         }
     }
 
@@ -24,6 +39,8 @@ enum SensorID: String, Codable, CaseIterable {
         case .battery: return "battery.100"
         case .power: return "bolt.fill"
         case .thermal: return "thermometer.medium"
+        case .cpuPower: return "cpu"
+        case .gpuPower: return "cpu.fill"
         }
     }
 }

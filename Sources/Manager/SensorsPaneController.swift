@@ -29,8 +29,8 @@ final class SensorsPaneController: PaneViewController {
 
         if settings.mode == .tile {
             let sensor = NSPopUpButton()
-            sensor.addItems(withTitles: SensorID.allCases.map(\.label))
-            sensor.selectItem(at: SensorID.allCases.firstIndex(of: settings.tileSensor) ?? 0)
+            sensor.addItems(withTitles: SensorID.available.map(\.label))
+            sensor.selectItem(at: SensorID.available.firstIndex(of: settings.tileSensor) ?? 0)
             sensor.target = self
             sensor.action = #selector(tileSensorChanged)
             stack.addArrangedSubview(labeled("Sensore", sensor))
@@ -90,8 +90,8 @@ final class SensorsPaneController: PaneViewController {
         let visible = settings.visibleBarSensors(count: BarLayout.sensors.spacerCount + 1)
         for (index, sensor) in visible.enumerated() {
             let popup = NSPopUpButton()
-            popup.addItems(withTitles: SensorID.allCases.map(\.label))
-            popup.selectItem(at: SensorID.allCases.firstIndex(of: sensor) ?? 0)
+            popup.addItems(withTitles: SensorID.available.map(\.label))
+            popup.selectItem(at: SensorID.available.firstIndex(of: sensor) ?? 0)
             popup.tag = index
             popup.target = self
             popup.action = #selector(barSensorChanged)
@@ -110,7 +110,7 @@ final class SensorsPaneController: PaneViewController {
     }
 
     @objc private func tileSensorChanged(_ sender: NSPopUpButton) {
-        settings.tileSensor = SensorID.allCases[sender.indexOfSelectedItem]
+        settings.tileSensor = SensorID.available[sender.indexOfSelectedItem]
         settings.save()
         reloadTile()
     }
@@ -118,7 +118,7 @@ final class SensorsPaneController: PaneViewController {
     @objc private func barSensorChanged(_ sender: NSPopUpButton) {
         var chosen = settings.visibleBarSensors(count: BarLayout.sensors.spacerCount + 1)
         guard sender.tag < chosen.count else { return }
-        chosen[sender.tag] = SensorID.allCases[sender.indexOfSelectedItem]
+        chosen[sender.tag] = SensorID.available[sender.indexOfSelectedItem]
 
         // Keep whatever was configured beyond the current width.
         var full = settings.barSensors
