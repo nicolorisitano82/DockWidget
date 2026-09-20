@@ -63,6 +63,16 @@ enum WidgetCatalog {
             makePane: { SensorsPaneController() }
         ),
         WidgetDescriptor(
+            id: "folder",
+            name: T("Cartella", "Folder"),
+            summary: T("Una cartella viva: quello che contiene, e i file che ci trascini sopra.",
+                       "A folder that stays alive: what is in it, and the files you drop on it."),
+            helperBundleName: "Cartella.app",
+            symbol: "folder.fill",
+            barSpec: { nil },
+            makePane: { FolderPaneController() }
+        ),
+        WidgetDescriptor(
             id: "disks",
             name: T("Dischi", "Disks"),
             summary: T("Spazio per volume, e le unità esterne appena le colleghi.",

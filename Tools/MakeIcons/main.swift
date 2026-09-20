@@ -95,6 +95,10 @@ func makeView(side: CGFloat) -> NSView {
         let view = DisksTileView(frame: frame)
         view.reloadSettings()
         return view
+    case "folder":
+        let view = FolderTileView(frame: frame)
+        view.reloadSettings()
+        return view
     case "manager":
         let view = ManagerIconView(frame: frame)
         view.reloadSettings()

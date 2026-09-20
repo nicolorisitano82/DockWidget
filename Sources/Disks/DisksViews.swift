@@ -48,25 +48,24 @@ final class DisksTileView: TileView {
             return
         }
 
-        Gauge.ring(in: card.insetBy(dx: side * 0.14, dy: side * 0.14), fraction: volume.fraction,
-                   width: side * 0.085, color: palette.accent, track: Gauge.trackColor())
+        // A closed ring leaves no room underneath it: anything drawn at the
+        // bottom of the card crosses the arc. So everything lives inside.
+        Gauge.ring(in: card.insetBy(dx: side * 0.13, dy: side * 0.13), fraction: volume.fraction,
+                   width: side * 0.08, color: palette.accent, track: Gauge.trackColor())
         Gauge.symbol(volume.symbol,
-                     in: NSRect(x: card.midX - side * 0.11, y: card.midY + side * 0.12,
-                                width: side * 0.22, height: side * 0.16),
+                     in: NSRect(x: card.midX - side * 0.10, y: card.midY + side * 0.13,
+                                width: side * 0.20, height: side * 0.14),
                      color: palette.secondary)
         Gauge.text(SensorFormat.percent(volume.fraction),
-                   in: NSRect(x: card.minX + side * 0.16, y: card.midY - side * 0.12,
-                              width: card.width - side * 0.32, height: side * 0.24),
-                   weight: .semibold, color: palette.primary, maximumSize: side * 0.26)
+                   in: NSRect(x: card.minX + side * 0.20, y: card.midY - side * 0.09,
+                              width: card.width - side * 0.40, height: side * 0.22),
+                   weight: .semibold, color: palette.primary, maximumSize: side * 0.24)
 
-        let caption = settings.showsFree
-            ? T("\(SensorFormat.bytes(Double(volume.free))) liberi",
-                "\(SensorFormat.bytes(Double(volume.free))) free")
-            : volume.name
+        let caption = settings.showsFree ? SensorFormat.bytes(Double(volume.free)) : volume.name
         Gauge.text(caption,
-                   in: NSRect(x: card.minX + side * 0.10, y: card.minY + side * 0.09,
-                              width: card.width - side * 0.20, height: side * 0.15),
-                   weight: .medium, color: palette.secondary, maximumSize: side * 0.11)
+                   in: NSRect(x: card.minX + side * 0.30, y: card.midY - side * 0.225,
+                              width: card.width - side * 0.60, height: side * 0.12),
+                   weight: .medium, color: palette.secondary, maximumSize: side * 0.10)
     }
 }
 
