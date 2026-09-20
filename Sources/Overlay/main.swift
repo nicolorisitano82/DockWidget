@@ -49,6 +49,7 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         actions.onRun = { ActionRunner.run($0) }
 
         let sensors = SensorsBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+        let disks = DisksBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
 
         bars = [
             OverlayBarController(spec: BarLayout.nowPlaying, content: nowPlaying) {
@@ -59,6 +60,9 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
             OverlayBarController(spec: BarLayout.actions, content: actions),
             OverlayBarController(spec: BarLayout.sensors, content: sensors) {
                 SensorsSettings.current.mode == .bar
+            },
+            OverlayBarController(spec: BarLayout.disks, content: disks) {
+                DisksSettings.current.mode == .bar
             },
         ]
         bars.forEach { $0.start() }

@@ -1,8 +1,9 @@
 import AppKit
 
-/// The pieces a sensor is drawn with, shared by the tile and the bar so a
-/// reading looks the same whichever shape it is in.
-enum SensorGauge {
+/// The pieces a measurement is drawn with — rings, sparklines, fitted text —
+/// shared by every widget that shows a number, so a reading looks the same
+/// whichever widget and whichever shape it is in.
+enum Gauge {
     static func ring(in rect: NSRect, fraction: Double, width: CGFloat,
                      color: NSColor, track: NSColor) {
         let centre = NSPoint(x: rect.midX, y: rect.midY)

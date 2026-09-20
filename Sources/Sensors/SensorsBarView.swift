@@ -57,13 +57,13 @@ final class SensorsBarView: BarContentView {
 
         guard let fraction = reading.fraction else {
             // No full scale — network throughput — so the shape carries it.
-            SensorGauge.text(reading.text,
+            Gauge.text(reading.text,
                              in: NSRect(x: rect.minX, y: rect.midY - rect.height * 0.05,
                                         width: rect.width, height: rect.height * 0.46),
                              weight: .semibold, color: palette.primary,
                              maximumSize: rect.height * 0.30)
             if settings.showsSparkline {
-                SensorGauge.sparkline(in: NSRect(x: rect.minX + rect.width * 0.08,
+                Gauge.sparkline(in: NSRect(x: rect.minX + rect.width * 0.08,
                                                  y: rect.minY + rect.height * 0.06,
                                                  width: rect.width * 0.84, height: rect.height * 0.30),
                                       samples: SensorSampler.shared.trend(sensor),
@@ -74,13 +74,13 @@ final class SensorsBarView: BarContentView {
 
         // The same arrangement as the square tile, only smaller: the number
         // lives inside the ring, because a Dock cell has no room beside it.
-        SensorGauge.ring(in: box, fraction: fraction, width: side * 0.11,
-                         color: palette.accent, track: SensorGauge.trackColor())
-        SensorGauge.symbol(sensor.symbol,
+        Gauge.ring(in: box, fraction: fraction, width: side * 0.11,
+                         color: palette.accent, track: Gauge.trackColor())
+        Gauge.symbol(sensor.symbol,
                            in: NSRect(x: box.midX - side * 0.11, y: box.midY + side * 0.10,
                                       width: side * 0.22, height: side * 0.15),
                            color: palette.secondary)
-        SensorGauge.text(reading.text,
+        Gauge.text(reading.text,
                          in: NSRect(x: box.minX + side * 0.16, y: box.midY - side * 0.20,
                                     width: box.width - side * 0.32, height: side * 0.28),
                          weight: .semibold, color: palette.primary, maximumSize: side * 0.30)

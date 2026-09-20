@@ -37,6 +37,7 @@ OVERLAY=("$ROOT"/Sources/Overlay/*.swift)
 ACTIONS=("$ROOT"/Sources/Actions/*.swift)
 BLANK_TILE=("$ROOT"/Sources/BlankTile/*.swift)
 SENSORS=("$ROOT"/Sources/Sensors/*.swift)
+DISKS=("$ROOT"/Sources/Disks/*.swift)
 WIDGET_HOST=("$ROOT"/Sources/WidgetHost/*.swift)
 
 MANAGER_APP="$BUILD/DockWidgets.app"
@@ -120,13 +121,14 @@ make_widget() {
 echo "→ strumento icone"
 swiftc -swift-version 5 -O -sdk "$SDK" -target "$(uname -m)-apple-macos${DEPLOY}" \
   -module-name makeicons -o "$BUILD/tmp/makeicons" \
-  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" \
+  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" \
   "$ROOT/Tools/MakeIcons/main.swift"
 
 echo "→ manager"
 mkdir -p "$MANAGER_APP/Contents/MacOS" "$MANAGER_APP/Contents/Resources" "$WIDGETS_DIR"
 swift_build "$MANAGER_APP/Contents/MacOS/DockWidgets" DockWidgets app \
-  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${MANAGER[@]}"
+  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" \
+  "${DISKS[@]}" "${MANAGER[@]}"
 cp "$ROOT/Resources/Manager-Info.plist" "$MANAGER_APP/Contents/Info.plist"
 check_plist "$MANAGER_APP/Contents/Info.plist"
 printf 'APPL????' > "$MANAGER_APP/Contents/PkgInfo"
@@ -136,7 +138,8 @@ echo "→ agent barra"
 AGENT_APP="$AGENTS_DIR/NowPlayingBar.app"
 mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
 swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
-  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${OVERLAY[@]}"
+  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" \
+  "${OVERLAY[@]}"
 cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
 check_plist "$AGENT_APP/Contents/Info.plist"
 printf 'APPL????' > "$AGENT_APP/Contents/PkgInfo"
@@ -151,6 +154,8 @@ make_widget "Azioni" "ActionsHost" "actions" \
   "BlankWidget" "BlankDockTilePlugin" "actions" "Azioni.app" "${BLANK_TILE[@]}"
 make_widget "Sensori" "SensorsHost" "sensors" \
   "SensorsWidget" "SensorsDockTilePlugin" "sensors" "Sensori.app" "${SENSORS[@]}"
+make_widget "Dischi" "DisksHost" "disks" \
+  "DisksWidget" "DisksDockTilePlugin" "disks" "Dischi.app" "${DISKS[@]}" "${SENSORS[@]}"
 
 for target in "${SIGN_QUEUE[@]}" "$MANAGER_APP"; do
   codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" || {

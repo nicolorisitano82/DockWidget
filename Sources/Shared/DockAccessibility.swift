@@ -139,6 +139,15 @@ enum BarLayout {
         maximumSpacers: 8
     )
 
+    /// One tile per mounted volume.
+    static let disks = Spec(
+        id: "disks",
+        anchorTitle: "Dischi",
+        minimumSpacers: 0,
+        defaultSpacers: 2,
+        maximumSpacers: 5
+    )
+
     /// One tile per sensor. A single-tile bar is legitimate here, so the
     /// minimum is no spacers at all.
     static let sensors = Spec(

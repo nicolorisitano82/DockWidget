@@ -63,6 +63,16 @@ enum WidgetCatalog {
             makePane: { SensorsPaneController() }
         ),
         WidgetDescriptor(
+            id: "disks",
+            name: T("Dischi", "Disks"),
+            summary: T("Spazio per volume, e le unità esterne appena le colleghi.",
+                       "Space per volume, and external drives the moment you plug them in."),
+            helperBundleName: "Dischi.app",
+            symbol: "internaldrive.fill",
+            barSpec: { DisksSettings.current.mode == .bar ? BarLayout.disks : nil },
+            makePane: { DisksPaneController() }
+        ),
+        WidgetDescriptor(
             id: "actions",
             name: T("Azioni", "Actions"),
             summary: T("Quattro celle: un'icona, i tuoi colori, un'azione a testa.", "Four cells: an icon, your colours, an action each."),

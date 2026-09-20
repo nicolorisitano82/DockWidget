@@ -46,27 +46,27 @@ final class SensorsTileView: TileView {
 
         let ringBox = card.insetBy(dx: side * 0.14, dy: side * 0.14)
         if let fraction = reading.fraction {
-            SensorGauge.ring(in: ringBox, fraction: fraction, width: side * 0.085,
-                             color: palette.accent, track: SensorGauge.trackColor())
+            Gauge.ring(in: ringBox, fraction: fraction, width: side * 0.085,
+                             color: palette.accent, track: Gauge.trackColor())
         } else if settings.showsSparkline {
             let line = NSRect(x: card.minX + side * 0.16, y: card.midY - side * 0.30,
                               width: card.width - side * 0.32, height: side * 0.22)
-            SensorGauge.sparkline(in: line, samples: SensorSampler.shared.trend(settings.effectiveTileSensor),
+            Gauge.sparkline(in: line, samples: SensorSampler.shared.trend(settings.effectiveTileSensor),
                                   color: palette.accent)
         }
 
-        SensorGauge.symbol(settings.effectiveTileSensor.symbol,
+        Gauge.symbol(settings.effectiveTileSensor.symbol,
                            in: NSRect(x: card.midX - side * 0.10, y: card.midY + side * 0.12,
                                       width: side * 0.20, height: side * 0.16),
                            color: palette.secondary)
 
-        SensorGauge.text(reading.text,
+        Gauge.text(reading.text,
                          in: NSRect(x: card.minX + side * 0.16, y: card.midY - side * 0.12,
                                     width: card.width - side * 0.32, height: side * 0.24),
                          weight: .semibold, color: palette.primary, maximumSize: side * 0.26)
 
         if let caption = reading.caption {
-            SensorGauge.text(caption,
+            Gauge.text(caption,
                              in: NSRect(x: card.minX + side * 0.12, y: card.minY + side * 0.10,
                                         width: card.width - side * 0.24, height: side * 0.14),
                              weight: .medium, color: palette.secondary, maximumSize: side * 0.11)
