@@ -24,7 +24,8 @@ final class ActionsBarView: BarContentView {
     private func cells() -> [NSRect] {
         let plate = self.plate
         let count = CGFloat(ActionsSettings.slotCount)
-        let gap = plate.height * 0.16
+        let gap = controlGap
+        // Never taller than the icon band, never wider than its share of it.
         let side = min(plate.height, (plate.width - gap * (count - 1)) / count)
         let total = side * count + gap * (count - 1)
         var x = plate.midX - total / 2

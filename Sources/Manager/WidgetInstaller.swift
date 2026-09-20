@@ -23,6 +23,28 @@ enum WidgetInstaller {
             DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
             DockTiles.remove(widget)
         }
+        stopAgentIfIdle()
+    }
+
+    /// Switches a widget between its square tile and its wide bar, following
+    /// whatever its own settings now say.
+    static func applyBarMode(for id: String) {
+        guard let widget = WidgetCatalog.widget(id: id), widget.isInstalled else { return }
+        guard let spec = widget.barSpec() else {
+            DockTiles.transaction {
+                DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
+            }
+            stopAgentIfIdle()
+            return
+        }
+        DockTiles.transaction {
+            DockTiles.add(widget)
+            DockSpacers.arrange(count: spec.spacerCount, ownedBy: widget.id, after: widget)
+        }
+        BarAgent.start()
+    }
+
+    static func stopAgentIfIdle() {
         if !WidgetCatalog.all.contains(where: { $0.isInstalled && $0.barSpec() != nil }) {
             BarAgent.stop()
         }

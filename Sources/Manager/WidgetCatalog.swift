@@ -54,6 +54,15 @@ enum WidgetCatalog {
             makePane: { NowPlayingPaneController() }
         ),
         WidgetDescriptor(
+            id: "sensors",
+            name: "Sensori",
+            summary: "CPU, memoria, disco, rete, batteria: uno per tile.",
+            helperBundleName: "Sensori.app",
+            symbol: "gauge.with.dots.needle.bottom.50percent",
+            barSpec: { SensorsSettings.current.mode == .bar ? BarLayout.sensors : nil },
+            makePane: { SensorsPaneController() }
+        ),
+        WidgetDescriptor(
             id: "actions",
             name: "Azioni",
             summary: "Quattro celle: un'icona, i tuoi colori, un'azione a testa.",

@@ -48,6 +48,8 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         let actions = ActionsBarView(frame: NSRect(x: 0, y: 0, width: 120, height: 50))
         actions.onRun = { ActionRunner.run($0) }
 
+        let sensors = SensorsBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+
         bars = [
             OverlayBarController(spec: BarLayout.nowPlaying, content: nowPlaying) {
                 // In tile mode the plug-in draws the tile and the overlay would
@@ -55,6 +57,9 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
                 NowPlayingSettings.current.mode == .bar
             },
             OverlayBarController(spec: BarLayout.actions, content: actions),
+            OverlayBarController(spec: BarLayout.sensors, content: sensors) {
+                SensorsSettings.current.mode == .bar
+            },
         ]
         bars.forEach { $0.start() }
     }

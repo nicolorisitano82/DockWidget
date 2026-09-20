@@ -139,12 +139,24 @@ enum BarLayout {
         maximumSpacers: 8
     )
 
-    /// Two tiles: four square cells, each half a tile wide.
+    /// One tile per sensor. A single-tile bar is legitimate here, so the
+    /// minimum is no spacers at all.
+    static let sensors = Spec(
+        id: "sensors",
+        anchorTitle: "Sensori",
+        minimumSpacers: 0,
+        defaultSpacers: 2,
+        maximumSpacers: 5
+    )
+
+    /// Three tiles. Four square cells fit two tiles only by shrinking to a
+    /// third of a tile each, which reads as a row of specks next to the Dock's
+    /// icons; at three they are about six tenths of a tile.
     static let actions = Spec(
         id: "actions",
         anchorTitle: "Azioni",
-        minimumSpacers: 1,
-        defaultSpacers: 1,
-        maximumSpacers: 4
+        minimumSpacers: 2,
+        defaultSpacers: 2,
+        maximumSpacers: 5
     )
 }

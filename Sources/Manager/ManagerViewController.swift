@@ -146,6 +146,7 @@ final class ManagerViewController: NSViewController {
         pane?.removeFromParent()
 
         let controller = widget.makePane()
+        controller.onRequestReload = { [weak self] in self?.select(index) }
         addChild(controller)
         controller.view.translatesAutoresizingMaskIntoConstraints = false
         detailContainer.addSubview(controller.view)

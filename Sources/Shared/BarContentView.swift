@@ -11,10 +11,26 @@ class BarContentView: NSView {
         didSet { if tileCount != oldValue { needsDisplay = true } }
     }
 
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("BarContentView is only ever built in code") }
+
     func reloadSettings() {}
 
     /// One Dock cell's width, which is the icon size the Dock is using.
     var tileWidth: CGFloat { bounds.width / CGFloat(max(tileCount, 1)) }
+
+    /// How big a round control or a square cell should be.
+    ///
+    /// Measured from the tile rather than from the bar, so a three-tile bar and
+    /// a six-tile one put the same size of control next to the Dock's icons.
+    var controlSide: CGFloat { tileWidth * 0.56 }
+
+    /// The space between controls, at the same scale.
+    var controlGap: CGFloat { tileWidth * 0.12 }
 
     /// The band the neighbouring icons occupy: same height, same centre line.
     var plate: NSRect {

@@ -46,7 +46,7 @@ final class BarView: BarContentView {
         let next: NSRect
         let controlSide: CGFloat
 
-        init(plate: NSRect) {
+        init(plate: NSRect, controlSide: CGFloat, gap: CGFloat) {
             self.plate = plate
 
             let padding = plate.height * 0.10
@@ -54,13 +54,14 @@ final class BarView: BarContentView {
             let artworkSide = content.height
             artwork = NSRect(x: content.minX, y: content.minY, width: artworkSide, height: artworkSide)
 
-            controlSide = content.height * 0.70
-            let controlsWidth = controlSide * 3 + padding * 2
+            self.controlSide = min(content.height, controlSide)
+            let controlsWidth = self.controlSide * 3 + gap * 2
             let controlsX = content.maxX - controlsWidth
-            let controlsY = content.midY - controlSide / 2
-            previous = NSRect(x: controlsX, y: controlsY, width: controlSide, height: controlSide)
-            playPause = previous.offsetBy(dx: controlSide + padding, dy: 0)
-            next = playPause.offsetBy(dx: controlSide + padding, dy: 0)
+            let controlsY = content.midY - min(content.height, controlSide) / 2
+            previous = NSRect(x: controlsX, y: controlsY,
+                              width: self.controlSide, height: self.controlSide)
+            playPause = previous.offsetBy(dx: self.controlSide + gap, dy: 0)
+            next = playPause.offsetBy(dx: self.controlSide + gap, dy: 0)
 
             let textX = artwork.maxX + padding
             let textWidth = max(0, controlsX - padding - textX)
@@ -72,7 +73,7 @@ final class BarView: BarContentView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let metrics = Metrics(plate: plate)
+        let metrics = Metrics(plate: plate, controlSide: controlSide, gap: controlGap)
         let palette = self.palette
         let dark = SystemAppearance.shared.isDark
 
@@ -219,7 +220,7 @@ final class BarView: BarContentView {
     // MARK: Interaction
 
     private func target(at point: NSPoint) -> Target? {
-        let metrics = Metrics(plate: plate)
+        let metrics = Metrics(plate: plate, controlSide: controlSide, gap: controlGap)
         let slack = metrics.controlSide * 0.12
         if metrics.playPause.insetBy(dx: -slack, dy: -slack).contains(point) { return .playPause }
         if metrics.next.insetBy(dx: -slack, dy: -slack).contains(point) { return .next }
@@ -237,7 +238,7 @@ final class BarView: BarContentView {
         case .artwork: onOpenPlayer?()
         case .progress:
             guard let duration = state.duration else { return }
-            let bar = Metrics(plate: plate).progress
+            let bar = Metrics(plate: plate, controlSide: controlSide, gap: controlGap).progress
             let fraction = min(max((point.x - bar.minX) / bar.width, 0), 1)
             onCommand?(.seek(duration * Double(fraction)))
         }

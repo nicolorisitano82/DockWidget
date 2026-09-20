@@ -5,6 +5,10 @@ import AppKit
 class PaneViewController: NSViewController {
     private(set) var stageView: NSView!
 
+    /// Set by the manager: rebuilds this pane, for when a setting changes what
+    /// the pane itself looks like.
+    var onRequestReload: (() -> Void)?
+
     /// Most panes preview a square tile; a bar widget previews a strip.
     var tileView: TileView? { stageView as? TileView }
     private var timer: Timer?

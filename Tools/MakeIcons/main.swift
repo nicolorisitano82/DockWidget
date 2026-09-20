@@ -87,6 +87,10 @@ func makeView(side: CGFloat) -> NSView {
         let view = ActionsIconView(frame: frame)
         view.reloadSettings()
         return view
+    case "sensors":
+        let view = SensorsTileView(frame: frame)
+        view.reloadSettings()
+        return view
     case "manager":
         let view = ManagerIconView(frame: frame)
         view.reloadSettings()
