@@ -91,8 +91,8 @@ final class AppleNotesPaneController: PaneViewController {
         stack.addArrangedSubview(line)
 
         let hint = NSTextField(wrappingLabelWithString: T(
-            "Note si raggiunge solo via AppleScript, quindi la prima lettura chiede il permesso di automazione. Chiedendolo da qui lo concedi a Dock Widgets, e il resto legge quello che questa finestra ha pubblicato.",
-            "Notes can only be reached through AppleScript, so the first read asks for the Automation permission. Asking from here grants it to Dock Widgets, and everything else reads what this window published."))
+            "Note si raggiunge solo via AppleScript, quindi la prima lettura chiede il permesso di automazione. Chiedendolo da qui lo concedi a Underdock, e il resto legge quello che questa finestra ha pubblicato.",
+            "Notes can only be reached through AppleScript, so the first read asks for the Automation permission. Asking from here grants it to Underdock, and everything else reads what this window published."))
         hint.font = .systemFont(ofSize: 11)
         hint.textColor = .tertiaryLabelColor
         hint.preferredMaxLayoutWidth = 392

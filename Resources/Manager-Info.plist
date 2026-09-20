@@ -5,17 +5,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>it</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dock Widgets</string>
+	<string>Underdock</string>
 	<key>CFBundleExecutable</key>
-	<string>DockWidgets</string>
+	<string>Underdock</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>dev.nicolo.dockwidgets</string>
+	<string>dev.nicolo.underdock</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Dock Widgets</string>
+	<string>Underdock</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -32,5 +32,9 @@
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Per mostrare i prossimi appuntamenti nel widget. Le date restano sul Mac: non vengono inviate da nessuna parte. / To show your next appointments in the widget. They stay on this Mac and are sent nowhere.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Per mostrare i prossimi appuntamenti nel widget. Le date restano sul Mac: non vengono inviate da nessuna parte. / To show your next appointments in the widget. They stay on this Mac and are sent nowhere.</string>
 </dict>
 </plist>

@@ -2,10 +2,13 @@ import AppKit
 
 enum SharedDefaults {
     /// A plain (non-sandboxed) preferences domain both the host app and the
-    /// plug-in can reach: ~/Library/Preferences/dev.nicolo.dockwidgets.plist
-    static let suiteName = "dev.nicolo.dockwidgets"
+    /// plug-in can reach: ~/Library/Preferences/dev.nicolo.underdock.plist
+    static let suiteName = "dev.nicolo.underdock"
+    /// What the domain was called under the names the app had before, newest
+    /// first. The app was Dock Widgets, then WidgetPro, then Underdock.
+    static let legacySuiteNames = ["dev.nicolo.widgetpro", "dev.nicolo.dockwidgets"]
     /// Broadcast by the host after a write so the plug-in can re-read immediately.
-    static let changedNotification = Notification.Name("dev.nicolo.dockwidgets.settingsChanged")
+    static let changedNotification = Notification.Name("dev.nicolo.underdock.settingsChanged")
 }
 
 final class SettingsStore {
@@ -15,6 +18,33 @@ final class SettingsStore {
 
     private init() {
         defaults = UserDefaults(suiteName: SharedDefaults.suiteName) ?? .standard
+        adoptLegacyDomain()
+    }
+
+    /// Carries across what was configured under the names the app had before.
+    ///
+    /// The preferences domain is named after the app, and the app has been
+    /// renamed twice. A rename is not a reason for every widget to forget how
+    /// it was set up — and a Mac that skipped a version has to come across from
+    /// whichever domain it actually has, so they are all tried, newest first.
+    ///
+    /// Every process that reads settings runs this, and that is fine: the flag
+    /// is written into the shared domain, so the first one through does the
+    /// work and the rest find it done.
+    private func adoptLegacyDomain() {
+        let flag = "migrated.into.underdock"
+        guard defaults.object(forKey: flag) == nil else { return }
+        defaults.set(true, forKey: flag)
+        for name in SharedDefaults.legacySuiteNames {
+            let stored = UserDefaults(suiteName: name)?.persistentDomain(forName: name) ?? [:]
+            guard !stored.isEmpty else { continue }
+            for (key, value) in stored where defaults.object(forKey: key) == nil {
+                defaults.set(value, forKey: key)
+            }
+            defaults.synchronize()
+            Diagnostics.write("impostazioni adottate dal dominio \(name): \(stored.count) chiavi")
+            return
+        }
     }
 
     func refresh() {

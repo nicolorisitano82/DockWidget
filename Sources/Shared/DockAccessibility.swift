@@ -157,6 +157,33 @@ enum BarLayout {
         maximumSpacers: 6
     )
 
+    /// A time and a name need room; three appointments need a lot of it.
+    static let calendar = Spec(
+        id: "calendar",
+        anchorTitle: "Appuntamenti",
+        minimumSpacers: 2,
+        defaultSpacers: 3,
+        maximumSpacers: 8
+    )
+
+    /// A symbol, a temperature, and the place it belongs to.
+    static let weather = Spec(
+        id: "weather",
+        anchorTitle: "Meteo",
+        minimumSpacers: 1,
+        defaultSpacers: 3,
+        maximumSpacers: 6
+    )
+
+    /// Room for a handful of file icons.
+    static let shelf = Spec(
+        id: "shelf",
+        anchorTitle: "Mensola",
+        minimumSpacers: 1,
+        defaultSpacers: 2,
+        maximumSpacers: 6
+    )
+
     /// One tile per mounted volume.
     static let disks = Spec(
         id: "disks",

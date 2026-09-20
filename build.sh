@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds DockWidgets.app into ./build.
+# Builds Underdock.app into ./build.
 #
 # The manager is the only app you install; each widget is an agent app nested
 # under Contents/Library/Widgets, carrying its own .docktileplugin. The manager
@@ -18,11 +18,15 @@ ARCHS="${ARCHS:-$(uname -m)}"
 # A stable signature is not cosmetic here: TCC ties the Accessibility consent
 # the bar needs to the app's designated requirement, and an ad-hoc signature
 # changes with every build. Tools/make-signing-cert.sh creates this identity.
-LOCAL_IDENTITY="Dock Widgets Dev"
+# The second name is what the certificate was called before the app was
+# renamed: a Mac that already has it keeps its Accessibility consent.
+LOCAL_IDENTITIES=("Underdock Dev" "WidgetPro Dev" "Dock Widgets Dev")
 if [ -z "${SIGN_IDENTITY:-}" ]; then
-  if security find-identity -v -p codesigning 2>/dev/null | grep -q "$LOCAL_IDENTITY"; then
-    SIGN_IDENTITY="$LOCAL_IDENTITY"
-  else
+  AVAILABLE="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+  for candidate in "${LOCAL_IDENTITIES[@]}"; do
+    case "$AVAILABLE" in *"$candidate"*) SIGN_IDENTITY="$candidate"; break;; esac
+  done
+  if [ -z "${SIGN_IDENTITY:-}" ]; then
     SIGN_IDENTITY="-"
     echo "⚠︎  nessuna identità di firma: build ad-hoc, il permesso di Accessibilità decadrà"
     echo "   crea l'identità con ./Tools/make-signing-cert.sh"
@@ -42,9 +46,12 @@ FOLDER=("$ROOT"/Sources/Folder/*.swift)
 NOTE=("$ROOT"/Sources/Note/*.swift)
 APPLENOTES=("$ROOT"/Sources/AppleNotes/*.swift)
 NOTCH=("$ROOT"/Sources/Notch/*.swift)
+SHELF=("$ROOT"/Sources/Shelf/*.swift)
+CALENDAR=("$ROOT"/Sources/Calendar/*.swift)
+WEATHER=("$ROOT"/Sources/Weather/*.swift)
 WIDGET_HOST=("$ROOT"/Sources/WidgetHost/*.swift)
 
-MANAGER_APP="$BUILD/DockWidgets.app"
+MANAGER_APP="$BUILD/Underdock.app"
 WIDGETS_DIR="$MANAGER_APP/Contents/Library/Widgets"
 AGENTS_DIR="$MANAGER_APP/Contents/Library/LoginItems"
 SIGN_QUEUE=()
@@ -111,9 +118,9 @@ make_widget() {
   swift_build "$plugin_bundle/Contents/MacOS/$plugin" "$plugin" bundle "${SHARED[@]}" "${sources[@]}"
 
   fill_plist "$ROOT/Resources/Widget-Info.plist" "$display" "$executable" \
-    "dev.nicolo.dockwidgets.$widget_id" "$plugin" > "$app/Contents/Info.plist"
+    "dev.nicolo.underdock.$widget_id" "$plugin" > "$app/Contents/Info.plist"
   fill_plist "$ROOT/Resources/Plugin-Info.plist" "$display" "$executable" \
-    "dev.nicolo.dockwidgets.$widget_id.tile" "$plugin" "$principal" > "$plugin_bundle/Contents/Info.plist"
+    "dev.nicolo.underdock.$widget_id.tile" "$plugin" "$principal" > "$plugin_bundle/Contents/Info.plist"
   printf 'APPL????' > "$app/Contents/PkgInfo"
   check_plist "$app/Contents/Info.plist"
   check_plist "$plugin_bundle/Contents/Info.plist"
@@ -127,14 +134,14 @@ make_widget() {
 echo "→ strumento icone"
 swiftc -swift-version 5 -O -sdk "$SDK" -target "$(uname -m)-apple-macos${DEPLOY}" \
   -module-name makeicons -o "$BUILD/tmp/makeicons" \
-  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" \
+  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${SHELF[@]}" "${CALENDAR[@]}" "${WEATHER[@]}" \
   "$ROOT/Tools/MakeIcons/main.swift"
 
 echo "→ manager"
 mkdir -p "$MANAGER_APP/Contents/MacOS" "$MANAGER_APP/Contents/Resources" "$WIDGETS_DIR"
-swift_build "$MANAGER_APP/Contents/MacOS/DockWidgets" DockWidgets app \
+swift_build "$MANAGER_APP/Contents/MacOS/Underdock" Underdock app \
   "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" \
-  "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" "${MANAGER[@]}"
+  "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" "${SHELF[@]}" "${CALENDAR[@]}" "${WEATHER[@]}" "${MANAGER[@]}"
 cp "$ROOT/Resources/Manager-Info.plist" "$MANAGER_APP/Contents/Info.plist"
 check_plist "$MANAGER_APP/Contents/Info.plist"
 printf 'APPL????' > "$MANAGER_APP/Contents/PkgInfo"
@@ -144,7 +151,7 @@ echo "→ agent barra"
 AGENT_APP="$AGENTS_DIR/NowPlayingBar.app"
 mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
 swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
-  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" \
+  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" "${SHELF[@]}" "${CALENDAR[@]}" "${WEATHER[@]}" \
   "${OVERLAY[@]}"
 cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
 check_plist "$AGENT_APP/Contents/Info.plist"
@@ -168,6 +175,12 @@ make_widget "Appunto" "NoteHost" "note" \
   "BlankWidget" "BlankDockTilePlugin" "note" "Appunto.app" "${BLANK_TILE[@]}"
 make_widget "Note" "AppleNotesHost" "applenotes" \
   "AppleNotesWidget" "AppleNotesDockTilePlugin" "applenotes" "Note.app" "${APPLENOTES[@]}"
+make_widget "Mensola" "ShelfHost" "shelf" \
+  "BlankWidget" "BlankDockTilePlugin" "shelf" "Mensola.app" "${BLANK_TILE[@]}"
+make_widget "Appuntamenti" "CalendarHost" "calendar" \
+  "BlankWidget" "BlankDockTilePlugin" "calendar" "Appuntamenti.app" "${BLANK_TILE[@]}"
+make_widget "Meteo" "WeatherHost" "weather" \
+  "BlankWidget" "BlankDockTilePlugin" "weather" "Meteo.app" "${BLANK_TILE[@]}"
 
 for target in "${SIGN_QUEUE[@]}" "$MANAGER_APP"; do
   codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" || {

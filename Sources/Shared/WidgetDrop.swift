@@ -10,12 +10,15 @@ enum WidgetDrop {
     /// treat the launch as a plain click.
     @discardableResult
     static func handle(widgetID: String, files: [URL]) -> Bool {
-        switch widgetID {
+        // The kind decides what to do; the identifier itself is the settings
+        // prefix, so a second folder drops into its own folder and a second
+        // shelf keeps its own files.
+        switch WidgetInstance.kind(of: widgetID) {
         case "folder":
             // The key is spelled out rather than imported: the helper links
             // only the shared code, and this is the one thing it needs from
             // the folder widget.
-            let path = SettingsStore.shared.string("folder.path", or: "")
+            let path = SettingsStore.shared.string("\(widgetID).path", or: "")
             guard !path.isEmpty else { return false }
             let destination = URL(fileURLWithPath: path)
             for file in files {
@@ -30,6 +33,14 @@ enum WidgetDrop {
                 }
                 try? FileManager.default.moveItem(at: file, to: target)
             }
+            return true
+        case "shelf":
+            // Nothing is moved: the shelf keeps where the file is.
+            let key = "\(widgetID).paths"
+            var stored = SettingsStore.shared.strings(key) ?? []
+            let incoming = files.map(\.path)
+            stored = Array((incoming + stored.filter { !incoming.contains($0) }).prefix(12))
+            SettingsStore.shared.set(stored, for: key)
             return true
         default:
             return false
@@ -46,9 +57,9 @@ enum WidgetClick {
     /// Returns true when the click was dealt with here.
     @discardableResult
     static func handle(widgetID: String) -> Bool {
-        switch widgetID {
+        switch WidgetInstance.kind(of: widgetID) {
         case "folder":
-            let path = SettingsStore.shared.string("folder.path", or: "")
+            let path = SettingsStore.shared.string("\(widgetID).path", or: "")
             guard !path.isEmpty else { return false }
             NSWorkspace.shared.open(URL(fileURLWithPath: path))
             return true

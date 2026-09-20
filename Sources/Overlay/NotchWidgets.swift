@@ -26,6 +26,18 @@ enum NotchWidgets {
             made = view
         case "note":
             made = NoteBarView(frame: .zero)
+        case "calendar":
+            let view = CalendarBarView(frame: .zero)
+            view.onOpen = {
+                NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+            }
+            made = view
+        case "weather":
+            made = WeatherBarView(frame: .zero)
+        case "shelf":
+            let view = ShelfBarView(frame: .zero)
+            view.onOpen = { NSWorkspace.shared.open($0) }
+            made = view
         case "applenotes":
             let view = AppleNotesBarView(frame: .zero)
             view.onOpen = { note in note.map(AppleNotesBridge.open) ?? AppleNotesBridge.openApp() }
@@ -54,12 +66,12 @@ enum NotchWidgets {
         case "disks": template = BarLayout.disks
         case "actions": template = BarLayout.actions
         case "note": template = BarLayout.note
+        case "shelf": template = BarLayout.shelf
+        case "calendar": template = BarLayout.calendar
+        case "weather": template = BarLayout.weather
         default: template = nil
         }
         guard let template else { return 4 }
         return template.forInstance(instance, anchorTitle: "").spacerCount + 1
     }
-
-    /// What can be put in the notch, as instance identifiers.
-    static let offered: [String] = ["nowplaying", "sensors", "disks", "actions", "note", "applenotes"]
 }

@@ -52,29 +52,46 @@ struct ActionSlot: Codable, Equatable {
 }
 
 struct ActionsSettings: Equatable {
-    static let slotCount = 4
+    /// How many cells a copy shows. Four is what fits beside the Dock's icons;
+    /// stacked in the notch a row is much wider than that, so the number is the
+    /// widget's own rather than the same everywhere.
+    static let defaultSlots = 4
+    static let minimumSlots = 2
+    static let maximumSlots = 10
+
     static func key(_ instance: String) -> String { "\(instance).slots" }
+    static func countKey(_ instance: String) -> String { "\(instance).cells" }
 
     var slots: [ActionSlot]
+
+    var count: Int { slots.count }
 
     static var current: ActionsSettings { current("actions") }
 
     static func current(_ instance: String) -> ActionsSettings {
+        let wanted = min(max(Int(SettingsStore.shared.double(countKey(instance),
+                                                             or: Double(defaultSlots))),
+                             minimumSlots), maximumSlots)
         let raw = SettingsStore.shared.string(key(instance), or: "")
-        guard let data = raw.data(using: .utf8),
-              let stored = try? JSONDecoder().decode([ActionSlot].self, from: data),
-              !stored.isEmpty else {
-            return ActionsSettings(slots: defaults)
+        var slots: [ActionSlot]
+        if let data = raw.data(using: .utf8),
+           let stored = try? JSONDecoder().decode([ActionSlot].self, from: data),
+           !stored.isEmpty {
+            slots = stored
+        } else {
+            slots = defaults
         }
-        var slots = stored
-        while slots.count < slotCount { slots.append(.empty) }
-        return ActionsSettings(slots: Array(slots.prefix(slotCount)))
+        while slots.count < wanted { slots.append(.empty) }
+        return ActionsSettings(slots: Array(slots.prefix(wanted)))
     }
 
     func save(_ instance: String = "actions") {
         guard let data = try? JSONEncoder().encode(slots),
               let text = String(data: data, encoding: .utf8) else { return }
-        SettingsStore.shared.set(text, for: Self.key(instance))
+        SettingsStore.shared.set([
+            Self.key(instance): text,
+            Self.countKey(instance): Double(slots.count),
+        ])
     }
 
     /// Something useful on first run, so the widget is not four empty holes.

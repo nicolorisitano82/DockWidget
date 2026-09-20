@@ -23,13 +23,13 @@ final class ActionsBarView: BarContentView {
 
     private func cells() -> [NSRect] {
         let plate = contentPlate
-        let count = CGFloat(ActionsSettings.slotCount)
+        let count = CGFloat(max(settings.count, 1))
         let gap = controlGap
         // Never taller than the icon band, never wider than its share of it.
         let side = min(plate.height, (plate.width - gap * (count - 1)) / count)
         let total = side * count + gap * (count - 1)
         var x = plate.midX - total / 2
-        return (0..<ActionsSettings.slotCount).map { _ in
+        return (0..<settings.count).map { _ in
             defer { x += side + gap }
             return NSRect(x: x, y: plate.midY - side / 2, width: side, height: side)
         }
@@ -134,7 +134,7 @@ final class ActionsBarView: BarContentView {
 
     @objc private func configure() {
         DistributedNotificationCenter.default().postNotificationName(
-            Notification.Name("dev.nicolo.dockwidgets.selectWidget"),
+            Notification.Name("dev.nicolo.underdock.selectWidget"),
             object: "actions", userInfo: nil, deliverImmediately: true
         )
     }

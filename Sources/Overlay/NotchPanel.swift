@@ -17,6 +17,9 @@ final class NotchPanel: NSObject {
     private var isOpen = false
     private var openFrame = NSRect.zero
     private var closeWork: DispatchWorkItem?
+    private var openWork: DispatchWorkItem?
+    /// False right after a close, until the pointer is seen away from the notch.
+    private var hasLeftSinceClose = true
     private var settingsObserver: NSObjectProtocol?
 
     override init() {
@@ -76,7 +79,12 @@ final class NotchPanel: NSObject {
             return
         }
         collapsedFrame = NotchGeometry.rect(on: screen)
+        // The band the levels sit in is the notch's own: its height, and the
+        // width left either side of it once the panel has opened.
+        content.bandHeight = collapsedFrame.height
+        content.notchWidth = collapsedFrame.width
         content.apply(instances: settings.widgets)
+        content.applyLevels()
         if !isOpen {
             panel.setFrame(collapsedFrame, display: false)
             // Hidden, not merely flush with the notch: a black rectangle over
@@ -93,25 +101,53 @@ final class NotchPanel: NSObject {
     func pointerMoved(to point: NSPoint) {
         guard NotchSettings.current.isEnabled, !collapsedFrame.isEmpty else { return }
         let trigger = collapsedFrame.insetBy(dx: -8, dy: -2)
-        if trigger.contains(point) {
-            open()
-        } else if isOpen, !openFrame.insetBy(dx: -10, dy: -10).contains(point) {
+        let isOnTrigger = trigger.contains(point)
+
+        // A pointer parked on the notch must not make the panel open, close
+        // and open again forever: after a close it has to leave and come back.
+        if !isOnTrigger { hasLeftSinceClose = true }
+
+        if isOnTrigger, hasLeftSinceClose {
+            scheduleOpen()
+        } else if !isOnTrigger {
+            openWork?.cancel()
+            openWork = nil
+        }
+
+        if isOpen, !openFrame.insetBy(dx: -10, dy: -10).contains(point), !isOnTrigger {
             // The pointer has left the panel's own area: the frame it is
             // animating towards, not the one it happens to have this instant.
             scheduleClose()
         }
     }
 
+    /// Opens after the pointer has stayed put for the configured moment.
+    private func scheduleOpen() {
+        guard !isOpen, openWork == nil else { return }
+        let delay = max(NotchSettings.current.openDelay, 0)
+        guard delay > 0 else {
+            open()
+            return
+        }
+        let work = DispatchWorkItem { [weak self] in
+            self?.openWork = nil
+            self?.open()
+        }
+        openWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+
     private func open() {
         closeWork?.cancel()
         closeWork = nil
+        openWork?.cancel()
+        openWork = nil
         guard !isOpen, let screen = NotchGeometry.screen else { return }
         isOpen = true
         panel.setFrame(collapsedFrame, display: false)
         panel.orderFrontRegardless()
 
-        let settings = NotchSettings.current
-        let width = max(settings.expandedWidth, collapsedFrame.width + 120)
+        let width = max(NotchSettings.expandedWidth, collapsedFrame.width + 120)
         // The first row starts below the notch itself, or it would sit beside
         // the camera housing where nothing can be read.
         content.topInset = collapsedFrame.height + NotchContentView.topPadding
@@ -142,17 +178,19 @@ final class NotchPanel: NSObject {
     /// time — which is to say, forever.
     private func scheduleClose() {
         guard closeWork == nil else { return }
+        let delay = max(NotchSettings.current.closeDelay, 0.05)
         let work = DispatchWorkItem { [weak self] in
             self?.closeWork = nil
             self?.close()
         }
         closeWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
 
     private func close() {
         guard isOpen else { return }
         isOpen = false
+        hasLeftSinceClose = false
         content.stopBeating()
         content.isHidden = true
         NSAnimationContext.runAnimationGroup { context in
@@ -178,9 +216,11 @@ final class NotchContentView: NSView {
     /// Air between the notch and the first row, between one row and the next,
     /// and under the last one. Widgets pressed against the edges of the slab
     /// look like they were poured in rather than placed.
-    static let topPadding: CGFloat = 12
-    static let rowSpacing: CGFloat = 8
-    static let bottomPadding: CGFloat = 14
+    static let topPadding: CGFloat = 10
+    /// Zero: the rows touch, and what separates them is the margin each widget
+    /// keeps between its own contents and its own edge.
+    static let rowSpacing: CGFloat = 0
+    static let bottomPadding: CGFloat = 12
 
     /// How far down the first row starts: the height of the notch, so the
     /// content clears it.
@@ -188,12 +228,34 @@ final class NotchContentView: NSView {
         didSet { needsLayout = true }
     }
 
+    /// The height of the notch, and how wide it is: the band the levels live
+    /// in runs the width of the panel, and the notch takes the middle of it.
+    var bandHeight: CGFloat = 32 { didSet { needsLayout = true } }
+    var notchWidth: CGFloat = 200 { didSet { needsLayout = true } }
+
+    /// A level either side of the notch. Part of the panel: they come down with
+    /// it and go up with it, and there is no second window to keep in step.
+    private let levels = NotchSide.allCases.map(SideHUDView.init(side:))
+
     private var rows: [BarContentView] = []
     private var shown: [String] = []
     private var shownWidths: [Int] = []
     private var beat: Timer?
 
     var rowCount: Int { rows.count }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        levels.forEach(addSubview)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("the notch is only ever built in code") }
+
+    /// Re-reads which level goes on which side.
+    func applyLevels() {
+        levels.forEach { $0.applySettings() }
+    }
 
     /// Builds the rows when the chosen widgets change, and otherwise just lets
     /// the ones already there re-read their settings: rebuilding on every
@@ -224,11 +286,13 @@ final class NotchContentView: NSView {
         timer.tolerance = 0.2
         RunLoop.main.add(timer, forMode: .common)
         beat = timer
+        levels.forEach { $0.begin() }
     }
 
     func stopBeating() {
         beat?.invalidate()
         beat = nil
+        levels.forEach { $0.stop() }
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -238,6 +302,19 @@ final class NotchContentView: NSView {
 
     override func layout() {
         super.layout()
+        // Either side of the notch, in the band the notch itself occupies.
+        let sideWidth = max((bounds.width - notchWidth) / 2, 0)
+        for view in levels {
+            // Too narrow to read is worse than absent.
+            guard sideWidth >= 56 else {
+                view.frame = .zero
+                continue
+            }
+            view.frame = NSRect(x: view.side == .left ? 0 : bounds.width - sideWidth,
+                                y: bounds.height - bandHeight,
+                                width: sideWidth, height: bandHeight)
+        }
+
         for (index, row) in rows.enumerated() {
             let top = topInset + CGFloat(index) * (Self.rowHeight + Self.rowSpacing)
             row.frame = NSRect(x: 16,

@@ -1,7 +1,7 @@
 import AppKit
 
-/// Editor for the four cells of the actions widget: one cell at a time, so the
-/// pane stays the size of the others.
+/// Editor for the cells of the actions widget: one cell at a time, so the pane
+/// stays the size of the others however many there are.
 final class ActionsPaneController: PaneViewController {
     init(instance: String) {
         super.init(nibName: nil, bundle: nil)
@@ -14,6 +14,8 @@ final class ActionsPaneController: PaneViewController {
     private lazy var settings = ActionsSettings.current(instance)
     private var selected = 0
 
+    private var cellPicker: NSSegmentedControl?
+    private var countLabel: NSTextField?
     private var symbolButton: NSPopUpButton?
     private var iconSwatches: AccentSwatchView?
     private var cellSwatches: AccentSwatchView?
@@ -44,10 +46,25 @@ final class ActionsPaneController: PaneViewController {
     override func refreshTick() -> Bool { false }
 
     override func buildControls(in stack: NSStackView) {
-        let cell = NSSegmentedControl(labels: (1...ActionsSettings.slotCount).map(String.init),
+        let stepper = NSStepper()
+        stepper.minValue = Double(ActionsSettings.minimumSlots)
+        stepper.maxValue = Double(ActionsSettings.maximumSlots)
+        stepper.increment = 1
+        stepper.integerValue = settings.count
+        stepper.target = self
+        stepper.action = #selector(countChanged)
+        countLabel = NSTextField(labelWithString: T("\(settings.count) celle",
+                                                    "\(settings.count) cells"))
+        let countRow = NSStackView(views: [stepper, countLabel!])
+        countRow.orientation = .horizontal
+        countRow.spacing = 8
+        stack.addArrangedSubview(labeled(T("Quante", "How many"), countRow))
+
+        let cell = NSSegmentedControl(labels: (1...settings.count).map(String.init),
                                       trackingMode: .selectOne,
                                       target: self, action: #selector(cellChanged))
         cell.selectedSegment = 0
+        cellPicker = cell
         stack.addArrangedSubview(labeled(T("Cella", "Cell"), cell))
 
         let symbols = NSPopUpButton()
@@ -169,6 +186,28 @@ final class ActionsPaneController: PaneViewController {
             choice?.addItems(withTitles: SystemAction.allCases.map(\.label))
             choice?.selectItem(at: SystemAction.allCases.firstIndex(of: action) ?? 0)
         }
+    }
+
+    @objc private func countChanged(_ sender: NSStepper) {
+        let wanted = min(max(sender.integerValue, ActionsSettings.minimumSlots),
+                         ActionsSettings.maximumSlots)
+        sender.integerValue = wanted
+        var slots = settings.slots
+        while slots.count < wanted { slots.append(.empty) }
+        // The cells beyond the new count are kept in the stored list, so
+        // putting the number back brings them back as they were.
+        settings.slots = Array(slots.prefix(wanted))
+        settings.save(instance)
+        countLabel?.stringValue = T("\(wanted) celle", "\(wanted) cells")
+
+        if let picker = cellPicker {
+            picker.segmentCount = wanted
+            for index in 0..<wanted { picker.setLabel(String(index + 1), forSegment: index) }
+            selected = min(selected, wanted - 1)
+            picker.selectedSegment = selected
+        }
+        loadSlotIntoControls()
+        reloadTile()
     }
 
     @objc private func cellChanged(_ sender: NSSegmentedControl) {

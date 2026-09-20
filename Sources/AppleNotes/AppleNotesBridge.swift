@@ -16,7 +16,7 @@ struct AppleNote: Codable, Equatable {
 /// and everything else — the Dock plug-in above all — displays that. It is the
 /// same arrangement the now-playing widget uses for MediaRemote.
 enum AppleNotesBridge {
-    static let changed = Notification.Name("dev.nicolo.dockwidgets.notesChanged")
+    static let changed = Notification.Name("dev.nicolo.underdock.notesChanged")
 
     static var fileURL: URL {
         SharedPaths.cache.appendingPathComponent("applenotes.json")

@@ -46,9 +46,20 @@ class BarContentView: NSView {
     /// One Dock cell's width, which is the icon size the Dock is using.
     var tileWidth: CGFloat { bounds.width / CGFloat(max(tileCount, 1)) }
 
-    /// The plate minus a margin: content that touches the panel's edge reads
-    /// as content that overflowed it.
-    var contentPlate: NSRect { plate.insetBy(dx: plate.height * 0.13, dy: 0) }
+    /// How far a stacked row holds its contents off its own edge.
+    static let stackedInset: CGFloat = 12
+
+    /// The plate minus a margin: content that touches the card's edge reads as
+    /// content that overflowed it.
+    ///
+    /// Vertically only where the rows are stacked. In the Dock the plate is the
+    /// band the icons beside it occupy, and shrinking it would make the widget
+    /// smaller than its neighbours; in the notch the plate is a card drawn
+    /// around the contents, and contents have to stay off its edge.
+    var contentPlate: NSRect {
+        let inset = plate.height * 0.13
+        return plate.insetBy(dx: inset, dy: fillsHeight ? inset : 0)
+    }
 
     /// How big a round control or a square cell should be.
     ///
@@ -76,12 +87,15 @@ class BarContentView: NSView {
         // has to match the icons beside it. Stacked in the notch there are no
         // icons to match, and the height is what every row shares.
         let iconSide = fillsHeight
-            ? bounds.height * 0.88
+            ? bounds.height * 0.72
             : min(tileWidth * TileGeometry.artworkSideRatio, bounds.height * 0.88)
+        // Stacked rows sit flush against one another, so what separates them is
+        // the margin each one keeps between its own contents and its own edge.
         guard !fillsHeight else {
-            let margin = iconSide * 0.08
-            return NSRect(x: bounds.minX + margin, y: bounds.midY - iconSide / 2,
-                          width: bounds.width - margin * 2, height: iconSide)
+            return NSRect(x: bounds.minX + Self.stackedInset,
+                          y: bounds.midY - iconSide / 2,
+                          width: max(bounds.width - Self.stackedInset * 2, 1),
+                          height: iconSide)
         }
         return NSRect(x: bounds.minX + (tileWidth - iconSide) / 2,
                       y: bounds.midY - iconSide / 2,

@@ -5,7 +5,7 @@ import Foundation
 enum SharedPaths {
     static var cache: URL {
         URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Caches/dev.nicolo.dockwidgets", isDirectory: true)
+            .appendingPathComponent("Library/Caches/dev.nicolo.underdock", isDirectory: true)
     }
 }
 
@@ -29,7 +29,7 @@ enum Diagnostics {
     static func write(_ message: String) {
         let stamp = ISO8601DateFormatter().string(from: Date())
         let line = "\(stamp) [\(ProcessInfo.processInfo.processName)] \(message)\n"
-        NSLog("[dockwidgets] %@", message)
+        NSLog("[underdock] %@", message)
 
         let directory = logURL.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

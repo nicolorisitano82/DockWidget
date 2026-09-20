@@ -71,7 +71,7 @@ enum WidgetInstaller {
     /// What was in the Dock when the user quit, so the next launch can put it back.
     private static let restoreKey = "session.restore"
 
-    /// Quitting puts the Dock back the way the user had it before Dock Widgets.
+    /// Quitting puts the Dock back the way the user had it before Underdock.
     ///
     /// Only on a deliberate quit: doing this on logout would empty the Dock at
     /// every restart and leave it empty until the manager was opened again.

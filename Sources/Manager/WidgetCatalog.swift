@@ -36,7 +36,7 @@ struct WidgetDescriptor {
     var id: String {
         isInNotch ? WidgetInstance.notchID(kind: kind) : WidgetInstance.id(kind: kind, copy: copy)
     }
-    var bundleID: String { "dev.nicolo.dockwidgets.\(id)" }
+    var bundleID: String { "dev.nicolo.underdock.\(id)" }
     var helperBundleName: String { WidgetInstance.bundleName(base: bundleBase, copy: copy) }
     /// What the Dock calls the tile, which is what the overlay anchors to.
     var anchorTitle: String { WidgetInstance.anchorTitle(base: bundleBase, copy: copy) }
@@ -100,6 +100,12 @@ struct WidgetDescriptor {
             return spec(BarLayout.actions)
         case "note":
             return spec(BarLayout.note)
+        case "shelf":
+            return spec(BarLayout.shelf)
+        case "calendar":
+            return spec(BarLayout.calendar)
+        case "weather":
+            return spec(BarLayout.weather)
         default:
             return nil
         }
@@ -137,6 +143,19 @@ enum WidgetCatalog {
                  summary: T("L'ultima nota di Note, con un tasto per scriverne una nuova.",
                             "The latest note from Notes, with a button to start a new one."),
                  symbol: "note.text.badge.plus") { AppleNotesPaneController(instance: $0) },
+        template(kind: "calendar", bundle: "Appuntamenti",
+                 name: T("Appuntamenti", "Appointments"),
+                 summary: T("Quello che c'è adesso e quello che viene dopo, dal calendario di Apple o da un indirizzo iCal di Google.",
+                            "What is on now and what comes next, from Apple Calendar or from a Google iCal address."),
+                 symbol: "calendar") { CalendarPaneController(instance: $0) },
+        template(kind: "weather", bundle: "Meteo", name: T("Meteo", "Weather"),
+                 summary: T("Che tempo fa dove hai detto tu, con minima e massima di oggi.",
+                            "The weather where you said, with today's low and high."),
+                 symbol: "cloud.sun.fill") { WeatherPaneController(instance: $0) },
+        template(kind: "shelf", bundle: "Mensola", name: T("Mensola", "Shelf"),
+                 summary: T("Dove posare un file per un minuto: resta lì e lo riprendi trascinandolo.",
+                            "Somewhere to put a file down for a minute: it stays there and you drag it back out."),
+                 symbol: "tray.full.fill") { ShelfPaneController(instance: $0) },
         template(kind: "actions", bundle: "Azioni", name: T("Azioni", "Actions"),
                  summary: T("Quattro celle: un'icona, i tuoi colori, un'azione a testa.",
                             "Four cells: an icon, your colours, an action each."),

@@ -96,6 +96,90 @@ final class NoteIconView: TileView {
     }
 }
 
+/// The shelf's icon: a ledge with a couple of things put down on it.
+final class ShelfIconView: TileView {
+    override func draw(_ dirtyRect: NSRect) {
+        let card = drawCard()
+        let palette = self.palette
+        let side = card.width
+
+        let ledge = NSRect(x: card.minX + side * 0.16, y: card.minY + side * 0.28,
+                           width: side * 0.68, height: side * 0.065)
+        (NSColor(hexString: ShelfSettings.current("shelf").accentHex) ?? .systemTeal).setFill()
+        NSBezierPath(roundedRect: ledge, xRadius: ledge.height / 2,
+                     yRadius: ledge.height / 2).fill()
+
+        for (index, width) in [CGFloat(0.20), 0.16, 0.13].enumerated() {
+            let height = side * (0.30 - CGFloat(index) * 0.05)
+            let box = NSRect(x: ledge.minX + side * 0.04 + CGFloat(index) * side * 0.24,
+                             y: ledge.maxY, width: side * width, height: height)
+            (index == 0 ? palette.primary : palette.secondary).setFill()
+            NSBezierPath(roundedRect: box, xRadius: side * 0.035, yRadius: side * 0.035).fill()
+        }
+    }
+}
+
+/// The calendar's icon: a sheet with a coloured header and a date on it.
+final class CalendarIconView: TileView {
+    override func draw(_ dirtyRect: NSRect) {
+        let card = drawCard()
+        let palette = self.palette
+        let side = card.width
+
+        NSGraphicsContext.saveGraphicsState()
+        TileGeometry.cardPath(in: card).addClip()
+        (NSColor(hexString: CalendarSettings.current("calendar").accentHex) ?? .systemRed).setFill()
+        NSRect(x: card.minX, y: card.maxY - side * 0.26,
+               width: card.width, height: side * 0.26).fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        // A grid of days, with today filled in.
+        let columns = 4, rows = 3
+        let cell = side * 0.13
+        let gap = side * 0.055
+        let gridWidth = CGFloat(columns) * cell + CGFloat(columns - 1) * gap
+        let originX = card.midX - gridWidth / 2
+        let originY = card.minY + side * 0.16
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let box = NSRect(x: originX + CGFloat(column) * (cell + gap),
+                                 y: originY + CGFloat(rows - 1 - row) * (cell + gap),
+                                 width: cell, height: cell)
+                let isToday = row == 1 && column == 2
+                (isToday ? palette.accent : palette.secondary.withAlphaComponent(0.55)).setFill()
+                NSBezierPath(roundedRect: box, xRadius: cell * 0.3, yRadius: cell * 0.3).fill()
+            }
+        }
+    }
+}
+
+/// The weather's icon: a sun coming out from behind a cloud.
+final class WeatherIconView: TileView {
+    override func draw(_ dirtyRect: NSRect) {
+        let card = drawCard()
+        let palette = self.palette
+        let side = card.width
+        let accent = NSColor(hexString: WeatherSettings.current("weather").accentHex) ?? .systemBlue
+
+        let sun = NSRect(x: card.midX - side * 0.04, y: card.midY - side * 0.02,
+                         width: side * 0.34, height: side * 0.34)
+        NSColor.systemYellow.setFill()
+        NSBezierPath(ovalIn: sun).fill()
+
+        // The cloud: three circles and a base, which is all a cloud ever is.
+        let base = NSRect(x: card.minX + side * 0.14, y: card.minY + side * 0.26,
+                          width: side * 0.62, height: side * 0.20)
+        accent.setFill()
+        NSBezierPath(roundedRect: base, xRadius: base.height / 2, yRadius: base.height / 2).fill()
+        for (offset, size) in [(CGFloat(0.10), CGFloat(0.22)), (0.30, 0.30), (0.50, 0.20)] {
+            let puff = NSRect(x: base.minX + side * offset, y: base.midY,
+                              width: side * size, height: side * size)
+            NSBezierPath(ovalIn: puff).fill()
+        }
+        palette.secondary.withAlphaComponent(0).setFill()
+    }
+}
+
 func makeView(side: CGFloat) -> NSView {
     let frame = NSRect(x: 0, y: 0, width: side, height: side)
     switch kind {
@@ -130,6 +214,18 @@ func makeView(side: CGFloat) -> NSView {
         return view
     case "folder":
         let view = FolderTileView(frame: frame)
+        view.reloadSettings()
+        return view
+    case "shelf":
+        let view = ShelfIconView(frame: frame)
+        view.reloadSettings()
+        return view
+    case "calendar":
+        let view = CalendarIconView(frame: frame)
+        view.reloadSettings()
+        return view
+    case "weather":
+        let view = WeatherIconView(frame: frame)
         view.reloadSettings()
         return view
     case "manager":

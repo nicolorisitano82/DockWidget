@@ -1,5 +1,5 @@
 #!/bin/bash
-# Packs build/DockWidgets.app into a disk image ready to hand to someone.
+# Packs build/Underdock.app into a disk image ready to hand to someone.
 #
 # The signature is the local one: the image is not notarised, so the first
 # launch on another Mac needs right-click → Open. Notarising takes an Apple
@@ -7,9 +7,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP="$ROOT/build/DockWidgets.app"
+APP="$ROOT/build/Underdock.app"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null || echo 1.0)"
-DMG="$ROOT/build/DockWidgets-$VERSION.dmg"
+DMG="$ROOT/build/Underdock-$VERSION.dmg"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
@@ -21,7 +21,7 @@ ln -s /Applications "$STAGE/Applications"
 
 echo "→ costruisco l'immagine"
 rm -f "$DMG"
-hdiutil create -volname "Dock Widgets" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "Underdock" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 
 echo "→ verifico"
 codesign -v --deep --strict "$APP"

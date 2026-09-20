@@ -10,7 +10,7 @@
 # to it, not here.
 set -euo pipefail
 
-NAME="${1:-Dock Widgets Dev}"
+NAME="${1:-Underdock Dev}"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

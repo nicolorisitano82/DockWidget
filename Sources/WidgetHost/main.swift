@@ -11,7 +11,7 @@ final class WidgetHostDelegate: NSObject, NSApplicationDelegate {
         (Bundle.main.bundleIdentifier ?? "").components(separatedBy: ".").last ?? ""
     }
 
-    /// …/DockWidgets.app/Contents/Library/Widgets/<Widget>.app → …/DockWidgets.app
+    /// …/Underdock.app/Contents/Library/Widgets/<Widget>.app → …/Underdock.app
     private var managerURL: URL {
         Bundle.main.bundleURL
             .deletingLastPathComponent()
@@ -46,7 +46,7 @@ final class WidgetHostDelegate: NSObject, NSApplicationDelegate {
 
         // If the manager is already up, launch arguments would be ignored.
         DistributedNotificationCenter.default().postNotificationName(
-            Notification.Name("dev.nicolo.dockwidgets.selectWidget"),
+            Notification.Name("dev.nicolo.underdock.selectWidget"),
             object: widgetID, userInfo: nil, deliverImmediately: true
         )
 

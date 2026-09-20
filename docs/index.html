@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dock Widgets — live widgets inside the macOS Dock</title>
+<title>Underdock — live widgets inside the macOS Dock</title>
 <meta name="description" content="Real widgets inside the macOS Dock, without replacing it. Clock, now playing, actions and sensors. Open source, MIT licensed.">
-<meta property="og:title" content="Dock Widgets">
+<meta property="og:title" content="Underdock">
 <meta property="og:description" content="Widgets inside the macOS Dock. Not a fake Dock — yours.">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
 
 <nav>
   <div class="wrap">
-    <div class="mark">Dock&nbsp;Widgets <span>· macOS</span></div>
+    <div class="mark">Underdock <span>· macOS</span></div>
     <a href="#how">How it works</a>
     <a href="#widgets">Widgets</a>
     <a href="#notes">Field notes</a>
@@ -31,7 +31,7 @@
       the magnification and the auto-hide. We only bring the content.
     </p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/nicolorisitano82/DockWidget/releases/latest/download/DockWidgets.dmg">Download 1.0</a>
+      <a class="btn primary" href="https://github.com/nicolorisitano82/DockWidget/releases/latest/download/Underdock.dmg">Download 1.0</a>
       <a class="btn quiet" href="https://github.com/nicolorisitano82/DockWidget">Open the repository</a>
       <a class="btn quiet" href="#build">Or build it yourself</a>
     </div>
@@ -103,12 +103,17 @@
 
 <section id="widgets">
   <div class="wrap">
-    <h2>Seven widgets, two shapes</h2>
+    <h2>Eleven widgets, two shapes</h2>
     <p class="sub">
       Every widget is either a square tile or a bar as wide as you like — and several
       are both, switchable from one control. The images below are not mock-ups: they are
       the same views the Dock draws, rendered by a tool that compiles the project's own
-      code.
+      code. Four arrived after these were rendered: <strong>Notes</strong>, which shows
+      the note you touched last and opens it; <strong>Shelf</strong>, somewhere to put a
+      file down for a minute — drag it on, drag it back off, nothing moved and nothing
+      copied; <strong>Appointments</strong>, reading Apple Calendar or a Google calendar's
+      own secret iCal address; and <strong>Weather</strong>, from Open-Meteo, which answers
+      without a key and without an account.
     </p>
 
     <div class="shots">
@@ -306,7 +311,7 @@
   <div class="wrap">
     <h2>Get it, or build it</h2>
     <p class="sub" style="margin-bottom:22px">
-      The <a href="https://github.com/nicolorisitano82/DockWidget/releases/latest/download/DockWidgets.dmg">disk image</a>
+      The <a href="https://github.com/nicolorisitano82/DockWidget/releases/latest/download/Underdock.dmg">disk image</a>
       is signed with a local certificate and not notarised by Apple — notarising takes a
       paid developer account, which this project deliberately does not require. macOS will
       say it cannot check it: <strong>right-click the app, then Open</strong>, once.

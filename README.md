@@ -1,10 +1,10 @@
-# Dock Widgets
+# Underdock
 
 Widget dentro il Dock di macOS, senza sostituirlo. Il Dock resta quello di sistema
 e continua a fare il layout, l'ingrandimento e la scomparsa automatica: noi ci
 mettiamo il contenuto.
 
-**[Scarica la 1.0](https://github.com/nicolorisitano82/DockWidget/releases/latest/download/DockWidgets.dmg)** ·
+**[Scarica la 1.0](https://github.com/nicolorisitano82/DockWidget/releases/latest/download/Underdock.dmg)** ·
 [sito del progetto](https://nicolorisitano82.github.io/DockWidget/) · macOS 14+ · licenza MIT
 
 Interfaccia in italiano e inglese, secondo la lingua del Mac.
@@ -19,12 +19,37 @@ Interfaccia in italiano e inglese, secondo la lingua del Mac.
 | **Cartella** | tile | Contenuto, conteggio, ultimi arrivi. Il click apre, il drop ci sposta i file dentro. Icona colorabile come nel Finder |
 | **Dischi** | tile o barra | Spazio per volume, unità esterne appena collegate, espulsione dal tasto destro |
 | **Sensori** | tile o barra | CPU, memoria, disco, rete, batteria, watt assorbiti, stato termico |
+| **Note** | tile o barra | Le note di Apple: l'ultima modificata, il conteggio, e il click apre quella nota |
 | **Azioni** | barra | Quattro celle: icona, colori, e un'azione ciascuna |
+| **Appuntamenti** | barra | Quello che c'è adesso e quello che viene dopo, dal calendario di Apple o da un indirizzo iCal segreto di Google |
+| **Meteo** | barra | Tempo, temperatura, minima e massima del posto che scegli. Previsioni di Open-Meteo, senza chiave né account |
+| **Mensola** | barra | Dove posare un file per un minuto: ci si trascina sopra, ci si trascina via. Niente viene spostato né copiato |
 
 Quasi tutti si possono moltiplicare con **+** e **−**: due orologi su fusi diversi,
 due cartelle su posti diversi. *In riproduzione* no, e la ragione è funzionale
 invece che tecnica — una copia ha senso solo se ha un soggetto proprio, e la
 riproduzione in corso è una sola.
+
+## La barra del notch
+
+Oltre al Dock c'è un secondo posto: il notch. Ci passi sopra il puntatore e
+scende un pannello nero largo 400 punti, con fino a tre widget in fila — gli
+stessi widget, ma in una copia che ha le sue impostazioni, indipendenti da
+quella nel Dock. Nel notch stanno **solo** nella forma a barra, e tutte le righe
+hanno la stessa altezza.
+
+Il ritardo di apertura e quello di chiusura si regolano: il primo evita che il
+pannello scenda mentre stai solo attraversando il bordo per arrivare alla barra
+dei menu, il secondo ti lascia il tempo di rientrare se esci per sbaglio. Il
+pannello non si riapre finché il puntatore non se ne è andato davvero, così un
+puntatore parcheggiato lassù non lo fa lampeggiare.
+
+Dentro il pannello, nel nero ai lati del notch, possono starci **luminosità** e
+**volume**. Fanno parte del pannello: ci sono solo mentre è aperto e se ne
+vanno con lui, così la barra dei menu resta la barra dei menu. Di norma mostrano
+l'intensità; un clic ingrossa la barretta per trascinarla, la rotella la muove
+di un passo — quanto grande lo decidi tu. La luminosità compare solo dove il Mac
+la lascia leggere.
 
 ## Come funziona
 
@@ -32,8 +57,8 @@ Il Dock è un processo di sistema protetto: non ci si inietta codice. Ma ha due
 porte aperte, ed entrambe sono API pubbliche.
 
 ```
-DockWidgets.app
-├── Contents/MacOS/DockWidgets              manager, vive nella barra dei menu
+Underdock.app
+├── Contents/MacOS/Underdock              manager, vive nella barra dei menu
 ├── Contents/Library/Widgets/*.app          un'app per widget, ognuna con
 │   └── Contents/PlugIns/*.docktileplugin   il plug-in che disegna la tile
 └── Contents/Library/LoginItems/            l'agent che disegna le barre
@@ -48,7 +73,7 @@ Nessun permesso.
 un pannello non attivante. Il layout resta suo, l'ingrandimento anche.
 
 **Le copie** oltre la prima vengono create al momento in
-`~/Library/Application Support/DockWidgets/Widgets`, firmate sul posto, e
+`~/Library/Application Support/Underdock/Widgets`, firmate sul posto, e
 riallineate al modello quando l'app viene aggiornata.
 
 ## Compilare

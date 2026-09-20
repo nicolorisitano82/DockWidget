@@ -106,7 +106,7 @@ enum InstanceFactory {
     /// The local identity when there is one, ad-hoc otherwise: both are loaded
     /// by the Dock, and neither travels to another Mac.
     private static func sign(_ url: URL) {
-        let identity = hasLocalIdentity ? "Dock Widgets Dev" : "-"
+        let identity = localIdentity ?? "-"
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
         task.arguments = ["--force", "--sign", identity, "--timestamp=none", url.path]
@@ -116,16 +116,23 @@ enum InstanceFactory {
         task.waitUntilExit()
     }
 
-    private static let hasLocalIdentity: Bool = {
+    /// The certificate was called "Dock Widgets Dev" before the app was
+    /// renamed, and an installed Mac still has that one in its keychain. Both
+    /// names are accepted so a rename does not quietly drop every copy back to
+    /// an ad-hoc signature.
+    static let identityNames = ["Underdock Dev", "WidgetPro Dev", "Dock Widgets Dev"]
+
+    private static let localIdentity: String? = {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/security")
         task.arguments = ["find-identity", "-v", "-p", "codesigning"]
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = FileHandle.nullDevice
-        guard (try? task.run()) != nil else { return false }
+        guard (try? task.run()) != nil else { return nil }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         task.waitUntilExit()
-        return String(data: data, encoding: .utf8)?.contains("Dock Widgets Dev") ?? false
+        let listing = String(data: data, encoding: .utf8) ?? ""
+        return identityNames.first { listing.contains($0) }
     }()
 }

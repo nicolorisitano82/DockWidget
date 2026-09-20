@@ -3,7 +3,7 @@ import ServiceManagement
 
 /// Starts and stops the overlay agent that draws the wide bar.
 enum BarAgent {
-    static let identifier = "dev.nicolo.dockwidgets.bar"
+    static let identifier = "dev.nicolo.underdock.bar"
 
     static var url: URL {
         Bundle.main.bundleURL
@@ -41,7 +41,7 @@ enum BarAgent {
 
     static func stop() {
         DistributedNotificationCenter.default().postNotificationName(
-            Notification.Name("dev.nicolo.dockwidgets.barShouldStop"), object: nil, userInfo: nil, deliverImmediately: true
+            Notification.Name("dev.nicolo.underdock.barShouldStop"), object: nil, userInfo: nil, deliverImmediately: true
         )
         try? SMAppService.loginItem(identifier: identifier).unregister()
     }

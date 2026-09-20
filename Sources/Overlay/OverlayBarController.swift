@@ -2,7 +2,7 @@ import AppKit
 
 /// Keeps a borderless panel glued to the Dock's spacer tiles.
 final class OverlayBarController {
-    static let stopNotification = Notification.Name("dev.nicolo.dockwidgets.barShouldStop")
+    static let stopNotification = Notification.Name("dev.nicolo.underdock.barShouldStop")
 
     private let spec: BarLayout.Spec
     private let content: BarContentView

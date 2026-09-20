@@ -13,7 +13,7 @@ import AppKit
 /// ours — and the price of the alternative was re-laying the spacers on every
 /// launch, which means restarting the Dock on every launch.
 enum DockSpacers {
-    static let ownerKey = "dockwidgets-owner"
+    static let ownerKey = "underdock-owner"
 
     private static func owner(of entry: [String: Any]) -> String? {
         guard (entry["tile-type"] as? String)?.hasSuffix("spacer-tile") ?? false,

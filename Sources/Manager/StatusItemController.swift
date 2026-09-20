@@ -17,14 +17,14 @@ final class StatusItemController {
         if let button = statusItem.button {
             button.image = Self.icon()
             button.image?.isTemplate = true
-            button.toolTip = "Dock Widgets"
+            button.toolTip = "Underdock"
         }
         statusItem.menu = buildMenu()
     }
 
     private static func icon() -> NSImage? {
         for name in ["dock.rectangle", "menubar.dock.rectangle", "rectangle.grid.3x1.fill"] {
-            if let image = NSImage(systemSymbolName: name, accessibilityDescription: "Dock Widgets") {
+            if let image = NSImage(systemSymbolName: name, accessibilityDescription: "Underdock") {
                 return image
             }
         }
@@ -36,7 +36,7 @@ final class StatusItemController {
         menu.delegate = MenuRefresher.shared
         MenuRefresher.shared.controller = self
 
-        let open = NSMenuItem(title: T("Apri Dock Widgets", "Open Dock Widgets"), action: #selector(openManager), keyEquivalent: "")
+        let open = NSMenuItem(title: T("Apri Underdock", "Open Underdock"), action: #selector(openManager), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())

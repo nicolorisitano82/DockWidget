@@ -2,7 +2,7 @@ import AppKit
 
 extension Notification.Name {
     /// Posted in-process whenever the user's light/dark setting changes.
-    static let tileAppearanceChanged = Notification.Name("dev.nicolo.dockwidgets.appearanceChanged")
+    static let tileAppearanceChanged = Notification.Name("dev.nicolo.underdock.appearanceChanged")
 }
 
 /// Light/dark read straight from the global preferences domain.

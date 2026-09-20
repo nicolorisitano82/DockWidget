@@ -8,8 +8,8 @@ import AppKit
 /// posts a notification; the manager window and the overlay agent read it back.
 /// Commands travel the other way, as a notification the plug-in executes.
 enum NowPlayingFeed {
-    static let stateChanged = Notification.Name("dev.nicolo.dockwidgets.nowPlayingChanged")
-    static let commandRequested = Notification.Name("dev.nicolo.dockwidgets.nowPlayingCommand")
+    static let stateChanged = Notification.Name("dev.nicolo.underdock.nowPlayingChanged")
+    static let commandRequested = Notification.Name("dev.nicolo.underdock.nowPlayingCommand")
 
     static var directory: URL { SharedPaths.cache }
 

@@ -23,7 +23,7 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
 
         let controller = ManagerViewController()
         let window = NSWindow(contentViewController: controller)
-        window.title = "Dock Widgets"
+        window.title = "Underdock"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.setContentSize(NSSize(width: 760, height: 600))
         window.center()

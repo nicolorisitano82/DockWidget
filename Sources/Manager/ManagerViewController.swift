@@ -2,7 +2,7 @@ import AppKit
 
 extension Notification.Name {
     /// Posted by a widget helper when its tile is clicked.
-    static let selectWidget = Notification.Name("dev.nicolo.dockwidgets.selectWidget")
+    static let selectWidget = Notification.Name("dev.nicolo.underdock.selectWidget")
 }
 
 final class ManagerViewController: NSViewController {
@@ -251,8 +251,8 @@ final class ManagerViewController: NSViewController {
         if dockSwitch.state == .on, !isInstalledInApplications {
             dockSwitch.state = .off
             let alert = NSAlert()
-            alert.messageText = T("Sposta prima Dock Widgets in Applicazioni",
-                                  "Move Dock Widgets to Applications first")
+            alert.messageText = T("Sposta prima Underdock in Applicazioni",
+                                  "Move Underdock to Applications first")
             let folder = Bundle.main.bundleURL.deletingLastPathComponent().path
             alert.informativeText = T(
                 "Questa copia gira da \(folder). Il Dock punterebbe lì, e quella cartella viene ricreata a ogni compilazione: la tile resterebbe orfana.",

@@ -11,6 +11,8 @@ final class NotchPaneController: PaneViewController {
 
     private var settings = NotchSettings.current
     private var slots: [NSPopUpButton] = []
+    private var openLabel: NSTextField?
+    private var closeLabel: NSTextField?
 
     override func makeStageView() -> NSView {
         NotchPreview(frame: NSRect(x: 0, y: 0, width: 300, height: 120))
@@ -39,18 +41,53 @@ final class NotchPaneController: PaneViewController {
             stack.addArrangedSubview(labeled(T("Riga \(index + 1)", "Row \(index + 1)"), popup))
         }
 
-        let width = NSStepper()
-        width.minValue = 320
-        width.maxValue = 720
-        width.increment = 20
-        width.doubleValue = Double(settings.expandedWidth)
-        width.target = self
-        width.action = #selector(widthChanged)
-        widthField = NSTextField(labelWithString: "\(Int(settings.expandedWidth)) pt")
-        let row = NSStackView(views: [width, widthField!])
-        row.orientation = .horizontal
-        row.spacing = 8
-        stack.addArrangedSubview(labeled(T("Larghezza aperta", "Open width"), row))
+        stack.addArrangedSubview(sectionTitle(T("Ai lati del notch", "Either side of the notch")))
+
+        for side in NotchSide.allCases {
+            let popup = NSPopUpButton()
+            for kind in NotchLevelKind.allCases { popup.addItem(withTitle: kind.label) }
+            let chosen = settings.level(on: side)
+            popup.selectItem(at: NotchLevelKind.allCases.firstIndex(of: chosen) ?? 0)
+            popup.tag = side == .left ? 0 : 1
+            popup.target = self
+            popup.action = #selector(levelChanged)
+            stack.addArrangedSubview(labeled(side.label, popup))
+        }
+
+        let step = NSPopUpButton()
+        for choice in Self.steps { step.addItem(withTitle: "\(Int(1 / choice)) \(T("passi", "steps"))") }
+        step.selectItem(at: Self.steps.firstIndex { abs($0 - settings.levelStep) < 0.001 } ?? 2)
+        step.target = self
+        step.action = #selector(stepChanged)
+        stack.addArrangedSubview(labeled(T("Passo", "Step"), step))
+
+        let levelsHint = NSTextField(wrappingLabelWithString: T(
+            "Stanno dentro il pannello, nel nero ai lati del notch, e ci sono solo mentre è aperto. Mostrano l'intensità; un clic ingrossa la barretta per trascinarla, la rotella la muove di un passo. La luminosità compare solo se questo Mac la lascia leggere.",
+            "They sit inside the panel, in the black either side of the notch, and are there only while it is open. They show the level; a click thickens the bar so you can drag it, the wheel moves it a step. Brightness appears only if this Mac lets it be read."))
+        levelsHint.font = .systemFont(ofSize: 11)
+        levelsHint.textColor = .tertiaryLabelColor
+        levelsHint.preferredMaxLayoutWidth = 392
+        stack.addArrangedSubview(levelsHint)
+
+        stack.addArrangedSubview(sectionTitle(T("Tempi", "Timing")))
+
+        let open = delaySlider(settings.openDelay, #selector(openDelayChanged))
+        openLabel = delayLabel(settings.openDelay)
+        stack.addArrangedSubview(labeled(T("Ritardo di apertura", "Open delay"),
+                                         pair(open, openLabel!)))
+
+        let close = delaySlider(settings.closeDelay, #selector(closeDelayChanged))
+        closeLabel = delayLabel(settings.closeDelay)
+        stack.addArrangedSubview(labeled(T("Ritardo di chiusura", "Close delay"),
+                                         pair(close, closeLabel!)))
+
+        let timing = NSTextField(wrappingLabelWithString: T(
+            "L'apertura ritardata evita che il pannello scenda mentre stai solo attraversando il bordo; la chiusura ritardata ti lascia il tempo di rientrare.",
+            "The open delay keeps the panel up while you are only crossing the edge; the close delay gives you time to come back."))
+        timing.font = .systemFont(ofSize: 11)
+        timing.textColor = .tertiaryLabelColor
+        timing.preferredMaxLayoutWidth = 392
+        stack.addArrangedSubview(timing)
 
         let hint = NSTextField(wrappingLabelWithString: NotchGeometry.hasNotch
             ? T("Il pannello scende dal notch quando ci passi sopra il puntatore, e risale quando te ne vai.",
@@ -63,7 +100,61 @@ final class NotchPaneController: PaneViewController {
         stack.addArrangedSubview(hint)
     }
 
-    private var widthField: NSTextField?
+
+    /// Whole fractions of the range, named by how many presses cross it: the
+    /// keyboard's own keys are sixteenths.
+    private static let steps: [Double] = [1.0 / 4, 1.0 / 8, 1.0 / 16, 1.0 / 32, 1.0 / 64]
+
+    @objc private func levelChanged(_ sender: NSPopUpButton) {
+        let kind = NotchLevelKind.allCases[sender.indexOfSelectedItem]
+        if sender.tag == 0 { settings.leftLevel = kind } else { settings.rightLevel = kind }
+        settings.save()
+        if settings.isEnabled { BarAgent.start() }
+    }
+
+    @objc private func stepChanged(_ sender: NSPopUpButton) {
+        settings.levelStep = Self.steps[sender.indexOfSelectedItem]
+        settings.save()
+    }
+
+    private func delaySlider(_ value: TimeInterval, _ action: Selector) -> NSSlider {
+        let slider = NSSlider(value: value, minValue: 0, maxValue: 1.5,
+                              target: self, action: action)
+        slider.numberOfTickMarks = 7
+        slider.allowsTickMarkValuesOnly = false
+        slider.widthAnchor.constraint(equalToConstant: 180).isActive = true
+        return slider
+    }
+
+    private func delayLabel(_ value: TimeInterval) -> NSTextField {
+        let label = NSTextField(labelWithString: text(for: value))
+        label.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        label.textColor = .secondaryLabelColor
+        return label
+    }
+
+    private func pair(_ slider: NSSlider, _ label: NSTextField) -> NSStackView {
+        let row = NSStackView(views: [slider, label])
+        row.orientation = .horizontal
+        row.spacing = 8
+        return row
+    }
+
+    private func text(for value: TimeInterval) -> String {
+        value < 0.02 ? T("subito", "instant") : String(format: "%.2f s", value)
+    }
+
+    @objc private func openDelayChanged(_ sender: NSSlider) {
+        settings.openDelay = sender.doubleValue
+        settings.save()
+        openLabel?.stringValue = text(for: settings.openDelay)
+    }
+
+    @objc private func closeDelayChanged(_ sender: NSSlider) {
+        settings.closeDelay = sender.doubleValue
+        settings.save()
+        closeLabel?.stringValue = text(for: settings.closeDelay)
+    }
 
     @objc private func enabledChanged(_ sender: NSButton) {
         settings.isEnabled = sender.state == .on
@@ -84,19 +175,12 @@ final class NotchPaneController: PaneViewController {
         reloadTile()
     }
 
-    @objc private func widthChanged(_ sender: NSStepper) {
-        settings.expandedWidth = CGFloat(sender.doubleValue)
-        settings.save()
-        widthField?.stringValue = "\(Int(settings.expandedWidth)) pt"
-        reloadTile()
-    }
 }
 
 /// What can go in the notch, by instance identifier.
 enum NotchOffer {
     /// The widgets that can go in the notch, as their notch instances.
-    static let all = ["nowplaying", "sensors", "disks", "actions", "note", "applenotes"]
-        .map(WidgetInstance.notchID(kind:))
+    static let all = NotchOffering.instances
 
     static func name(of instance: String) -> String {
         WidgetCatalog.kinds.first { $0.kind == WidgetInstance.kind(of: instance) }?.baseName

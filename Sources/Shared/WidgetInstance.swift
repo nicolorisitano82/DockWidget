@@ -57,7 +57,7 @@ enum WidgetInstance {
     /// the Dock would find its tiles pointing at bundles that vanished.
     static var copiesDirectory: URL {
         URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Application Support/DockWidgets/Widgets",
+            .appendingPathComponent("Library/Application Support/Underdock/Widgets",
                                     isDirectory: true)
     }
 }

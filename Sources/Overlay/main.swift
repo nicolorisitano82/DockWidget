@@ -71,6 +71,24 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
                 DisksBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
             }, isEnabled: { DisksSettings.current($0).mode == .bar }),
 
+            BarWidgetKind(base: "Appuntamenti", template: BarLayout.calendar, makeView: { _ in
+                let view = CalendarBarView(frame: NSRect(x: 0, y: 0, width: 220, height: 50))
+                view.onOpen = {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Calendar.app"))
+                }
+                return view
+            }, isEnabled: { _ in true }),
+
+            BarWidgetKind(base: "Meteo", template: BarLayout.weather, makeView: { _ in
+                WeatherBarView(frame: NSRect(x: 0, y: 0, width: 180, height: 50))
+            }, isEnabled: { _ in true }),
+
+            BarWidgetKind(base: "Mensola", template: BarLayout.shelf, makeView: { _ in
+                let view = ShelfBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+                view.onOpen = { NSWorkspace.shared.open($0) }
+                return view
+            }, isEnabled: { _ in true }),
+
             BarWidgetKind(base: "Appunto", template: BarLayout.note, makeView: { instance in
                 let view = NoteBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
                 view.onEdit = { [weak view] in
