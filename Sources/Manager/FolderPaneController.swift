@@ -42,6 +42,29 @@ final class FolderPaneController: PaneViewController {
                                           isOn: settings.showsCount,
                                           action: #selector(countChanged)))
 
+        let tint = NSPopUpButton()
+        for entry in FolderTints.all {
+            let item = NSMenuItem(title: entry.label, action: nil, keyEquivalent: "")
+            item.image = FolderTints.swatch(entry.hex)
+            tint.menu?.addItem(item)
+        }
+        tint.selectItem(at: FolderTints.all.firstIndex { $0.hex == settings.tintHex } ?? 0)
+        tint.target = self
+        tint.action = #selector(tintChanged)
+        stack.addArrangedSubview(labeled(T("Colore cartella", "Folder colour"), tint))
+
+        let symbol = NSPopUpButton()
+        symbol.addItem(withTitle: T("Nessuno", "None"))
+        for name in ActionSymbols.all {
+            let item = NSMenuItem(title: name, action: nil, keyEquivalent: "")
+            item.image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+            symbol.menu?.addItem(item)
+        }
+        symbol.selectItem(withTitle: settings.symbol.isEmpty ? T("Nessuno", "None") : settings.symbol)
+        symbol.target = self
+        symbol.action = #selector(symbolChanged)
+        stack.addArrangedSubview(labeled(T("Simbolo", "Symbol"), symbol))
+
         stack.addArrangedSubview(sectionTitle(T("Colore", "Colour")))
         let swatches = AccentSwatchView(selectedHex: settings.accentHex)
         swatches.onSelect = { [weak self] hex in
@@ -53,8 +76,8 @@ final class FolderPaneController: PaneViewController {
         stack.addArrangedSubview(swatches)
 
         let hint = NSTextField(wrappingLabelWithString: T(
-            "I file trascinati sulla tile vengono spostati dentro la cartella. Il tasto destro mostra le cose arrivate per ultime.",
-            "Files dropped on the tile are moved into the folder. Right-click shows what arrived most recently."))
+            "Un click sulla tile apre la cartella. I file trascinati sopra ci finiscono dentro, e il tasto destro mostra le cose arrivate per ultime.",
+            "Clicking the tile opens the folder. Files dropped on it are moved inside, and right-click shows what arrived most recently."))
         hint.font = .systemFont(ofSize: 11)
         hint.textColor = .tertiaryLabelColor
         hint.preferredMaxLayoutWidth = 392
@@ -84,6 +107,18 @@ final class FolderPaneController: PaneViewController {
         settings.save()
         FolderMonitor.shared.watch(url.path)
         updateLabel()
+        reloadTile()
+    }
+
+    @objc private func tintChanged(_ sender: NSPopUpButton) {
+        settings.tintHex = FolderTints.all[sender.indexOfSelectedItem].hex
+        settings.save()
+        reloadTile()
+    }
+
+    @objc private func symbolChanged(_ sender: NSPopUpButton) {
+        settings.symbol = sender.indexOfSelectedItem == 0 ? "" : (sender.titleOfSelectedItem ?? "")
+        settings.save()
         reloadTile()
     }
 

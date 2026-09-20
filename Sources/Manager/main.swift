@@ -4,10 +4,21 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private var controller: ManagerViewController?
     private var statusItem: StatusItemController?
+    private var selectionObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = StatusItemController { [weak self] widget in
             self?.showWindow(selecting: widget)
+        }
+
+        // A click on a widget's tile arrives here. The manager can be running
+        // with no window at all — it lives in the menu bar — so selecting the
+        // widget is not enough: the window has to come back.
+        selectionObserver = DistributedNotificationCenter.default().addObserver(
+            forName: .selectWidget, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let id = note.object as? String else { return }
+            self?.showWindow(selecting: WidgetCatalog.widget(id: id))
         }
 
         let controller = ManagerViewController()

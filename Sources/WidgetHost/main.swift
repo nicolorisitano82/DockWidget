@@ -38,6 +38,12 @@ final class WidgetHostDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openManager() {
+        // Some widgets answer a click themselves.
+        if WidgetClick.handle(widgetID: widgetID) {
+            NSApp.terminate(nil)
+            return
+        }
+
         // If the manager is already up, launch arguments would be ignored.
         DistributedNotificationCenter.default().postNotificationName(
             Notification.Name("dev.nicolo.dockwidgets.selectWidget"),

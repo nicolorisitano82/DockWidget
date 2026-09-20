@@ -36,3 +36,24 @@ enum WidgetDrop {
         }
     }
 }
+
+/// What a widget does when its tile is clicked.
+///
+/// The default is to bring up the manager on that widget, but some widgets have
+/// something better to do: clicking a folder should open the folder, not ask
+/// you about it. Settings stay one right-click away.
+enum WidgetClick {
+    /// Returns true when the click was dealt with here.
+    @discardableResult
+    static func handle(widgetID: String) -> Bool {
+        switch widgetID {
+        case "folder":
+            let path = SettingsStore.shared.string("folder.path", or: "")
+            guard !path.isEmpty else { return false }
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+            return true
+        default:
+            return false
+        }
+    }
+}

@@ -5,6 +5,10 @@ struct FolderSettings: Equatable {
     var path: String = ""
     var showsCount = true
     var accentHex = "#0A84FF"
+    /// Empty leaves the folder the colour the Finder gives it.
+    var tintHex = ""
+    /// Empty leaves it without a glyph.
+    var symbol = ""
 
     var url: URL? { path.isEmpty ? nil : URL(fileURLWithPath: path) }
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemBlue }
@@ -13,6 +17,8 @@ struct FolderSettings: Equatable {
         static let path = "folder.path"
         static let showsCount = "folder.showsCount"
         static let accent = "folder.accent"
+        static let tint = "folder.tint"
+        static let symbol = "folder.symbol"
     }
 
     static var current: FolderSettings {
@@ -21,7 +27,9 @@ struct FolderSettings: Equatable {
         return FolderSettings(
             path: store.string(Key.path, or: defaults.path),
             showsCount: store.bool(Key.showsCount, or: defaults.showsCount),
-            accentHex: store.string(Key.accent, or: defaults.accentHex)
+            accentHex: store.string(Key.accent, or: defaults.accentHex),
+            tintHex: store.string(Key.tint, or: defaults.tintHex),
+            symbol: store.string(Key.symbol, or: defaults.symbol)
         )
     }
 
@@ -30,6 +38,8 @@ struct FolderSettings: Equatable {
             Key.path: path,
             Key.showsCount: showsCount,
             Key.accent: accentHex,
+            Key.tint: tintHex,
+            Key.symbol: symbol,
         ])
     }
 }
@@ -163,7 +173,9 @@ final class FolderTileView: TileView {
         needsDisplay = true
     }
 
-    var renderToken: String { "\(settings.path)|\(FolderMonitor.shared.count)" }
+    var renderToken: String {
+        "\(settings.path)|\(FolderMonitor.shared.count)|\(settings.tintHex)|\(settings.symbol)"
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         let card = TileGeometry.artworkRect(in: bounds)
@@ -178,9 +190,11 @@ final class FolderTileView: TileView {
             return
         }
 
-        // The Finder's own icon for this folder, so a coloured or custom folder
-        // keeps looking like itself in the Dock.
-        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        // The Finder's own icon for this folder — so a folder already
+        // customised there keeps looking like itself — unless a colour or a
+        // glyph has been chosen here.
+        let icon = FolderIconRenderer.icon(for: url, tintHex: settings.tintHex,
+                                           symbol: settings.symbol)
         icon.draw(in: card, from: .zero, operation: .sourceOver, fraction: 1,
                   respectFlipped: true, hints: nil)
 

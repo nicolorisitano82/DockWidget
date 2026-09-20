@@ -14,7 +14,6 @@ final class ManagerViewController: NSViewController {
     private var rows: [WidgetRowView] = []
     private var pane: PaneViewController?
     private var selectedIndex = 0
-    private var selectionObserver: NSObjectProtocol?
 
     override func loadView() {
         let root = NSView(frame: NSRect(x: 0, y: 0, width: 760, height: 600))
@@ -112,21 +111,7 @@ final class ManagerViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        selectionObserver = DistributedNotificationCenter.default().addObserver(
-            forName: .selectWidget, object: nil, queue: .main
-        ) { [weak self] note in
-            guard let id = note.object as? String,
-                  let index = WidgetCatalog.all.firstIndex(where: { $0.id == id }) else { return }
-            self?.select(index)
-            NSApp.activate(ignoringOtherApps: true)
-        }
         select(selectedIndex)
-    }
-
-    deinit {
-        if let selectionObserver {
-            DistributedNotificationCenter.default().removeObserver(selectionObserver)
-        }
     }
 
     func select(_ index: Int) {
