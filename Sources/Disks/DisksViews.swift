@@ -116,6 +116,7 @@ final class DisksBarView: BarContentView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        drawWidgetBackground()
         let palette = TilePalette.resolve(dark: SystemAppearance.shared.isDark,
                                           accent: settings.accent)
         let volumes = shown

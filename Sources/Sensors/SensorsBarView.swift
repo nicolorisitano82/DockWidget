@@ -37,6 +37,7 @@ final class SensorsBarView: BarContentView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        drawWidgetBackground()
         let plate = self.plate
         let sensors = visible
         let cellWidth = plate.width / CGFloat(max(sensors.count, 1))

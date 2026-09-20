@@ -100,8 +100,11 @@ docs/                il sito, servito da GitHub Pages
   stesso codice e stesso istante, 32 chiavi dentro il processo del Dock e zero
   dentro il nostro. Il plug-in è diventato il lettore privilegiato che passa i
   dati agli altri.
-- Il Dock **conserva le chiavi che non conosce** dentro le sue voci: i nostri
-  spazi portano una firma e si ritrovano ovunque vengano trascinati.
+- Il Dock conserva le chiavi che non conosce dentro le sue voci **finché non
+  riscrive lui quella voce**, cosa che fa ogni volta che salva il proprio stato.
+  Una prima misura diceva il contrario, ma aveva osservato un solo riavvio. Così
+  uno spazio è nostro per *posizione* — sta subito dopo la tile del widget — e il
+  marchio è soltanto un indizio.
 - Scrivere le preferenze e poi mandare `killall Dock` è una corsa che si perde:
   morendo, il Dock salva la copia che ha in memoria. La sequenza giusta è
   **sospendi, scrivi, uccidi da sospeso**.

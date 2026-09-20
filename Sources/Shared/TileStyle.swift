@@ -21,8 +21,11 @@ struct TilePalette {
             )
         }
         return TilePalette(
-            card: NSColor(calibratedWhite: 0.98, alpha: 1.0),
-            cardEdge: NSColor(calibratedWhite: 0.0, alpha: 0.10),
+            // Pure white with a firmer edge: on a light wallpaper the Dock's
+            // glass is nearly this colour, and a panel that does not separate
+            // from it is a panel that is not doing its job.
+            card: NSColor(calibratedWhite: 1.0, alpha: 1.0),
+            cardEdge: NSColor(calibratedWhite: 0.0, alpha: 0.16),
             primary: NSColor(calibratedWhite: 0.11, alpha: 1.0),
             secondary: NSColor(calibratedWhite: 0.42, alpha: 1.0),
             faint: NSColor(calibratedWhite: 0.0, alpha: 0.16),

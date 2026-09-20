@@ -2,10 +2,16 @@ import AppKit
 
 /// The empty Dock tiles a bar widget is drawn over.
 ///
-/// Every spacer we create carries our own key inside its tile-data. The Dock
-/// keeps unknown keys when it rewrites its preferences, so a spacer stays
-/// recognisably ours wherever the user drags it — which is the only way to
-/// take them all back out again.
+/// Every spacer we create carries our own key inside its tile-data, and the
+/// Dock keeps it — until the Dock itself rewrites that entry, which it does
+/// whenever it saves its own state. Then the key is gone and the spacer looks
+/// like any other.
+///
+/// So the mark is a hint, not an identity: what actually makes a spacer ours
+/// is sitting in the run immediately after the widget's tile. The cost of that
+/// is a spacer of the user's own, placed right there, being swept up with
+/// ours — and the price of the alternative was re-laying the spacers on every
+/// launch, which means restarting the Dock on every launch.
 enum DockSpacers {
     static let ownerKey = "dockwidgets-owner"
 
@@ -19,19 +25,23 @@ enum DockSpacers {
         ["tile-type": "spacer-tile", "tile-data": [ownerKey: id]]
     }
 
-    static func count(ownedBy id: String) -> Int {
-        DockTiles.entries().filter { owner(of: $0) == id }.count
+    /// The spacers sitting right after the widget's tile, ours by position.
+    static func countAdjacent(to widget: WidgetDescriptor) -> Int {
+        let list = DockTiles.entries()
+        guard let anchor = list.firstIndex(where: { DockTiles.entry($0, belongsTo: widget) }) else {
+            return 0
+        }
+        return list[(anchor + 1)...].prefix(while: isSpacer).count
     }
 
     /// True when exactly `count` of our spacers sit right after the widget,
     /// which is the only arrangement the overlay can line itself up with.
     static func isArranged(count: Int, ownedBy id: String, after widget: WidgetDescriptor) -> Bool {
         let list = DockTiles.entries()
-        guard let anchor = list.firstIndex(where: { DockTiles.entry($0, belongsTo: widget) }) else {
+        guard list.contains(where: { DockTiles.entry($0, belongsTo: widget) }) else {
             return count == 0
         }
-        let run = list[(anchor + 1)...].prefix { owner(of: $0) == id }
-        return run.count == count && self.count(ownedBy: id) == count
+        return countAdjacent(to: widget) == count
     }
 
     /// Removes every spacer of ours and lays `count` of them right after the

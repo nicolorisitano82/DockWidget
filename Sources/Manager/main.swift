@@ -54,8 +54,12 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
 
         for widget in WidgetCatalog.all {
             guard widget.isInstalled, let spec = widget.barSpec else {
-                if DockSpacers.count(ownedBy: widget.id) > 0 {
-                    repairs.append { DockSpacers.removeAll(ownedBy: widget.id) }
+                // A widget that went back to being a tile leaves its spacers
+                // behind, and they are recognised by sitting next to it.
+                if DockSpacers.countAdjacent(to: widget) > 0 {
+                    repairs.append {
+                        DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
+                    }
                 }
                 continue
             }

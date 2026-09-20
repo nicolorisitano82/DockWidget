@@ -52,11 +52,14 @@ final class NoteBarView: BarContentView {
         let dark = SystemAppearance.shared.isDark
         let palette = TilePalette.resolve(dark: dark, accent: settings.accent)
 
+        drawWidgetBackground()
         let radius = plate.height * TileGeometry.cornerRatio
         let path = NSBezierPath(roundedRect: plate, xRadius: radius, yRadius: radius)
-        let base: CGFloat = pressed ? 0.22 : (hovered ? 0.16 : 0.10)
-        NSColor(calibratedWhite: dark ? 1 : 0, alpha: base).setFill()
-        path.fill()
+        // The note lights up under the pointer, over whatever panel is there.
+        if pressed || hovered {
+            NSColor(calibratedWhite: dark ? 1 : 0, alpha: pressed ? 0.12 : 0.07).setFill()
+            path.fill()
+        }
 
         // A strip of the accent down the left edge, the way a paper tab reads.
         NSGraphicsContext.saveGraphicsState()

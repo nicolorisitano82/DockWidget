@@ -13,10 +13,17 @@ extension Notification.Name {
 final class SystemAppearance {
     static let shared = SystemAppearance()
 
-    private(set) var isDark: Bool
+    /// Set only by the tools that render the widgets for the site or for a
+    /// check: everything else follows the Mac.
+    var override: Bool? {
+        didSet { NotificationCenter.default.post(name: .tileAppearanceChanged, object: nil) }
+    }
+
+    private var systemIsDark: Bool
+    var isDark: Bool { override ?? systemIsDark }
 
     private init() {
-        isDark = Self.read()
+        systemIsDark = Self.read()
         DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
             object: nil,
@@ -24,8 +31,8 @@ final class SystemAppearance {
         ) { [weak self] _ in
             guard let self else { return }
             let updated = Self.read()
-            guard updated != self.isDark else { return }
-            self.isDark = updated
+            guard updated != self.systemIsDark else { return }
+            self.systemIsDark = updated
             NotificationCenter.default.post(name: .tileAppearanceChanged, object: nil)
         }
     }

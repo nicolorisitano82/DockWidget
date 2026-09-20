@@ -6,6 +6,7 @@ import AppKit
 /// icon sitting next to them would be one tile of confusion.
 final class StatusItemController {
     private let loginItemTag = 900
+    private let backgroundItemTag = 901
     private let statusItem: NSStatusItem
     private let onOpen: (String?) -> Void
 
@@ -39,6 +40,13 @@ final class StatusItemController {
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
+        let background = NSMenuItem(title: T("Sfondo dietro i widget", "Panel behind the widgets"),
+                                    action: #selector(toggleBackground(_:)), keyEquivalent: "")
+        background.target = self
+        background.tag = backgroundItemTag
+        background.state = WidgetChrome.showsBackground ? .on : .off
+        menu.addItem(background)
+
         let login = NSMenuItem(title: T("Apri al login", "Open at login"), action: #selector(toggleLogin(_:)), keyEquivalent: "")
         login.target = self
         login.tag = loginItemTag
@@ -56,11 +64,19 @@ final class StatusItemController {
     /// moment it was built.
     func refresh(_ menu: NSMenu) {
         for item in menu.items {
+            if item.tag == backgroundItemTag {
+                item.state = WidgetChrome.showsBackground ? .on : .off
+            }
             if item.tag == loginItemTag {
                 item.state = LoginItem.isEnabled ? .on : .off
                 item.title = LoginItem.needsApproval ? T("Apri al login (da approvare)", "Open at login (needs approval)") : T("Apri al login", "Open at login")
             }
         }
+    }
+
+    @objc private func toggleBackground(_ sender: NSMenuItem) {
+        WidgetChrome.setShowsBackground(sender.state != .on)
+        sender.state = WidgetChrome.showsBackground ? .on : .off
     }
 
     @objc private func toggleLogin(_ sender: NSMenuItem) {

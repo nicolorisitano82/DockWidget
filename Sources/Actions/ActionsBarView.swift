@@ -36,6 +36,7 @@ final class ActionsBarView: BarContentView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        drawWidgetBackground()
         for (index, rect) in cells().enumerated() {
             draw(slot: settings.slots[index], in: rect, index: index)
         }

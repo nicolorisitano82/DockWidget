@@ -220,9 +220,11 @@
       <div class="note">
         <div class="tag">Spacers</div>
         <p>
-          The Dock <strong>keeps keys it does not recognise</strong> inside its own entries.
-          Every spacer we create carries our signature, so we find it again wherever the
-          user drags it. Without that, it stayed in the Dock forever.
+          The Dock keeps keys it does not recognise inside its entries — <strong>until it
+          rewrites that entry itself</strong>, which it does whenever it saves its own
+          state. A first test said the mark survived; it had only survived one restart.
+          So a spacer is ours by <em>position</em>, sitting right after the widget's tile,
+          and the mark is only a hint.
         </p>
       </div>
       <div class="note">
