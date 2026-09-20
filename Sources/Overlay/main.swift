@@ -36,15 +36,20 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Holds the now-playing listeners while the views are being built.
+    private final class TokenBag {
+        var tokens: [UUID] = []
+    }
+
     private func startBars() {
-        var playbackTokens: [UUID] = []
+        let bag = TokenBag()
 
         let kinds: [BarWidgetKind] = [
             BarWidgetKind(base: "NowPlaying", template: BarLayout.nowPlaying, makeView: { instance in
                 let view = BarView(frame: NSRect(x: 0, y: 0, width: 200, height: 50))
                 view.onCommand = { NowPlayingFeed.send($0) }
                 view.onOpenPlayer = { openCurrentPlayer() }
-                playbackTokens.append(NowPlayingSource.shared.addListener { [weak view] state in
+                bag.tokens.append(NowPlayingSource.shared.addListener { [weak view] state in
                     view?.state = state
                 })
                 return view
@@ -74,8 +79,8 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
             }, isEnabled: { _ in true }),
         ]
 
-        bars = kinds.flatMap { $0.controllers(playback: &playbackTokens) }
-        self.playbackTokens = playbackTokens
+        bars = kinds.flatMap { $0.controllers() }
+        playbackTokens = bag.tokens
         bars.forEach { $0.start() }
     }
 

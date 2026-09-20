@@ -11,7 +11,10 @@ struct BarWidgetKind {
     let makeView: (String) -> BarContentView
     let isEnabled: (String) -> Bool
 
-    func controllers(playback: inout [UUID]) -> [OverlayBarController] {
+    /// No inout array here: the closure that builds a view registers its own
+    /// listeners, and writing into an array that is being passed inout is an
+    /// overlapping access — which Swift detects and aborts on.
+    func controllers() -> [OverlayBarController] {
         var built: [OverlayBarController] = []
         for instance in WidgetInstances.all(of: template.id) {
             let anchor = WidgetInstance.anchorTitle(base: base,
