@@ -36,6 +36,11 @@ class BarContentView: NSView {
     /// The theme this view should draw for.
     var isDarkContext: Bool { forcesDarkContent || SystemAppearance.shared.isDark }
 
+    /// The bars and the notch live in panels that never become key, and by
+    /// default the click that reaches such a window is spent activating it
+    /// instead of arriving here. Every click counts.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     func reloadSettings() {}
 
     /// One Dock cell's width, which is the icon size the Dock is using.

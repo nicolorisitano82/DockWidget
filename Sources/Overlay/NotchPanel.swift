@@ -43,7 +43,16 @@ final class NotchPanel: NSObject {
         slab.addSubview(content)
 
         panel.contentView = slab
-        content.autoresizingMask = [.width, .height]
+        // Pinned rather than autoresized: an autoresizing mask adjusts a frame
+        // as the superview grows, and this one started at zero — so the rows
+        // had no area to be clicked in, and nothing they drew was ever seen.
+        content.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: slab.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: slab.trailingAnchor),
+            content.topAnchor.constraint(equalTo: slab.topAnchor),
+            content.bottomAnchor.constraint(equalTo: slab.bottomAnchor),
+        ])
     }
 
     func start() {
@@ -167,7 +176,12 @@ final class NotchContentView: NSView {
         rows.forEach { $0.removeFromSuperview() }
         rows = instances.compactMap { NotchWidgets.view(for: $0) }
         rows.forEach(addSubview)
-        layout()
+        needsLayout = true
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        needsLayout = true
     }
 
     override func layout() {
