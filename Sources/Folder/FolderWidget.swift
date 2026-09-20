@@ -119,11 +119,21 @@ final class FolderMonitor {
             listeners.values.forEach { $0() }
             return
         }
-        let contents = (try? FileManager.default.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: [.contentModificationDateKey, .isHiddenKey],
-            options: [.skipsHiddenFiles]
-        )) ?? []
+        var contents: [URL] = []
+        do {
+            contents = try FileManager.default.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: [.contentModificationDateKey, .isHiddenKey],
+                options: [.skipsHiddenFiles]
+            )
+        } catch {
+            // Folders like Downloads and Documents are behind TCC, and a
+            // refusal looks exactly like an empty folder unless it is reported.
+            Diagnostics.once("folder-read-\(url.path)",
+                             "cartella \(url.path) non leggibile: \(error.localizedDescription)")
+        }
+        Diagnostics.once("folder-count-\(url.path)",
+                         "cartella \(url.path): \(contents.count) elementi letti")
 
         let previous = items
         // Most recent first: what just landed is what you are looking for.
@@ -198,8 +208,12 @@ final class FolderTileView: TileView {
         icon.draw(in: card, from: .zero, operation: .sourceOver, fraction: 1,
                   respectFlipped: true, hints: nil)
 
+        // A Dock can be set very small — 27 points is a real setting — and
+        // below that the peeking icons are noise and the badge is a speck.
+        let isCompact = side < 34
+
         // The two most recent items peek out from behind it.
-        let previews = FolderMonitor.shared.items.prefix(2)
+        let previews = isCompact ? [] : Array(FolderMonitor.shared.items.prefix(2))
         for (index, item) in previews.enumerated().reversed() {
             let size = side * 0.30
             let box = NSRect(x: card.midX - size / 2 + CGFloat(index) * size * 0.42,
@@ -211,8 +225,11 @@ final class FolderTileView: TileView {
         }
 
         guard settings.showsCount, FolderMonitor.shared.count > 0 else { return }
-        let text = "\(FolderMonitor.shared.count)" as NSString
-        let diameter = side * (text.length > 2 ? 0.40 : 0.34)
+        let count = FolderMonitor.shared.count
+        let text = (count > 99 ? "99+" : "\(count)") as NSString
+        let diameter = isCompact
+            ? side * (text.length > 2 ? 0.62 : 0.54)
+            : side * (text.length > 2 ? 0.40 : 0.34)
         let badge = NSRect(x: card.maxX - diameter * 0.92, y: card.maxY - diameter * 0.92,
                            width: diameter, height: diameter)
 
@@ -225,8 +242,9 @@ final class FolderTileView: TileView {
         NSBezierPath(ovalIn: badge).fill()
         NSGraphicsContext.restoreGraphicsState()
 
-        Gauge.text(text as String, in: badge.insetBy(dx: diameter * 0.12, dy: diameter * 0.28),
-                   weight: .bold, color: .white, maximumSize: diameter * 0.52)
+        Gauge.text(text as String,
+                   in: badge.insetBy(dx: diameter * 0.10, dy: diameter * 0.30),
+                   weight: .bold, color: .white, maximumSize: diameter * 0.60)
     }
 }
 

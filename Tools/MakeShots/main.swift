@@ -7,6 +7,21 @@ _ = NSApplication.shared
 let output = URL(fileURLWithPath: CommandLine.arguments[1])
 let backdrop = NSColor(calibratedWhite: 0.13, alpha: 1)
 
+// Composing the shots means setting each widget the way it photographs best,
+// and these are the user's real settings. They are put back at the end.
+let store = UserDefaults(suiteName: SharedDefaults.suiteName)
+let snapshot = store?.dictionaryRepresentation() ?? [:]
+func restoreSettings() {
+    guard let store else { return }
+    for key in store.dictionaryRepresentation().keys where key.contains(".") {
+        store.removeObject(forKey: key)
+    }
+    for (key, value) in snapshot where key.contains(".") {
+        store.set(value, forKey: key)
+    }
+    store.synchronize()
+}
+
 func render(_ view: NSView, scale: CGFloat = 2) -> NSBitmapImageRep? {
     guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
     NSGraphicsContext.saveGraphicsState()
@@ -90,6 +105,46 @@ do {
     }
 }
 
+// The folder, coloured and stamped the way the widget can be.
+do {
+    var folder = FolderSettings.current
+    folder.tintHex = "#FF9F0A"
+    folder.symbol = "cup.and.saucer.fill"
+    folder.showsCount = true
+    folder.save()
+    let view = FolderTileView(frame: NSRect(x: 0, y: 0, width: 180, height: 180))
+    view.reloadSettings()
+    if let rep = render(view) {
+        write([(rep, .zero)], size: rep.size, to: "folder.png")
+    }
+}
+
+// The note.
+do {
+    var note = NoteSettings.current
+    if note.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        note.text = "Chiamare l'ufficio · biglietti entro venerdì"
+    }
+    note.save()
+    let view = NoteBarView(frame: NSRect(x: 0, y: 0, width: 3 * 110, height: 140))
+    view.tileCount = 3
+    view.reloadSettings()
+    if let rep = render(view) {
+        write([(rep, .zero)], size: rep.size, to: "note.png")
+    }
+}
+
+// The disks, as a bar.
+do {
+    let view = DisksBarView(frame: NSRect(x: 0, y: 0, width: 3 * 110, height: 140))
+    view.tileCount = 3
+    view.reloadSettings()
+    VolumeScanner.shared.scan()
+    if let rep = render(view) {
+        write([(rep, .zero)], size: rep.size, to: "disks.png")
+    }
+}
+
 // Sensors need two samples before a rate means anything.
 SettingsStore.shared.set([
     SensorsSettings.Key.accent: "#0A84FF",
@@ -111,6 +166,7 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
     if let barRep = render(bar) {
         write([(barRep, .zero)], size: barRep.size, to: "sensors-bar.png")
     }
+    restoreSettings()
     exit(0)
 }
 RunLoop.main.run()
