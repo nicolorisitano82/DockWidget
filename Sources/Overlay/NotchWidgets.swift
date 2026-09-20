@@ -37,6 +37,8 @@ enum NotchWidgets {
         guard let made else { return nil }
         made.instance = instance
         made.forcesDarkContent = true
+        // Stacked rows: every one the same size, whatever it holds.
+        made.fillsHeight = true
         // How many cells this copy asks for — the same setting the Dock bars
         // use for their width, read from this copy rather than the template.
         made.tileCount = cellCount(for: instance)

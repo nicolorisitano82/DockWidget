@@ -54,16 +54,35 @@ class BarContentView: NSView {
     ///
     /// Measured from the tile rather than from the bar, so a three-tile bar and
     /// a six-tile one put the same size of control next to the Dock's icons.
-    var controlSide: CGFloat { tileWidth * 0.56 }
+    var controlSide: CGFloat {
+        fillsHeight ? plate.height * 0.62 : tileWidth * 0.56
+    }
 
     /// The space between controls, at the same scale.
-    var controlGap: CGFloat { tileWidth * 0.12 }
+    var controlGap: CGFloat {
+        fillsHeight ? plate.height * 0.14 : tileWidth * 0.12
+    }
+
+    /// True where every row must come out the same size whatever it contains
+    /// — the notch, where the widgets are stacked and a taller one would look
+    /// like a mistake.
+    var fillsHeight = false {
+        didSet { if fillsHeight != oldValue { needsDisplay = true } }
+    }
 
     /// The band the neighbouring icons occupy: same height, same centre line.
     var plate: NSRect {
-        // Never taller than the box it is drawn in: in the Dock the width
-        // decides, in the notch the height does.
-        let iconSide = min(tileWidth * TileGeometry.artworkSideRatio, bounds.height * 0.88)
+        // In the Dock the width of a tile decides the size, because the widget
+        // has to match the icons beside it. Stacked in the notch there are no
+        // icons to match, and the height is what every row shares.
+        let iconSide = fillsHeight
+            ? bounds.height * 0.88
+            : min(tileWidth * TileGeometry.artworkSideRatio, bounds.height * 0.88)
+        guard !fillsHeight else {
+            let margin = iconSide * 0.08
+            return NSRect(x: bounds.minX + margin, y: bounds.midY - iconSide / 2,
+                          width: bounds.width - margin * 2, height: iconSide)
+        }
         return NSRect(x: bounds.minX + (tileWidth - iconSide) / 2,
                       y: bounds.midY - iconSide / 2,
                       width: bounds.width - (tileWidth - iconSide),
