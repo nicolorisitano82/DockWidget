@@ -71,6 +71,31 @@ final class ActionsIconView: TileView {
     }
 }
 
+/// The note's icon: a page with a coloured tab and a few written lines.
+final class NoteIconView: TileView {
+    override func draw(_ dirtyRect: NSRect) {
+        let card = drawCard()
+        let palette = self.palette
+        let side = card.width
+
+        NSGraphicsContext.saveGraphicsState()
+        TileGeometry.cardPath(in: card).addClip()
+        (NSColor(hexString: NoteSettings.current.accentHex) ?? .systemYellow).setFill()
+        NSRect(x: card.minX, y: card.minY, width: side * 0.10, height: card.height).fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        let widths: [CGFloat] = [0.62, 0.52, 0.42]
+        for (index, width) in widths.enumerated() {
+            let height = side * 0.075
+            let line = NSRect(x: card.minX + side * 0.22,
+                              y: card.midY + side * 0.16 - CGFloat(index) * side * 0.20,
+                              width: side * width, height: height)
+            (index == 0 ? palette.primary : palette.secondary).setFill()
+            NSBezierPath(roundedRect: line, xRadius: height / 2, yRadius: height / 2).fill()
+        }
+    }
+}
+
 func makeView(side: CGFloat) -> NSView {
     let frame = NSRect(x: 0, y: 0, width: side, height: side)
     switch kind {
@@ -93,6 +118,10 @@ func makeView(side: CGFloat) -> NSView {
         return view
     case "disks":
         let view = DisksTileView(frame: frame)
+        view.reloadSettings()
+        return view
+    case "note":
+        let view = NoteIconView(frame: frame)
         view.reloadSettings()
         return view
     case "folder":

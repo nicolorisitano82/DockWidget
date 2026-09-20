@@ -51,6 +51,12 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         let sensors = SensorsBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
         let disks = DisksBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
 
+        let note = NoteBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+        note.onEdit = { [weak note] in
+            guard let window = note?.window else { return }
+            noteEditor.toggle(above: window.frame)
+        }
+
         bars = [
             OverlayBarController(spec: BarLayout.nowPlaying, content: nowPlaying) {
                 // In tile mode the plug-in draws the tile and the overlay would
@@ -64,6 +70,7 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
             OverlayBarController(spec: BarLayout.disks, content: disks) {
                 DisksSettings.current.mode == .bar
             },
+            OverlayBarController(spec: BarLayout.note, content: note),
         ]
         bars.forEach { $0.start() }
     }
@@ -79,6 +86,8 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         return NSRunningApplication.runningApplications(withBundleIdentifier: identifier).count > 1
     }
 }
+
+private let noteEditor = NoteEditorPanel()
 
 private func openCurrentPlayer() {
     guard let bundleID = NowPlayingSource.shared.state.playerBundleID,

@@ -63,6 +63,16 @@ enum WidgetCatalog {
             makePane: { SensorsPaneController() }
         ),
         WidgetDescriptor(
+            id: "note",
+            name: T("Appunto", "Note"),
+            summary: T("Due righe da tenere sott'occhio, che si aprono in un click.",
+                       "A couple of lines kept in sight, one click from being edited."),
+            helperBundleName: "Appunto.app",
+            symbol: "note.text",
+            barSpec: { BarLayout.note },
+            makePane: { NotePaneController() }
+        ),
+        WidgetDescriptor(
             id: "folder",
             name: T("Cartella", "Folder"),
             summary: T("Una cartella viva: quello che contiene, e i file che ci trascini sopra.",

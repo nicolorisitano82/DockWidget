@@ -139,6 +139,16 @@ enum BarLayout {
         maximumSpacers: 8
     )
 
+    /// Two tiles at least: on one there is room for a word, and a word is not
+    /// a note.
+    static let note = Spec(
+        id: "note",
+        anchorTitle: "Appunto",
+        minimumSpacers: 1,
+        defaultSpacers: 2,
+        maximumSpacers: 6
+    )
+
     /// One tile per mounted volume.
     static let disks = Spec(
         id: "disks",
