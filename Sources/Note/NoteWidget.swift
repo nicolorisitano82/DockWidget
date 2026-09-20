@@ -7,21 +7,23 @@ struct NoteSettings: Equatable {
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemYellow }
 
     enum Key {
-        static let text = "note.text"
-        static let accent = "note.accent"
+        static func text(_ instance: String) -> String { "\(instance).text" }
+        static func accent(_ instance: String) -> String { "\(instance).accent" }
     }
 
-    static var current: NoteSettings {
+    static var current: NoteSettings { current("note") }
+
+    static func current(_ instance: String) -> NoteSettings {
         let store = SettingsStore.shared
         let defaults = NoteSettings()
         return NoteSettings(
-            text: store.string(Key.text, or: defaults.text),
-            accentHex: store.string(Key.accent, or: defaults.accentHex)
+            text: store.string(Key.text(instance), or: defaults.text),
+            accentHex: store.string(Key.accent(instance), or: defaults.accentHex)
         )
     }
 
-    func save() {
-        SettingsStore.shared.set([Key.text: text, Key.accent: accentHex])
+    func save(_ instance: String = "note") {
+        SettingsStore.shared.set([Key.text(instance): text, Key.accent(instance): accentHex])
     }
 }
 
@@ -32,7 +34,7 @@ struct NoteSettings: Equatable {
 final class NoteBarView: BarContentView {
     var onEdit: (() -> Void)?
 
-    private var settings = NoteSettings.current
+    private lazy var settings = NoteSettings.current(resolvedInstance("note"))
     private var hovered = false {
         didSet { if hovered != oldValue { needsDisplay = true } }
     }
@@ -41,7 +43,7 @@ final class NoteBarView: BarContentView {
     }
 
     override func reloadSettings() {
-        settings = NoteSettings.current
+        settings = NoteSettings.current(resolvedInstance("note"))
         needsDisplay = true
     }
 

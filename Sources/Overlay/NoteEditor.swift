@@ -9,7 +9,10 @@ final class NoteEditorPanel: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
     private var textView: NSTextView?
 
-    func toggle(above frame: NSRect) {
+    private var instance = "note"
+
+    func toggle(above frame: NSRect, instance: String) {
+        self.instance = instance
         if panel != nil {
             close()
         } else {
@@ -38,7 +41,7 @@ final class NoteEditorPanel: NSObject, NSWindowDelegate {
         scroll.autoresizingMask = [.width, .height]
 
         let textView = NSTextView(frame: scroll.bounds)
-        textView.string = NoteSettings.current.text
+        textView.string = NoteSettings.current(instance).text
         textView.font = .systemFont(ofSize: 13)
         textView.isRichText = false
         textView.drawsBackground = false
@@ -57,10 +60,10 @@ final class NoteEditorPanel: NSObject, NSWindowDelegate {
 
     private func save() {
         guard let textView else { return }
-        var settings = NoteSettings.current
+        var settings = NoteSettings.current(instance)
         guard settings.text != textView.string else { return }
         settings.text = textView.string
-        settings.save()
+        settings.save(instance)
     }
 
     func close() {

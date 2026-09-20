@@ -1,16 +1,27 @@
 import AppKit
 
 final class DisksPaneController: PaneViewController {
-    private var settings = DisksSettings.current
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private lazy var settings = DisksSettings.current(instance)
     private var token: UUID?
     private var volumeButton: NSPopUpButton?
     private var summary: NSTextField?
 
     override func makeStageView() -> NSView {
         guard settings.mode == .bar else {
-            return DisksTileView(frame: NSRect(x: 0, y: 0, width: 128, height: 128))
+            let view = DisksTileView(frame: NSRect(x: 0, y: 0, width: 128, height: 128))
+        view.instance = instance
+        return view
         }
         let view = DisksBarView(frame: NSRect(x: 0, y: 0, width: 240, height: 88))
+        view.instance = instance
         view.tileCount = BarLayout.disks.spacerCount + 1
         return view
     }
@@ -76,7 +87,7 @@ final class DisksPaneController: PaneViewController {
         swatches.onSelect = { [weak self] hex in
             guard let self else { return }
             self.settings.accentHex = hex
-            self.settings.save()
+            self.settings.save(instance)
             self.reloadTile()
         }
         stack.addArrangedSubview(swatches)
@@ -115,20 +126,20 @@ final class DisksPaneController: PaneViewController {
 
     @objc private func modeChanged(_ sender: NSSegmentedControl) {
         settings.mode = DisksSettings.Mode.allCases[sender.selectedSegment]
-        settings.save()
+        settings.save(instance)
         WidgetInstaller.applyBarMode(for: "disks")
         onRequestReload?()
     }
 
     @objc private func volumeChanged(_ sender: NSPopUpButton) {
         settings.tileVolume = sender.titleOfSelectedItem ?? ""
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 
     @objc private func freeChanged(_ sender: NSButton) {
         settings.showsFree = sender.state == .on
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 

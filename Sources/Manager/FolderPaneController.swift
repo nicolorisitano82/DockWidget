@@ -1,7 +1,16 @@
 import AppKit
 
 final class FolderPaneController: PaneViewController {
-    private var settings = FolderSettings.current
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private var monitor: FolderMonitor { FolderMonitor.shared(instance) }
+    private lazy var settings = FolderSettings.current(instance)
     private var pathLabel: NSTextField?
     private var token: UUID?
 
@@ -14,7 +23,7 @@ final class FolderPaneController: PaneViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         guard token == nil else { return }
-        token = FolderMonitor.shared.addListener { [weak self] in
+        token = monitor.addListener { [weak self] in
             self?.updateLabel()
             self?.reloadTile()
         }
@@ -22,7 +31,7 @@ final class FolderPaneController: PaneViewController {
 
     override func viewWillDisappear() {
         super.viewWillDisappear()
-        if let token { FolderMonitor.shared.removeListener(token) }
+        if let token { monitor.removeListener(token) }
         token = nil
     }
 
@@ -70,7 +79,7 @@ final class FolderPaneController: PaneViewController {
         swatches.onSelect = { [weak self] hex in
             guard let self else { return }
             self.settings.accentHex = hex
-            self.settings.save()
+            self.settings.save(instance)
             self.reloadTile()
         }
         stack.addArrangedSubview(swatches)
@@ -91,7 +100,7 @@ final class FolderPaneController: PaneViewController {
             pathLabel?.stringValue = T("Nessuna cartella scelta.", "No folder chosen yet.")
             return
         }
-        let count = FolderMonitor.shared.count
+        let count = monitor.count
         pathLabel?.stringValue = "\(url.path) — "
             + T("\(count) elementi", "\(count) items")
     }
@@ -104,27 +113,27 @@ final class FolderPaneController: PaneViewController {
         panel.directoryURL = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
         guard panel.runModal() == .OK, let url = panel.url else { return }
         settings.path = url.path
-        settings.save()
-        FolderMonitor.shared.watch(url.path)
+        settings.save(instance)
+        monitor.watch(url.path)
         updateLabel()
         reloadTile()
     }
 
     @objc private func tintChanged(_ sender: NSPopUpButton) {
         settings.tintHex = FolderTints.all[sender.indexOfSelectedItem].hex
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 
     @objc private func symbolChanged(_ sender: NSPopUpButton) {
         settings.symbol = sender.indexOfSelectedItem == 0 ? "" : (sender.titleOfSelectedItem ?? "")
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 
     @objc private func countChanged(_ sender: NSButton) {
         settings.showsCount = sender.state == .on
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 }

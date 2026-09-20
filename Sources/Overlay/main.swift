@@ -37,45 +37,49 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startBars() {
-        let nowPlaying = BarView(frame: NSRect(x: 0, y: 0, width: 200, height: 50))
-        let playback = NowPlayingSource.shared.addListener { [weak nowPlaying] state in
-            nowPlaying?.state = state
-        }
-        playbackToken = playback
-        nowPlaying.onCommand = { NowPlayingFeed.send($0) }
-        nowPlaying.onOpenPlayer = { openCurrentPlayer() }
+        var playbackTokens: [UUID] = []
 
-        let actions = ActionsBarView(frame: NSRect(x: 0, y: 0, width: 120, height: 50))
-        actions.onRun = { ActionRunner.run($0) }
+        let kinds: [BarWidgetKind] = [
+            BarWidgetKind(base: "NowPlaying", template: BarLayout.nowPlaying, makeView: { instance in
+                let view = BarView(frame: NSRect(x: 0, y: 0, width: 200, height: 50))
+                view.onCommand = { NowPlayingFeed.send($0) }
+                view.onOpenPlayer = { openCurrentPlayer() }
+                playbackTokens.append(NowPlayingSource.shared.addListener { [weak view] state in
+                    view?.state = state
+                })
+                return view
+            }, isEnabled: { NowPlayingSettings.current($0).mode == .bar }),
 
-        let sensors = SensorsBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
-        let disks = DisksBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+            BarWidgetKind(base: "Azioni", template: BarLayout.actions, makeView: { _ in
+                let view = ActionsBarView(frame: NSRect(x: 0, y: 0, width: 120, height: 50))
+                view.onRun = { ActionRunner.run($0) }
+                return view
+            }, isEnabled: { _ in true }),
 
-        let note = NoteBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
-        note.onEdit = { [weak note] in
-            guard let window = note?.window else { return }
-            noteEditor.toggle(above: window.frame)
-        }
+            BarWidgetKind(base: "Sensori", template: BarLayout.sensors, makeView: { _ in
+                SensorsBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+            }, isEnabled: { SensorsSettings.current($0).mode == .bar }),
 
-        bars = [
-            OverlayBarController(spec: BarLayout.nowPlaying, content: nowPlaying) {
-                // In tile mode the plug-in draws the tile and the overlay would
-                // cover it.
-                NowPlayingSettings.current.mode == .bar
-            },
-            OverlayBarController(spec: BarLayout.actions, content: actions),
-            OverlayBarController(spec: BarLayout.sensors, content: sensors) {
-                SensorsSettings.current.mode == .bar
-            },
-            OverlayBarController(spec: BarLayout.disks, content: disks) {
-                DisksSettings.current.mode == .bar
-            },
-            OverlayBarController(spec: BarLayout.note, content: note),
+            BarWidgetKind(base: "Dischi", template: BarLayout.disks, makeView: { _ in
+                DisksBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+            }, isEnabled: { DisksSettings.current($0).mode == .bar }),
+
+            BarWidgetKind(base: "Appunto", template: BarLayout.note, makeView: { instance in
+                let view = NoteBarView(frame: NSRect(x: 0, y: 0, width: 150, height: 50))
+                view.onEdit = { [weak view] in
+                    guard let window = view?.window else { return }
+                    noteEditor.toggle(above: window.frame, instance: instance)
+                }
+                return view
+            }, isEnabled: { _ in true }),
         ]
+
+        bars = kinds.flatMap { $0.controllers(playback: &playbackTokens) }
+        self.playbackTokens = playbackTokens
         bars.forEach { $0.start() }
     }
 
-    private var playbackToken: UUID?
+    private var playbackTokens: [UUID] = []
 
     func applicationWillTerminate(_ notification: Notification) {
         bars.forEach { $0.stop() }

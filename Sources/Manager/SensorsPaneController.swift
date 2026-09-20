@@ -1,15 +1,26 @@
 import AppKit
 
 final class SensorsPaneController: PaneViewController {
-    private var settings = SensorsSettings.current
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private lazy var settings = SensorsSettings.current(instance)
     private var barRows: NSStackView?
     private var widthField: NSTextField?
 
     override func makeStageView() -> NSView {
         guard settings.mode == .bar else {
-            return SensorsTileView(frame: NSRect(x: 0, y: 0, width: 128, height: 128))
+            let view = SensorsTileView(frame: NSRect(x: 0, y: 0, width: 128, height: 128))
+        view.instance = instance
+        return view
         }
         let view = SensorsBarView(frame: NSRect(x: 0, y: 0, width: 240, height: 88))
+        view.instance = instance
         view.tileCount = BarLayout.sensors.spacerCount + 1
         return view
     }
@@ -75,7 +86,7 @@ final class SensorsPaneController: PaneViewController {
         swatches.onSelect = { [weak self] hex in
             guard let self else { return }
             self.settings.accentHex = hex
-            self.settings.save()
+            self.settings.save(instance)
             self.reloadTile()
         }
         stack.addArrangedSubview(swatches)
@@ -104,7 +115,7 @@ final class SensorsPaneController: PaneViewController {
 
     @objc private func modeChanged(_ sender: NSSegmentedControl) {
         settings.mode = SensorsSettings.Mode.allCases[sender.selectedSegment]
-        settings.save()
+        settings.save(instance)
         WidgetInstaller.applyBarMode(for: "sensors")
         // The preview changes shape with the mode, so the pane is rebuilt.
         onRequestReload?()
@@ -112,7 +123,7 @@ final class SensorsPaneController: PaneViewController {
 
     @objc private func tileSensorChanged(_ sender: NSPopUpButton) {
         settings.tileSensor = SensorID.available[sender.indexOfSelectedItem]
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 
@@ -126,7 +137,7 @@ final class SensorsPaneController: PaneViewController {
         while full.count < chosen.count { full.append(chosen[full.count]) }
         for (index, sensor) in chosen.enumerated() { full[index] = sensor }
         settings.barSensors = full
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 
@@ -143,13 +154,13 @@ final class SensorsPaneController: PaneViewController {
 
     @objc private func refreshChanged(_ sender: NSPopUpButton) {
         settings.refresh = [1.0, 2.0, 5.0][sender.indexOfSelectedItem]
-        settings.save()
+        settings.save(instance)
         SensorSampler.shared.setInterval(settings.refresh)
     }
 
     @objc private func sparklineChanged(_ sender: NSButton) {
         settings.showsSparkline = sender.state == .on
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 }

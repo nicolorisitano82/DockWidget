@@ -17,39 +17,41 @@ struct SensorsSettings: Equatable {
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemBlue }
 
     enum Key {
-        static let mode = "sensors.mode"
-        static let tileSensor = "sensors.tileSensor"
-        static let barSensors = "sensors.barSensors"
-        static let refresh = "sensors.refresh"
-        static let sparkline = "sensors.sparkline"
-        static let accent = "sensors.accent"
+        static func mode(_ instance: String) -> String { "\(instance).mode" }
+        static func tileSensor(_ instance: String) -> String { "\(instance).tileSensor" }
+        static func barSensors(_ instance: String) -> String { "\(instance).barSensors" }
+        static func refresh(_ instance: String) -> String { "\(instance).refresh" }
+        static func sparkline(_ instance: String) -> String { "\(instance).sparkline" }
+        static func accent(_ instance: String) -> String { "\(instance).accent" }
     }
 
-    static var current: SensorsSettings {
+    static var current: SensorsSettings { current("sensors") }
+
+    static func current(_ instance: String) -> SensorsSettings {
         let store = SettingsStore.shared
         let defaults = SensorsSettings()
-        let stored = store.string(Key.barSensors, or: "")
+        let stored = store.string(Key.barSensors(instance), or: "")
             .split(separator: ",")
             .compactMap { SensorID(rawValue: String($0)) }
         return SensorsSettings(
-            mode: Mode(rawValue: store.string(Key.mode, or: defaults.mode.rawValue)) ?? defaults.mode,
-            tileSensor: SensorID(rawValue: store.string(Key.tileSensor, or: defaults.tileSensor.rawValue))
+            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue)) ?? defaults.mode,
+            tileSensor: SensorID(rawValue: store.string(Key.tileSensor(instance), or: defaults.tileSensor.rawValue))
                 ?? defaults.tileSensor,
             barSensors: stored.isEmpty ? defaults.barSensors : stored,
-            refresh: store.double(Key.refresh, or: defaults.refresh),
-            showsSparkline: store.bool(Key.sparkline, or: defaults.showsSparkline),
-            accentHex: store.string(Key.accent, or: defaults.accentHex)
+            refresh: store.double(Key.refresh(instance), or: defaults.refresh),
+            showsSparkline: store.bool(Key.sparkline(instance), or: defaults.showsSparkline),
+            accentHex: store.string(Key.accent(instance), or: defaults.accentHex)
         )
     }
 
-    func save() {
+    func save(_ instance: String = "sensors") {
         SettingsStore.shared.set([
-            Key.mode: mode.rawValue,
-            Key.tileSensor: tileSensor.rawValue,
-            Key.barSensors: barSensors.map(\.rawValue).joined(separator: ","),
-            Key.refresh: refresh,
-            Key.sparkline: showsSparkline,
-            Key.accent: accentHex,
+            Key.mode(instance): mode.rawValue,
+            Key.tileSensor(instance): tileSensor.rawValue,
+            Key.barSensors(instance): barSensors.map(\.rawValue).joined(separator: ","),
+            Key.refresh(instance): refresh,
+            Key.sparkline(instance): showsSparkline,
+            Key.accent(instance): accentHex,
         ])
     }
 

@@ -38,6 +38,14 @@ class TileView: NSView {
     }
 
     /// Re-read anything the user can change in the host app.
+    /// Which copy of the widget this view draws. Empty means the first one.
+    var instance: String = "" {
+        didSet { if instance != oldValue { reloadSettings() } }
+    }
+
+    /// The instance to read settings for, falling back to the kind itself.
+    func resolvedInstance(_ kind: String) -> String { instance.isEmpty ? kind : instance }
+
     func reloadSettings() {}
 
     /// Draws the rounded card every widget sits on, and returns its rect.

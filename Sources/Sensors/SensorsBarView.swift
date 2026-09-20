@@ -2,7 +2,7 @@ import AppKit
 
 /// Several sensors side by side, one Dock tile each.
 final class SensorsBarView: BarContentView {
-    private var settings = SensorsSettings.current
+    private lazy var settings = SensorsSettings.current(resolvedInstance("sensors"))
     private var token: UUID?
 
     override init(frame frameRect: NSRect) {
@@ -15,7 +15,7 @@ final class SensorsBarView: BarContentView {
     }
 
     override func reloadSettings() {
-        settings = SensorsSettings.current
+        settings = SensorsSettings.current(resolvedInstance("sensors"))
         subscribe()
         needsDisplay = true
     }

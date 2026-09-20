@@ -57,25 +57,38 @@ struct ClockSettings: Equatable {
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemRed }
 
     enum Key {
-        static let style = "clock.style"
-        static let hourFormat = "clock.hourFormat"
-        static let showsSeconds = "clock.showsSeconds"
-        static let showsDate = "clock.showsDate"
-        static let accent = "clock.accent"
-        static let timeZone = "clock.timeZone"
+        static func style(_ instance: String) -> String { "\(instance).style" }
+        static func hourFormat(_ instance: String) -> String { "\(instance).hourFormat" }
+        static func showsSeconds(_ instance: String) -> String { "\(instance).showsSeconds" }
+        static func showsDate(_ instance: String) -> String { "\(instance).showsDate" }
+        static func accent(_ instance: String) -> String { "\(instance).accent" }
+        static func timeZone(_ instance: String) -> String { "\(instance).timeZone" }
     }
 
-    static var current: ClockSettings {
+    static var current: ClockSettings { current("clock") }
+
+    static func current(_ instance: String) -> ClockSettings {
         let store = SettingsStore.shared
         let defaults = ClockSettings()
         return ClockSettings(
-            style: Style(rawValue: store.string(Key.style, or: defaults.style.rawValue)) ?? defaults.style,
-            hourFormat: HourFormat(rawValue: store.string(Key.hourFormat, or: defaults.hourFormat.rawValue)) ?? defaults.hourFormat,
-            showsSeconds: store.bool(Key.showsSeconds, or: defaults.showsSeconds),
-            showsDate: store.bool(Key.showsDate, or: defaults.showsDate),
-            accentHex: store.string(Key.accent, or: defaults.accentHex),
-            timeZoneID: store.string(Key.timeZone, or: defaults.timeZoneID)
+            style: Style(rawValue: store.string(Key.style(instance), or: defaults.style.rawValue)) ?? defaults.style,
+            hourFormat: HourFormat(rawValue: store.string(Key.hourFormat(instance), or: defaults.hourFormat.rawValue)) ?? defaults.hourFormat,
+            showsSeconds: store.bool(Key.showsSeconds(instance), or: defaults.showsSeconds),
+            showsDate: store.bool(Key.showsDate(instance), or: defaults.showsDate),
+            accentHex: store.string(Key.accent(instance), or: defaults.accentHex),
+            timeZoneID: store.string(Key.timeZone(instance), or: defaults.timeZoneID)
         )
+    }
+
+    func save(_ instance: String = "clock") {
+        SettingsStore.shared.set([
+            Key.style(instance): style.rawValue,
+            Key.hourFormat(instance): hourFormat.rawValue,
+            Key.showsSeconds(instance): showsSeconds,
+            Key.showsDate(instance): showsDate,
+            Key.accent(instance): accentHex,
+            Key.timeZone(instance): timeZoneID,
+        ])
     }
 
     /// The time format the digital face and the "copy time" menu item share.

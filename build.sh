@@ -15,6 +15,9 @@ BUILD="$ROOT/build"
 SDK="$(xcrun --show-sdk-path)"
 DEPLOY="14.0"
 ARCHS="${ARCHS:-$(uname -m)}"
+# Every widget is built three times, so the same one can sit in the Dock more
+# than once with different settings: two clocks, two folders.
+WIDGET_COPIES="${WIDGET_COPIES:-3}"
 # A stable signature is not cosmetic here: TCC ties the Accessibility consent
 # the bar needs to the app's designated requirement, and an ad-hoc signature
 # changes with every build. Tools/make-signing-cert.sh creates this identity.
@@ -120,6 +123,23 @@ make_widget() {
 
   # Inner bundles are sealed before the ones containing them.
   SIGN_QUEUE+=("$plugin_bundle" "$app")
+
+  # The copies are the same bundle under another name and identifier: the Dock
+  # gives one tile per application, so a second clock needs a second app.
+  local base="${bundle_name%.app}"
+  for copy in $(seq 2 "$WIDGET_COPIES"); do
+    local copy_app="$WIDGETS_DIR/$base $copy.app"
+    rm -rf "$copy_app"
+    cp -R "$app" "$copy_app"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.nicolo.dockwidgets.$widget_id$copy" \
+      "$copy_app/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleName $display $copy" "$copy_app/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $display $copy" "$copy_app/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier dev.nicolo.dockwidgets.$widget_id$copy.tile" \
+      "$copy_app/Contents/PlugIns/$plugin.docktileplugin/Contents/Info.plist"
+    check_plist "$copy_app/Contents/Info.plist"
+    SIGN_QUEUE+=("$copy_app/Contents/PlugIns/$plugin.docktileplugin" "$copy_app")
+  done
 }
 
 echo "→ strumento icone"

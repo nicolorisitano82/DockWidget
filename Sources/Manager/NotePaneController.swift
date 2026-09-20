@@ -1,12 +1,21 @@
 import AppKit
 
 final class NotePaneController: PaneViewController, NSTextViewDelegate {
-    private var settings = NoteSettings.current
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private lazy var settings = NoteSettings.current(instance)
     private var textView: NSTextView?
     private var observer: NSObjectProtocol?
 
     override func makeStageView() -> NSView {
         let view = NoteBarView(frame: NSRect(x: 0, y: 0, width: 220, height: 88))
+        view.instance = instance
         view.tileCount = BarLayout.note.spacerCount + 1
         return view
     }
@@ -20,7 +29,7 @@ final class NotePaneController: PaneViewController, NSTextViewDelegate {
         // The note can also be written from the Dock, so this window follows.
         observer = SettingsStore.shared.observeChanges { [weak self] in
             guard let self else { return }
-            let stored = NoteSettings.current.text
+            let stored = NoteSettings.current(instance).text
             if self.textView?.string != stored { self.textView?.string = stored }
             self.reloadTile()
         }
@@ -70,7 +79,7 @@ final class NotePaneController: PaneViewController, NSTextViewDelegate {
         swatches.onSelect = { [weak self] hex in
             guard let self else { return }
             self.settings.accentHex = hex
-            self.settings.save()
+            self.settings.save(instance)
             self.reloadTile()
         }
         stack.addArrangedSubview(swatches)
@@ -89,7 +98,7 @@ final class NotePaneController: PaneViewController, NSTextViewDelegate {
     func textDidChange(_ notification: Notification) {
         guard let textView else { return }
         settings.text = textView.string
-        settings.save()
+        settings.save(instance)
         reloadTile()
     }
 

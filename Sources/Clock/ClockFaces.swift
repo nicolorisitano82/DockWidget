@@ -334,24 +334,31 @@ struct WordFace: ClockFace {
         let colors = [palette.secondary, palette.primary, palette.accent]
         let sizes: [CGFloat] = [0.13, 0.19, 0.13]
 
-        var y = card.midY + side * (context.settings.showsDate ? 0.20 : 0.15)
+        // The date owns the bottom of the card and the words own what is left.
+        // Laying the words out from the middle instead put the last line on top
+        // of the date, which is exactly where "e un quarto" ended up.
+        let dateHeight = context.settings.showsDate ? side * 0.20 : 0
+        let available = NSRect(x: card.minX, y: card.minY + dateHeight,
+                               width: card.width, height: card.height - dateHeight)
+        let heights = sizes.map { $0 * side * 1.45 }
+        var y = available.midY + heights.reduce(0, +) / 2
+
         for (index, line) in lines.enumerated() {
-            let height = side * sizes[index] * 1.5
-            y -= height
+            y -= heights[index]
             let text = line.uppercased() as NSString
             let font = ClockDrawing.fittedFont(for: text, maxWidth: card.width * 0.86,
                                                startingAt: side * sizes[index], weight: weights[index])
-            text.drawCentered(in: NSRect(x: card.minX, y: y, width: card.width, height: height),
+            text.drawCentered(in: NSRect(x: card.minX, y: y, width: card.width, height: heights[index]),
                               attributes: [.font: font, .foregroundColor: colors[index],
                                            .kern: side * 0.004])
         }
 
         guard context.settings.showsDate else { return }
         let date = context.dateText.uppercased() as NSString
-        date.drawCentered(in: NSRect(x: card.minX, y: card.minY + side * 0.07,
-                                     width: card.width, height: side * 0.14),
+        date.drawCentered(in: NSRect(x: card.minX, y: card.minY + side * 0.045,
+                                     width: card.width, height: side * 0.13),
                           attributes: [
-                              .font: NSFont.roundedSystemFont(ofSize: side * 0.095, weight: .semibold),
+                              .font: NSFont.roundedSystemFont(ofSize: side * 0.092, weight: .semibold),
                               .foregroundColor: palette.secondary,
                               .kern: side * 0.006,
                           ])

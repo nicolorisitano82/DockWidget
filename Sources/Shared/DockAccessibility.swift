@@ -124,6 +124,14 @@ enum BarLayout {
 
         var spacerCountKey: String { "\(id).barSpacers" }
 
+        /// The same widget, told which copy of itself it is: its own spacers,
+        /// its own width, and the tile of that copy to anchor to.
+        func forInstance(_ instance: String, anchorTitle: String) -> Spec {
+            Spec(id: instance, anchorTitle: anchorTitle,
+                 minimumSpacers: minimumSpacers, defaultSpacers: defaultSpacers,
+                 maximumSpacers: maximumSpacers)
+        }
+
         /// The stored width, never below what the widget needs to work.
         var spacerCount: Int {
             let stored = Int(SettingsStore.shared.double(spacerCountKey, or: Double(defaultSpacers)))

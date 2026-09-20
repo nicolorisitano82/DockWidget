@@ -53,12 +53,14 @@ struct ActionSlot: Codable, Equatable {
 
 struct ActionsSettings: Equatable {
     static let slotCount = 4
-    static let key = "actions.slots"
+    static func key(_ instance: String) -> String { "\(instance).slots" }
 
     var slots: [ActionSlot]
 
-    static var current: ActionsSettings {
-        let raw = SettingsStore.shared.string(key, or: "")
+    static var current: ActionsSettings { current("actions") }
+
+    static func current(_ instance: String) -> ActionsSettings {
+        let raw = SettingsStore.shared.string(key(instance), or: "")
         guard let data = raw.data(using: .utf8),
               let stored = try? JSONDecoder().decode([ActionSlot].self, from: data),
               !stored.isEmpty else {
@@ -69,10 +71,10 @@ struct ActionsSettings: Equatable {
         return ActionsSettings(slots: Array(slots.prefix(slotCount)))
     }
 
-    func save() {
+    func save(_ instance: String = "actions") {
         guard let data = try? JSONEncoder().encode(slots),
               let text = String(data: data, encoding: .utf8) else { return }
-        SettingsStore.shared.set(text, for: Self.key)
+        SettingsStore.shared.set(text, for: Self.key(instance))
     }
 
     /// Something useful on first run, so the widget is not four empty holes.

@@ -19,22 +19,34 @@ struct NowPlayingSettings: Equatable {
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemBlue }
 
     enum Key {
-        static let mode = "nowPlaying.mode"
-        static let showsArtwork = "nowPlaying.showsArtwork"
-        static let showsProgress = "nowPlaying.showsProgress"
-        static let dimsWhenPaused = "nowPlaying.dimsWhenPaused"
-        static let accent = "nowPlaying.accent"
+        static func mode(_ instance: String) -> String { "\(instance).mode" }
+        static func showsArtwork(_ instance: String) -> String { "\(instance).showsArtwork" }
+        static func showsProgress(_ instance: String) -> String { "\(instance).showsProgress" }
+        static func dimsWhenPaused(_ instance: String) -> String { "\(instance).dimsWhenPaused" }
+        static func accent(_ instance: String) -> String { "\(instance).accent" }
     }
 
-    static var current: NowPlayingSettings {
+    static var current: NowPlayingSettings { current("nowPlaying") }
+
+    static func current(_ instance: String) -> NowPlayingSettings {
         let store = SettingsStore.shared
         let defaults = NowPlayingSettings()
         return NowPlayingSettings(
-            mode: Mode(rawValue: store.string(Key.mode, or: defaults.mode.rawValue)) ?? defaults.mode,
-            showsArtwork: store.bool(Key.showsArtwork, or: defaults.showsArtwork),
-            showsProgress: store.bool(Key.showsProgress, or: defaults.showsProgress),
-            dimsWhenPaused: store.bool(Key.dimsWhenPaused, or: defaults.dimsWhenPaused),
-            accentHex: store.string(Key.accent, or: defaults.accentHex)
+            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue)) ?? defaults.mode,
+            showsArtwork: store.bool(Key.showsArtwork(instance), or: defaults.showsArtwork),
+            showsProgress: store.bool(Key.showsProgress(instance), or: defaults.showsProgress),
+            dimsWhenPaused: store.bool(Key.dimsWhenPaused(instance), or: defaults.dimsWhenPaused),
+            accentHex: store.string(Key.accent(instance), or: defaults.accentHex)
         )
+    }
+
+    func save(_ instance: String = "nowPlaying") {
+        SettingsStore.shared.set([
+            Key.mode(instance): mode.rawValue,
+            Key.showsArtwork(instance): showsArtwork,
+            Key.showsProgress(instance): showsProgress,
+            Key.dimsWhenPaused(instance): dimsWhenPaused,
+            Key.accent(instance): accentHex,
+        ])
     }
 }

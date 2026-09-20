@@ -3,7 +3,15 @@ import AppKit
 /// Editor for the four cells of the actions widget: one cell at a time, so the
 /// pane stays the size of the others.
 final class ActionsPaneController: PaneViewController {
-    private var settings = ActionsSettings.current
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private lazy var settings = ActionsSettings.current(instance)
     private var selected = 0
 
     private var symbolButton: NSPopUpButton?
@@ -20,13 +28,14 @@ final class ActionsPaneController: PaneViewController {
         get { settings.slots[selected] }
         set {
             settings.slots[selected] = newValue
-            settings.save()
+            settings.save(instance)
             reloadTile()
         }
     }
 
     override func makeStageView() -> NSView {
         let view = ActionsBarView(frame: NSRect(x: 0, y: 0, width: 176, height: 88))
+        view.instance = instance
         view.tileCount = BarLayout.actions.spacerCount + 1
         return view
     }

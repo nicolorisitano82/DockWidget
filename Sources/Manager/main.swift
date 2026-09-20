@@ -7,8 +7,8 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     private var selectionObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = StatusItemController { [weak self] widget in
-            self?.showWindow(selecting: widget)
+        statusItem = StatusItemController { [weak self] instance in
+            self?.showWindow(selecting: instance)
         }
 
         // A click on a widget's tile arrives here. The manager can be running
@@ -18,7 +18,7 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
             forName: .selectWidget, object: nil, queue: .main
         ) { [weak self] note in
             guard let id = note.object as? String else { return }
-            self?.showWindow(selecting: WidgetCatalog.widget(id: id))
+            self?.showWindow(selecting: id)
         }
 
         let controller = ManagerViewController()
@@ -34,8 +34,8 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         WidgetInstaller.restoreAfterQuit()
         reconcileBars()
 
-        if let index = requestedWidgetIndex() {
-            controller.select(index)
+        if let requested = requestedWidget() {
+            controller.select(instance: requested)
         }
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -51,7 +51,7 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         var needsAgent = false
 
         for widget in WidgetCatalog.all {
-            guard widget.isInstalled, let spec = widget.barSpec() else {
+            guard widget.isInstalled, let spec = widget.barSpec else {
                 if DockSpacers.count(ownedBy: widget.id) > 0 {
                     repairs.append { DockSpacers.removeAll(ownedBy: widget.id) }
                 }
@@ -74,11 +74,10 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// `--widget <id>`, passed when a widget's tile is clicked in the Dock.
-    private func requestedWidgetIndex() -> Int? {
+    private func requestedWidget() -> String? {
         let arguments = CommandLine.arguments
         guard let flag = arguments.firstIndex(of: "--widget"), flag + 1 < arguments.count else { return nil }
-        let id = arguments[flag + 1]
-        return WidgetCatalog.all.firstIndex { $0.id == id }
+        return arguments[flag + 1]
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
@@ -90,9 +89,9 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     /// Dock tile to go back to.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
-    private func showWindow(selecting widget: WidgetDescriptor?) {
-        if let widget, let index = WidgetCatalog.all.firstIndex(where: { $0.id == widget.id }) {
-            controller?.select(index)
+    private func showWindow(selecting instance: String?) {
+        if let instance {
+            controller?.select(instance: instance)
         }
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

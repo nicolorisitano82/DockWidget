@@ -9,7 +9,7 @@ enum WidgetInstaller {
     static func install(_ widget: WidgetDescriptor) {
         DockTiles.transaction {
             DockTiles.add(widget)
-            if let spec = widget.barSpec() {
+            if let spec = widget.barSpec {
                 DockSpacers.arrange(count: spec.spacerCount, ownedBy: widget.id, after: widget)
             }
         }
@@ -30,7 +30,7 @@ enum WidgetInstaller {
     /// whatever its own settings now say.
     static func applyBarMode(for id: String) {
         guard let widget = WidgetCatalog.widget(id: id), widget.isInstalled else { return }
-        guard let spec = widget.barSpec() else {
+        guard let spec = widget.barSpec else {
             DockTiles.transaction {
                 DockSpacers.removeAll(ownedBy: widget.id, adjacentTo: widget)
             }
@@ -45,7 +45,7 @@ enum WidgetInstaller {
     }
 
     static func stopAgentIfIdle() {
-        if !WidgetCatalog.all.contains(where: { $0.isInstalled && $0.barSpec() != nil }) {
+        if !WidgetCatalog.all.contains(where: { $0.isInstalled && $0.barSpec != nil }) {
             BarAgent.stop()
         }
     }
@@ -98,7 +98,7 @@ enum WidgetInstaller {
         for id in ids {
             guard let widget = WidgetCatalog.widget(id: id), !widget.isInstalled else { continue }
             DockTiles.add(widget)
-            if let spec = widget.barSpec() {
+            if let spec = widget.barSpec {
                 DockSpacers.arrange(count: spec.spacerCount, ownedBy: widget.id, after: widget)
                 wantsAgent = true
             }
@@ -108,6 +108,6 @@ enum WidgetInstaller {
     }
 
     private static func wantsBar(_ widget: WidgetDescriptor) -> Bool {
-        widget.barSpec() != nil
+        widget.barSpec != nil
     }
 }

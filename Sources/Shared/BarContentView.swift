@@ -18,6 +18,14 @@ class BarContentView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("BarContentView is only ever built in code") }
 
+    /// Which copy of the widget this view draws. Empty means the first one.
+    var instance: String = "" {
+        didSet { if instance != oldValue { reloadSettings() } }
+    }
+
+    /// The instance to read settings for, falling back to the kind itself.
+    func resolvedInstance(_ kind: String) -> String { instance.isEmpty ? kind : instance }
+
     func reloadSettings() {}
 
     /// One Dock cell's width, which is the icon size the Dock is using.

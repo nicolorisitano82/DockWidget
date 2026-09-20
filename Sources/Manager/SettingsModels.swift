@@ -1,35 +1,26 @@
 import AppKit
 
 final class ClockSettingsModel {
-    var value: ClockSettings = .current {
-        didSet { persist() }
+    let instance: String
+    var value: ClockSettings {
+        didSet { value.save(instance) }
     }
 
-    private func persist() {
-        SettingsStore.shared.set([
-            ClockSettings.Key.style: value.style.rawValue,
-            ClockSettings.Key.hourFormat: value.hourFormat.rawValue,
-            ClockSettings.Key.showsSeconds: value.showsSeconds,
-            ClockSettings.Key.showsDate: value.showsDate,
-            ClockSettings.Key.accent: value.accentHex,
-            ClockSettings.Key.timeZone: value.timeZoneID,
-        ])
+    init(instance: String) {
+        self.instance = instance
+        value = .current(instance)
     }
 }
 
 final class NowPlayingSettingsModel {
-    var value: NowPlayingSettings = .current {
-        didSet { persist() }
+    let instance: String
+    var value: NowPlayingSettings {
+        didSet { value.save(instance) }
     }
 
-    private func persist() {
-        SettingsStore.shared.set([
-            NowPlayingSettings.Key.mode: value.mode.rawValue,
-            NowPlayingSettings.Key.showsArtwork: value.showsArtwork,
-            NowPlayingSettings.Key.showsProgress: value.showsProgress,
-            NowPlayingSettings.Key.dimsWhenPaused: value.dimsWhenPaused,
-            NowPlayingSettings.Key.accent: value.accentHex,
-        ])
+    init(instance: String) {
+        self.instance = instance
+        value = .current(instance)
     }
 }
 

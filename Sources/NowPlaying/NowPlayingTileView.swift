@@ -5,7 +5,7 @@ final class NowPlayingTileView: TileView {
         didSet { needsDisplay = true }
     }
 
-    private var settings = NowPlayingSettings.current
+    private lazy var settings = NowPlayingSettings.current(resolvedInstance("nowPlaying"))
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -13,7 +13,7 @@ final class NowPlayingTileView: TileView {
     }
 
     override func reloadSettings() {
-        settings = NowPlayingSettings.current
+        settings = NowPlayingSettings.current(resolvedInstance("nowPlaying"))
         accent = settings.accent
         needsDisplay = true
     }

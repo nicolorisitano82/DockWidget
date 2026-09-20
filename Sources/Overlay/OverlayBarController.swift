@@ -9,7 +9,6 @@ final class OverlayBarController {
     private let isEnabled: () -> Bool
     private let panel: NSPanel
     private var timer: Timer?
-    private var isHot = false
     private var settingsObserver: NSObjectProtocol?
     private var cachedElements: [AXUIElement] = []
     private var lastResolve = Date.distantPast
@@ -51,7 +50,7 @@ final class OverlayBarController {
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
         ) { [weak self] _ in self?.invalidateElements() }
 
-        setCadence(hot: false)
+        setCadence(.warm)
         Diagnostics.write("barra \(spec.id) avviata")
     }
 
@@ -95,13 +94,28 @@ final class OverlayBarController {
         return DockAccessibility.flipped(union)
     }
 
-    private func setCadence(hot: Bool) {
-        guard hot != isHot || timer == nil else { return }
-        isHot = hot
+    private enum Cadence {
+        /// The pointer is near the Dock: magnification moves every tile.
+        case hot
+        /// The bar is on screen but nothing is moving fast.
+        case warm
+        /// No anchor in the Dock — this copy of the widget is not in use.
+        case idle
+    }
+
+    private var cadence: Cadence = .warm
+
+    private func setCadence(_ next: Cadence) {
+        guard next != cadence || timer == nil else { return }
+        cadence = next
         timer?.invalidate()
-        // 60 Hz while the pointer is near the Dock, because magnification moves
-        // every tile under it; a lazy beat the rest of the time.
-        let interval: TimeInterval = hot ? 1.0 / 60 : 1.0 / 6
+        let interval: TimeInterval
+        switch next {
+        case .hot: interval = 1.0 / 60
+        case .warm: interval = 1.0 / 6
+        case .idle: interval = 2
+        }
+        let hot = next == .hot
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in self?.tick() }
         timer.tolerance = hot ? 0 : interval / 2
         RunLoop.main.add(timer, forMode: .common)
@@ -111,7 +125,7 @@ final class OverlayBarController {
     private func tick() {
         guard isEnabled(), let frame = currentFrame(), frame.width > 20, frame.height > 10 else {
             if panel.isVisible { panel.orderOut(nil) }
-            setCadence(hot: false)
+            setCadence(.idle)
             return
         }
 
@@ -126,7 +140,7 @@ final class OverlayBarController {
 
         let pointer = NSEvent.mouseLocation
         let band = frame.insetBy(dx: -frame.height * 6, dy: -frame.height * 1.5)
-        setCadence(hot: band.contains(pointer))
+        setCadence(band.contains(pointer) ? .hot : .warm)
     }
 
 }

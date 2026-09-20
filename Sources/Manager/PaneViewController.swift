@@ -3,6 +3,10 @@ import AppKit
 /// Shared scaffolding: a live tile over a dock-like strip, a column of
 /// controls, and the footer that puts the app in the Dock.
 class PaneViewController: NSViewController {
+    /// Which copy of the widget this pane edits: "clock", "clock2", …
+    /// Set before the view is loaded.
+    var instance: String = ""
+
     private(set) var stageView: NSView!
 
     /// Set by the manager: rebuilds this pane, for when a setting changes what

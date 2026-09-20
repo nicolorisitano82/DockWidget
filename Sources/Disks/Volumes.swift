@@ -139,29 +139,31 @@ struct DisksSettings: Equatable {
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemGreen }
 
     enum Key {
-        static let mode = "disks.mode"
-        static let tileVolume = "disks.tileVolume"
-        static let showsFree = "disks.showsFree"
-        static let accent = "disks.accent"
+        static func mode(_ instance: String) -> String { "\(instance).mode" }
+        static func tileVolume(_ instance: String) -> String { "\(instance).tileVolume" }
+        static func showsFree(_ instance: String) -> String { "\(instance).showsFree" }
+        static func accent(_ instance: String) -> String { "\(instance).accent" }
     }
 
-    static var current: DisksSettings {
+    static var current: DisksSettings { current("disks") }
+
+    static func current(_ instance: String) -> DisksSettings {
         let store = SettingsStore.shared
         let defaults = DisksSettings()
         return DisksSettings(
-            mode: Mode(rawValue: store.string(Key.mode, or: defaults.mode.rawValue)) ?? defaults.mode,
-            tileVolume: store.string(Key.tileVolume, or: defaults.tileVolume),
-            showsFree: store.bool(Key.showsFree, or: defaults.showsFree),
-            accentHex: store.string(Key.accent, or: defaults.accentHex)
+            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue)) ?? defaults.mode,
+            tileVolume: store.string(Key.tileVolume(instance), or: defaults.tileVolume),
+            showsFree: store.bool(Key.showsFree(instance), or: defaults.showsFree),
+            accentHex: store.string(Key.accent(instance), or: defaults.accentHex)
         )
     }
 
-    func save() {
+    func save(_ instance: String = "disks") {
         SettingsStore.shared.set([
-            Key.mode: mode.rawValue,
-            Key.tileVolume: tileVolume,
-            Key.showsFree: showsFree,
-            Key.accent: accentHex,
+            Key.mode(instance): mode.rawValue,
+            Key.tileVolume(instance): tileVolume,
+            Key.showsFree(instance): showsFree,
+            Key.accent(instance): accentHex,
         ])
     }
 }

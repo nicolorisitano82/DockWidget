@@ -33,7 +33,7 @@ final class BarView: BarContentView {
 
     private var palette: TilePalette {
         TilePalette.resolve(dark: SystemAppearance.shared.isDark,
-                            accent: NowPlayingSettings.current.accent)
+                            accent: NowPlayingSettings.current(resolvedInstance("nowPlaying")).accent)
     }
 
     private struct Metrics {

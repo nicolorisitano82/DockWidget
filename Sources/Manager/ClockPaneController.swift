@@ -1,7 +1,15 @@
 import AppKit
 
 final class ClockPaneController: PaneViewController {
-    private let model = ClockSettingsModel()
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private lazy var model = ClockSettingsModel(instance: instance)
     private var clockTile: ClockTileView { stageView as! ClockTileView }
     private var lastToken = Int.min
 

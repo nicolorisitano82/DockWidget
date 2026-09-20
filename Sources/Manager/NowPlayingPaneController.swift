@@ -1,7 +1,15 @@
 import AppKit
 
 final class NowPlayingPaneController: PaneViewController {
-    private let model = NowPlayingSettingsModel()
+    init(instance: String) {
+        super.init(nibName: nil, bundle: nil)
+        self.instance = instance
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
+
+    private lazy var model = NowPlayingSettingsModel(instance: instance)
     private var nowPlayingTile: NowPlayingTileView { stageView as! NowPlayingTileView }
     private var channelLabel: NSTextField?
     private var trackLabel: NSTextField?

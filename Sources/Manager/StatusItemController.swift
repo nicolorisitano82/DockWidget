@@ -7,9 +7,9 @@ import AppKit
 final class StatusItemController {
     private let loginItemTag = 900
     private let statusItem: NSStatusItem
-    private let onOpen: (WidgetDescriptor?) -> Void
+    private let onOpen: (String?) -> Void
 
-    init(onOpen: @escaping (WidgetDescriptor?) -> Void) {
+    init(onOpen: @escaping (String?) -> Void) {
         self.onOpen = onOpen
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 

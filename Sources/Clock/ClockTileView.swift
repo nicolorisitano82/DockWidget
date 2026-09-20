@@ -1,7 +1,7 @@
 import AppKit
 
 final class ClockTileView: TileView {
-    private var settings = ClockSettings.current
+    private lazy var settings = ClockSettings.current(resolvedInstance("clock"))
     private let timeFormatter = DateFormatter()
     private let dateFormatter = DateFormatter()
     private var localeObservers: [NSObjectProtocol] = []
@@ -28,7 +28,7 @@ final class ClockTileView: TileView {
     private var renderDate: Date { fixedDate ?? Date() }
 
     override func reloadSettings() {
-        settings = ClockSettings.current
+        settings = ClockSettings.current(resolvedInstance("clock"))
         accent = settings.accent
         rebuildFormatters()
         needsDisplay = true

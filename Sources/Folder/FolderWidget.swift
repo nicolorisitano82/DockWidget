@@ -14,42 +14,57 @@ struct FolderSettings: Equatable {
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemBlue }
 
     enum Key {
-        static let path = "folder.path"
-        static let showsCount = "folder.showsCount"
-        static let accent = "folder.accent"
-        static let tint = "folder.tint"
-        static let symbol = "folder.symbol"
+        static func path(_ instance: String) -> String { "\(instance).path" }
+        static func showsCount(_ instance: String) -> String { "\(instance).showsCount" }
+        static func accent(_ instance: String) -> String { "\(instance).accent" }
+        static func tint(_ instance: String) -> String { "\(instance).tint" }
+        static func symbol(_ instance: String) -> String { "\(instance).symbol" }
     }
 
-    static var current: FolderSettings {
+    static var current: FolderSettings { current("folder") }
+
+    static func current(_ instance: String) -> FolderSettings {
         let store = SettingsStore.shared
         let defaults = FolderSettings()
         return FolderSettings(
-            path: store.string(Key.path, or: defaults.path),
-            showsCount: store.bool(Key.showsCount, or: defaults.showsCount),
-            accentHex: store.string(Key.accent, or: defaults.accentHex),
-            tintHex: store.string(Key.tint, or: defaults.tintHex),
-            symbol: store.string(Key.symbol, or: defaults.symbol)
+            path: store.string(Key.path(instance), or: defaults.path),
+            showsCount: store.bool(Key.showsCount(instance), or: defaults.showsCount),
+            accentHex: store.string(Key.accent(instance), or: defaults.accentHex),
+            tintHex: store.string(Key.tint(instance), or: defaults.tintHex),
+            symbol: store.string(Key.symbol(instance), or: defaults.symbol)
         )
     }
 
-    func save() {
+    func save(_ instance: String = "folder") {
         SettingsStore.shared.set([
-            Key.path: path,
-            Key.showsCount: showsCount,
-            Key.accent: accentHex,
-            Key.tint: tintHex,
-            Key.symbol: symbol,
+            Key.path(instance): path,
+            Key.showsCount(instance): showsCount,
+            Key.accent(instance): accentHex,
+            Key.tint(instance): tintHex,
+            Key.symbol(instance): symbol,
         ])
     }
 }
 
 /// Watches one folder and keeps a short list of what is in it.
 ///
+/// One monitor per copy of the widget, because two folder widgets watch two
+/// different folders — and both of their plug-ins are loaded into the same
+/// process.
+///
 /// A file descriptor source rather than a timer: the tile should change the
 /// moment something lands in the folder, and stay quiet the rest of the day.
 final class FolderMonitor {
-    static let shared = FolderMonitor()
+    private static var monitors: [String: FolderMonitor] = [:]
+
+    static func shared(_ instance: String) -> FolderMonitor {
+        if let existing = monitors[instance] { return existing }
+        let monitor = FolderMonitor(instance: instance)
+        monitors[instance] = monitor
+        return monitor
+    }
+
+    let instance: String
 
     private(set) var items: [URL] = []
     private(set) var count = 0
@@ -62,11 +77,17 @@ final class FolderMonitor {
     private var watched: String?
     private var listeners: [UUID: () -> Void] = [:]
 
+    private init(instance: String) {
+        self.instance = instance
+    }
+
+    var settings: FolderSettings { .current(instance) }
+
     @discardableResult
     func addListener(_ handler: @escaping () -> Void) -> UUID {
         let token = UUID()
         listeners[token] = handler
-        watch(FolderSettings.current.path)
+        watch(settings.path)
         handler()
         return token
     }
@@ -112,7 +133,7 @@ final class FolderMonitor {
     }
 
     private func reload() {
-        guard let url = FolderSettings.current.url else {
+        guard let url = settings.url else {
             guard !items.isEmpty || count != 0 else { return }
             items = []
             count = 0
@@ -132,8 +153,6 @@ final class FolderMonitor {
             Diagnostics.once("folder-read-\(url.path)",
                              "cartella \(url.path) non leggibile: \(error.localizedDescription)")
         }
-        Diagnostics.once("folder-count-\(url.path)",
-                         "cartella \(url.path): \(contents.count) elementi letti")
 
         let previous = items
         // Most recent first: what just landed is what you are looking for.
@@ -150,41 +169,39 @@ final class FolderMonitor {
         count = items.count
         listeners.values.forEach { $0() }
     }
-
-    /// Moves dropped files into the watched folder.
-    static func accept(_ files: [URL]) {
-        guard let destination = FolderSettings.current.url else { return }
-        for file in files {
-            let target = destination.appendingPathComponent(file.lastPathComponent)
-            try? FileManager.default.moveItem(at: file, to: target)
-        }
-    }
 }
 
 /// The folder as a Dock tile: its own icon, a stack of what is inside, and a
 /// count.
 final class FolderTileView: TileView {
-    private var settings = FolderSettings.current
+    private lazy var settings = FolderSettings.current(resolvedInstance("folder"))
+    private var monitor: FolderMonitor { FolderMonitor.shared(resolvedInstance("folder")) }
     private var token: UUID?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        token = FolderMonitor.shared.addListener { [weak self] in self?.needsDisplay = true }
+        DispatchQueue.main.async { [weak self] in self?.subscribe() }
     }
 
     deinit {
-        if let token { FolderMonitor.shared.removeListener(token) }
+        if let token { monitor.removeListener(token) }
+    }
+
+    private func subscribe() {
+        guard token == nil else { return }
+        token = monitor.addListener { [weak self] in self?.needsDisplay = true }
     }
 
     override func reloadSettings() {
-        settings = FolderSettings.current
+        settings = FolderSettings.current(resolvedInstance("folder"))
         accent = settings.accent
-        FolderMonitor.shared.watch(settings.path)
+        subscribe()
+        monitor.watch(settings.path)
         needsDisplay = true
     }
 
     var renderToken: String {
-        "\(settings.path)|\(FolderMonitor.shared.count)|\(settings.tintHex)|\(settings.symbol)"
+        "\(settings.path)|\(monitor.count)|\(settings.tintHex)|\(settings.symbol)"
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -213,7 +230,7 @@ final class FolderTileView: TileView {
         let isCompact = side < 34
 
         // The two most recent items peek out from behind it.
-        let previews = isCompact ? [] : Array(FolderMonitor.shared.items.prefix(2))
+        let previews = isCompact ? [] : Array(monitor.items.prefix(2))
         for (index, item) in previews.enumerated().reversed() {
             let size = side * 0.30
             let box = NSRect(x: card.midX - size / 2 + CGFloat(index) * size * 0.42,
@@ -224,8 +241,8 @@ final class FolderTileView: TileView {
                       fraction: index == 0 ? 1 : 0.75, respectFlipped: true, hints: nil)
         }
 
-        guard settings.showsCount, FolderMonitor.shared.count > 0 else { return }
-        let count = FolderMonitor.shared.count
+        guard settings.showsCount, monitor.count > 0 else { return }
+        let count = monitor.count
         let text = (count > 99 ? "99+" : "\(count)") as NSString
         let diameter = isCompact
             ? side * (text.length > 2 ? 0.62 : 0.54)
@@ -251,6 +268,7 @@ final class FolderTileView: TileView {
 @objc(FolderDockTilePlugin)
 final class FolderDockTilePlugin: TilePlugin {
     private var folderView: FolderTileView? { tileView as? FolderTileView }
+    private var monitor: FolderMonitor { FolderMonitor.shared(instanceID) }
     private var token: UUID?
     private var lastToken = ""
 
@@ -259,7 +277,7 @@ final class FolderDockTilePlugin: TilePlugin {
     }
 
     override func didAttach() {
-        token = FolderMonitor.shared.addListener { [weak self] in
+        token = monitor.addListener { [weak self] in
             guard let self, let view = self.folderView else { return }
             let current = view.renderToken
             guard current != self.lastToken else { return }
@@ -269,13 +287,13 @@ final class FolderDockTilePlugin: TilePlugin {
     }
 
     override func willDetach() {
-        if let token { FolderMonitor.shared.removeListener(token) }
+        if let token { monitor.removeListener(token) }
         token = nil
     }
 
     /// The menu is the folder: the most recent things in it, one click away.
     override func customMenuItems() -> [NSMenuItem] {
-        guard let url = FolderSettings.current.url else { return [] }
+        guard FolderSettings.current(instanceID).url != nil else { return [] }
         var items: [NSMenuItem] = []
 
         let open = NSMenuItem(title: T("Apri la cartella", "Open the folder"),
@@ -284,7 +302,7 @@ final class FolderDockTilePlugin: TilePlugin {
         items.append(open)
         items.append(.separator())
 
-        for item in FolderMonitor.shared.items.prefix(8) {
+        for item in monitor.items.prefix(8) {
             let entry = NSMenuItem(title: item.lastPathComponent, action: #selector(openItem(_:)),
                                    keyEquivalent: "")
             entry.target = self
@@ -294,18 +312,17 @@ final class FolderDockTilePlugin: TilePlugin {
             entry.image = icon
             items.append(entry)
         }
-        if FolderMonitor.shared.items.isEmpty {
+        if monitor.items.isEmpty {
             let empty = NSMenuItem(title: T("Cartella vuota", "The folder is empty"),
                                    action: nil, keyEquivalent: "")
             empty.isEnabled = false
             items.append(empty)
         }
-        _ = url
         return items
     }
 
     @objc private func openFolder() {
-        guard let url = FolderSettings.current.url else { return }
+        guard let url = FolderSettings.current(instanceID).url else { return }
         NSWorkspace.shared.open(url)
     }
 

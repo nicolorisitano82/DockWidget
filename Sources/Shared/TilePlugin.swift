@@ -7,6 +7,12 @@ import AppKit
 /// while the host app sits in the Dock — running or not. So: cheap timers, no
 /// blocking work, and everything torn down when the tile goes away.
 class TilePlugin: NSObject, NSDockTilePlugIn {
+    /// "clock", "clock2", … read from this plug-in's own bundle identifier,
+    /// which the build gives each copy of a widget.
+    lazy var instanceID: String = WidgetInstance.fromBundleIdentifier(
+        Bundle(for: type(of: self)).bundleIdentifier
+    )
+
     private(set) var dockTile: NSDockTile?
     private(set) var tileView: TileView?
 
@@ -58,6 +64,7 @@ class TilePlugin: NSObject, NSDockTilePlugIn {
     private func attach(to dockTile: NSDockTile) {
         self.dockTile = dockTile
         let view = makeTileView()
+        view.instance = instanceID
         view.reloadSettings()
         tileView = view
         dockTile.contentView = view

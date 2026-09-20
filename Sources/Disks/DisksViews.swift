@@ -3,7 +3,7 @@ import AppKit
 /// One volume filling a square tile: a ring of used space, the name, and how
 /// much is left.
 final class DisksTileView: TileView {
-    private var settings = DisksSettings.current
+    private lazy var settings = DisksSettings.current(resolvedInstance("disks"))
     private var token: UUID?
 
     override init(frame frameRect: NSRect) {
@@ -16,7 +16,7 @@ final class DisksTileView: TileView {
     }
 
     override func reloadSettings() {
-        settings = DisksSettings.current
+        settings = DisksSettings.current(resolvedInstance("disks"))
         accent = settings.accent
         needsDisplay = true
     }
@@ -71,7 +71,7 @@ final class DisksTileView: TileView {
 
 /// Every mounted volume, one Dock tile each.
 final class DisksBarView: BarContentView {
-    private var settings = DisksSettings.current
+    private lazy var settings = DisksSettings.current(resolvedInstance("disks"))
     private var token: UUID?
     private var hovered: Int? {
         didSet { if hovered != oldValue { needsDisplay = true } }
@@ -87,7 +87,7 @@ final class DisksBarView: BarContentView {
     }
 
     override func reloadSettings() {
-        settings = DisksSettings.current
+        settings = DisksSettings.current(resolvedInstance("disks"))
         needsDisplay = true
     }
 

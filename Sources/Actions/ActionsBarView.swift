@@ -8,7 +8,7 @@ import AppKit
 final class ActionsBarView: BarContentView {
     var onRun: ((ActionKind) -> Void)?
 
-    private var settings = ActionsSettings.current
+    private lazy var settings = ActionsSettings.current(resolvedInstance("actions"))
     private var hovered: Int? {
         didSet { if hovered != oldValue { needsDisplay = true } }
     }
@@ -17,7 +17,7 @@ final class ActionsBarView: BarContentView {
     }
 
     override func reloadSettings() {
-        settings = ActionsSettings.current
+        settings = ActionsSettings.current(resolvedInstance("actions"))
         needsDisplay = true
     }
 
