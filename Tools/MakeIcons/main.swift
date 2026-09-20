@@ -13,6 +13,77 @@ let outputDirectory = URL(fileURLWithPath: arguments[2])
 
 _ = NSApplication.shared
 
+/// The app's icon when there is a drawing for it on disk.
+///
+/// The artwork arrives as a squircle sitting on a flat background, so the
+/// background is measured from a corner pixel and everything unlike it is
+/// taken as the art. What is left is scaled to the 824-of-1024 that macOS
+/// expects and clipped to the system's own corner, rather than trusting the
+/// corner that came in the picture.
+final class SourceIconView: NSView {
+    static let fileURL = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("Resources/Art/AppIcon.png")
+
+    static var artwork: NSImage? {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+        return NSImage(contentsOf: fileURL)
+    }
+
+    /// The part of the picture that is not background.
+    private static func trimmed(_ image: NSImage) -> NSImage {
+        guard let source = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let data = source.dataProvider?.data,
+              let bytes = CFDataGetBytePtr(data) else { return image }
+        let width = source.width, height = source.height
+        let rowBytes = source.bytesPerRow
+        let step = source.bitsPerPixel / 8
+        guard step >= 3 else { return image }
+
+        func pixel(_ x: Int, _ y: Int) -> (Int, Int, Int) {
+            let offset = y * rowBytes + x * step
+            return (Int(bytes[offset]), Int(bytes[offset + 1]), Int(bytes[offset + 2]))
+        }
+        let background = pixel(1, 1)
+        func isArt(_ x: Int, _ y: Int) -> Bool {
+            let (r, g, b) = pixel(x, y)
+            return abs(r - background.0) + abs(g - background.1) + abs(b - background.2) > 24
+        }
+
+        var minX = width, minY = height, maxX = -1, maxY = -1
+        // Every fourth pixel: the shape is a thousand across and the bounds do
+        // not need to be found to the pixel.
+        for y in stride(from: 0, to: height, by: 4) {
+            for x in stride(from: 0, to: width, by: 4) where isArt(x, y) {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX > minX, maxY > minY else { return image }
+
+        // Square it off around the middle, so nothing is stretched.
+        let side = max(maxX - minX, maxY - minY) + 1
+        let centreX = (minX + maxX) / 2, centreY = (minY + maxY) / 2
+        let box = CGRect(x: max(centreX - side / 2, 0), y: max(centreY - side / 2, 0),
+                         width: min(side, width), height: min(side, height))
+        guard let cropped = source.cropping(to: box) else { return image }
+        return NSImage(cgImage: cropped, size: NSSize(width: box.width, height: box.height))
+    }
+
+    private static let prepared: NSImage? = artwork.map(trimmed)
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard let image = Self.prepared else { return }
+        let card = TileGeometry.artworkRect(in: bounds)
+        NSGraphicsContext.saveGraphicsState()
+        TileGeometry.cardPath(in: card).addClip()
+        image.draw(in: card, from: .zero, operation: .sourceOver, fraction: 1,
+                   respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        NSGraphicsContext.restoreGraphicsState()
+    }
+}
+
 /// The manager's own icon: widgets sitting in a dock bar.
 final class ManagerIconView: TileView {
     override func draw(_ dirtyRect: NSRect) {
@@ -229,6 +300,8 @@ func makeView(side: CGFloat) -> NSView {
         view.reloadSettings()
         return view
     case "manager":
+        // The drawn icon is the fallback: a picture in Resources/Art wins.
+        if SourceIconView.artwork != nil { return SourceIconView(frame: frame) }
         let view = ManagerIconView(frame: frame)
         view.reloadSettings()
         return view
