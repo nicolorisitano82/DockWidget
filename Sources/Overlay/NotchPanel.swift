@@ -190,6 +190,7 @@ final class NotchContentView: NSView {
 
     private var rows: [BarContentView] = []
     private var shown: [String] = []
+    private var shownWidths: [Int] = []
     private var beat: Timer?
 
     var rowCount: Int { rows.count }
@@ -198,10 +199,12 @@ final class NotchContentView: NSView {
     /// the ones already there re-read their settings: rebuilding on every
     /// change would leak a listener each time.
     func apply(instances: [String]) {
-        guard instances != shown else {
+        let widths = instances.map { NotchWidgets.cellCount(for: $0) }
+        guard instances != shown || widths != shownWidths else {
             rows.forEach { $0.reloadSettings() }
             return
         }
+        shownWidths = widths
         shown = instances
         rows.forEach { $0.removeFromSuperview() }
         rows = instances.compactMap { NotchWidgets.view(for: $0) }

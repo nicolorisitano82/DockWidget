@@ -1,6 +1,12 @@
 import AppKit
 
 final class DisksPaneController: PaneViewController {
+    /// The bar spec of *this* copy: the width belongs to the copy being
+    /// edited, and writing it on the template made every copy share one.
+    private var spec: BarLayout.Spec {
+        BarLayout.disks.forInstance(instance, anchorTitle: "")
+    }
+
     init(instance: String) {
         super.init(nibName: nil, bundle: nil)
         self.instance = instance
@@ -22,7 +28,7 @@ final class DisksPaneController: PaneViewController {
         }
         let view = DisksBarView(frame: NSRect(x: 0, y: 0, width: 240, height: 88))
         view.instance = instance
-        view.tileCount = BarLayout.disks.spacerCount + 1
+        view.tileCount = spec.spacerCount + 1
         return view
     }
 
@@ -68,8 +74,7 @@ final class DisksPaneController: PaneViewController {
                                               isOn: settings.showsFree,
                                               action: #selector(freeChanged)))
         } else {
-            let spec = BarLayout.disks
-            let width = NSStepper()
+                        let width = NSStepper()
             width.minValue = Double(spec.minimumSpacers)
             width.maxValue = Double(spec.maximumSpacers)
             width.increment = 1
@@ -147,8 +152,7 @@ final class DisksPaneController: PaneViewController {
     }
 
     @objc private func widthChanged(_ sender: NSStepper) {
-        let spec = BarLayout.disks
-        let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
+                let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
         sender.integerValue = count
         SettingsStore.shared.set(Double(count), for: spec.spacerCountKey)
         widthField?.stringValue = T("\(count + 1) volumi", "\(count + 1) volumes")

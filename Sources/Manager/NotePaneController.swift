@@ -1,6 +1,12 @@
 import AppKit
 
 final class NotePaneController: PaneViewController, NSTextViewDelegate {
+    /// The bar spec of *this* copy: the width belongs to the copy being
+    /// edited, and writing it on the template made every copy share one.
+    private var spec: BarLayout.Spec {
+        BarLayout.note.forInstance(instance, anchorTitle: "")
+    }
+
     init(instance: String) {
         super.init(nibName: nil, bundle: nil)
         self.instance = instance
@@ -16,7 +22,7 @@ final class NotePaneController: PaneViewController, NSTextViewDelegate {
     override func makeStageView() -> NSView {
         let view = NoteBarView(frame: NSRect(x: 0, y: 0, width: 220, height: 88))
         view.instance = instance
-        view.tileCount = BarLayout.note.spacerCount + 1
+        view.tileCount = spec.spacerCount + 1
         return view
     }
 
@@ -42,8 +48,7 @@ final class NotePaneController: PaneViewController, NSTextViewDelegate {
     }
 
     override func buildControls(in stack: NSStackView) {
-        let spec = BarLayout.note
-        let width = NSStepper()
+                let width = NSStepper()
         width.minValue = Double(spec.minimumSpacers)
         width.maxValue = Double(spec.maximumSpacers)
         width.increment = 1
@@ -103,8 +108,7 @@ final class NotePaneController: PaneViewController, NSTextViewDelegate {
     }
 
     @objc private func widthChanged(_ sender: NSStepper) {
-        let spec = BarLayout.note
-        let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
+                let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
         sender.integerValue = count
         SettingsStore.shared.set(Double(count), for: spec.spacerCountKey)
         widthField?.stringValue = T("\(count + 1) tile", "\(count + 1) tiles")

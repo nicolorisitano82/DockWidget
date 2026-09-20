@@ -37,10 +37,25 @@ enum NotchWidgets {
         guard let made else { return nil }
         made.instance = instance
         made.forcesDarkContent = true
-        // A notch row is about four Dock tiles wide; the height clamps the rest.
-        made.tileCount = 4
+        // How many cells this copy asks for — the same setting the Dock bars
+        // use for their width, read from this copy rather than the template.
+        made.tileCount = cellCount(for: instance)
         made.reloadSettings()
         return made
+    }
+
+    static func cellCount(for instance: String) -> Int {
+        let template: BarLayout.Spec?
+        switch WidgetInstance.kind(of: instance) {
+        case "nowplaying": template = BarLayout.nowPlaying
+        case "sensors": template = BarLayout.sensors
+        case "disks": template = BarLayout.disks
+        case "actions": template = BarLayout.actions
+        case "note": template = BarLayout.note
+        default: template = nil
+        }
+        guard let template else { return 4 }
+        return template.forInstance(instance, anchorTitle: "").spacerCount + 1
     }
 
     /// What can be put in the notch, as instance identifiers.

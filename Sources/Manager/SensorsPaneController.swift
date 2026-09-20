@@ -1,6 +1,12 @@
 import AppKit
 
 final class SensorsPaneController: PaneViewController {
+    /// The bar spec of *this* copy: the width belongs to the copy being
+    /// edited, and writing it on the template made every copy share one.
+    private var spec: BarLayout.Spec {
+        BarLayout.sensors.forInstance(instance, anchorTitle: "")
+    }
+
     init(instance: String) {
         super.init(nibName: nil, bundle: nil)
         self.instance = instance
@@ -21,7 +27,7 @@ final class SensorsPaneController: PaneViewController {
         }
         let view = SensorsBarView(frame: NSRect(x: 0, y: 0, width: 240, height: 88))
         view.instance = instance
-        view.tileCount = BarLayout.sensors.spacerCount + 1
+        view.tileCount = spec.spacerCount + 1
         return view
     }
 
@@ -49,8 +55,7 @@ final class SensorsPaneController: PaneViewController {
             sensor.action = #selector(tileSensorChanged)
             stack.addArrangedSubview(labeled(T("Sensore", "Sensor"), sensor))
         } else {
-            let spec = BarLayout.sensors
-            let width = NSStepper()
+                        let width = NSStepper()
             width.minValue = Double(spec.minimumSpacers)
             width.maxValue = Double(spec.maximumSpacers)
             width.increment = 1
@@ -102,7 +107,7 @@ final class SensorsPaneController: PaneViewController {
         guard let barRows else { return }
         barRows.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        let visible = settings.visibleBarSensors(count: BarLayout.sensors.spacerCount + 1)
+        let visible = settings.visibleBarSensors(count: spec.spacerCount + 1)
         for (index, sensor) in visible.enumerated() {
             let popup = NSPopUpButton()
             popup.addItems(withTitles: SensorID.available.map(\.label))
@@ -131,7 +136,7 @@ final class SensorsPaneController: PaneViewController {
     }
 
     @objc private func barSensorChanged(_ sender: NSPopUpButton) {
-        var chosen = settings.visibleBarSensors(count: BarLayout.sensors.spacerCount + 1)
+        var chosen = settings.visibleBarSensors(count: spec.spacerCount + 1)
         guard sender.tag < chosen.count else { return }
         chosen[sender.tag] = SensorID.available[sender.indexOfSelectedItem]
 
@@ -145,8 +150,7 @@ final class SensorsPaneController: PaneViewController {
     }
 
     @objc private func widthChanged(_ sender: NSStepper) {
-        let spec = BarLayout.sensors
-        let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
+                let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
         sender.integerValue = count
         SettingsStore.shared.set(Double(count), for: spec.spacerCountKey)
         widthField?.stringValue = T("\(count + 1) sensori", "\(count + 1) sensors")

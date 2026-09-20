@@ -1,6 +1,12 @@
 import AppKit
 
 final class NowPlayingPaneController: PaneViewController {
+    /// The bar spec of *this* copy: the width belongs to the copy being
+    /// edited, and writing it on the template made every copy share one.
+    private var spec: BarLayout.Spec {
+        BarLayout.nowPlaying.forInstance(instance, anchorTitle: "")
+    }
+
     init(instance: String) {
         super.init(nibName: nil, bundle: nil)
         self.instance = instance
@@ -53,8 +59,7 @@ final class NowPlayingPaneController: PaneViewController {
             stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
         }
 
-        let spec = BarLayout.nowPlaying
-        let width = NSStepper()
+                let width = NSStepper()
         width.minValue = Double(spec.minimumSpacers)
         width.maxValue = Double(spec.maximumSpacers)
         width.increment = 1
@@ -116,8 +121,7 @@ final class NowPlayingPaneController: PaneViewController {
     }
 
     @objc private func widthChanged(_ sender: NSStepper) {
-        let spec = BarLayout.nowPlaying
-        let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
+                let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
         sender.integerValue = count
         SettingsStore.shared.set(Double(count), for: spec.spacerCountKey)
         widthField?.stringValue = widthLabel(for: count)
@@ -125,8 +129,7 @@ final class NowPlayingPaneController: PaneViewController {
     }
 
     private func widthLabel(for count: Int) -> String {
-        let spec = BarLayout.nowPlaying
-        return count == spec.minimumSpacers
+                return count == spec.minimumSpacers
             ? T("\(count) spazi (minimo)", "\(count) spaces (minimum)")
             : T("\(count) spazi", "\(count) spaces")
     }
