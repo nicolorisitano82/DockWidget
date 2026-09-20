@@ -32,7 +32,12 @@ struct NowPlayingSettings: Equatable {
         let store = SettingsStore.shared
         let defaults = NowPlayingSettings()
         return NowPlayingSettings(
-            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue)) ?? defaults.mode,
+            // In the notch there is no room for a square tile, so the shape is
+            // not a choice: it is always the bar.
+            mode: WidgetInstance.isNotch(instance)
+                ? .bar
+                : Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue))
+                    ?? defaults.mode,
             showsArtwork: store.bool(Key.showsArtwork(instance), or: defaults.showsArtwork),
             showsProgress: store.bool(Key.showsProgress(instance), or: defaults.showsProgress),
             dimsWhenPaused: store.bool(Key.dimsWhenPaused(instance), or: defaults.dimsWhenPaused),

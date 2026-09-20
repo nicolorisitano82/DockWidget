@@ -34,7 +34,12 @@ struct SensorsSettings: Equatable {
             .split(separator: ",")
             .compactMap { SensorID(rawValue: String($0)) }
         return SensorsSettings(
-            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue)) ?? defaults.mode,
+            // In the notch there is no room for a square tile, so the shape is
+            // not a choice: it is always the bar.
+            mode: WidgetInstance.isNotch(instance)
+                ? .bar
+                : Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue))
+                    ?? defaults.mode,
             tileSensor: SensorID(rawValue: store.string(Key.tileSensor(instance), or: defaults.tileSensor.rawValue))
                 ?? defaults.tileSensor,
             barSensors: stored.isEmpty ? defaults.barSensors : stored,

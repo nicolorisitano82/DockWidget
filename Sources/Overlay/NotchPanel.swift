@@ -114,9 +114,12 @@ final class NotchPanel: NSObject {
         let width = max(settings.expandedWidth, collapsedFrame.width + 120)
         // The first row starts below the notch itself, or it would sit beside
         // the camera housing where nothing can be read.
-        content.topInset = collapsedFrame.height + 6
+        content.topInset = collapsedFrame.height + NotchContentView.topPadding
+        let rows = CGFloat(max(content.rowCount, 1))
         let height = content.topInset
-            + CGFloat(max(content.rowCount, 1)) * NotchContentView.rowHeight + 12
+            + rows * NotchContentView.rowHeight
+            + (rows - 1) * NotchContentView.rowSpacing
+            + NotchContentView.bottomPadding
         let frame = NSRect(x: collapsedFrame.midX - width / 2,
                            y: screen.frame.maxY - height,
                            width: width, height: height)
@@ -172,6 +175,12 @@ final class NotchPanel: NSObject {
 /// The widgets inside the notch, one row each.
 final class NotchContentView: NSView {
     static let rowHeight: CGFloat = 52
+    /// Air between the notch and the first row, between one row and the next,
+    /// and under the last one. Widgets pressed against the edges of the slab
+    /// look like they were poured in rather than placed.
+    static let topPadding: CGFloat = 12
+    static let rowSpacing: CGFloat = 8
+    static let bottomPadding: CGFloat = 14
 
     /// How far down the first row starts: the height of the notch, so the
     /// content clears it.
@@ -227,9 +236,10 @@ final class NotchContentView: NSView {
     override func layout() {
         super.layout()
         for (index, row) in rows.enumerated() {
-            row.frame = NSRect(x: 14,
-                               y: bounds.height - topInset - CGFloat(index + 1) * Self.rowHeight,
-                               width: bounds.width - 28, height: Self.rowHeight)
+            let top = topInset + CGFloat(index) * (Self.rowHeight + Self.rowSpacing)
+            row.frame = NSRect(x: 16,
+                               y: bounds.height - top - Self.rowHeight,
+                               width: bounds.width - 32, height: Self.rowHeight)
         }
     }
 }

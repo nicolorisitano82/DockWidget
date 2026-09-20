@@ -27,8 +27,12 @@ struct AppleNotesSettings: Equatable {
         let store = SettingsStore.shared
         let defaults = AppleNotesSettings()
         return AppleNotesSettings(
-            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue))
-                ?? defaults.mode,
+            // In the notch there is no room for a square tile, so the shape is
+            // not a choice: it is always the bar.
+            mode: WidgetInstance.isNotch(instance)
+                ? .bar
+                : Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue))
+                    ?? defaults.mode,
             folder: store.string(Key.folder(instance), or: defaults.folder),
             showsSnippet: store.bool(Key.showsSnippet(instance), or: defaults.showsSnippet),
             accentHex: store.string(Key.accent(instance), or: defaults.accentHex)

@@ -48,11 +48,14 @@ final class DisksPaneController: PaneViewController {
     }
 
     override func buildControls(in stack: NSStackView) {
+        // A widget in the notch is always a bar.
+        if !WidgetInstance.isNotch(instance) {
         let mode = NSSegmentedControl(labels: DisksSettings.Mode.allCases.map(\.label),
-                                      trackingMode: .selectOne,
-                                      target: self, action: #selector(modeChanged))
-        mode.selectedSegment = DisksSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
-        stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+                                          trackingMode: .selectOne,
+                                          target: self, action: #selector(modeChanged))
+            mode.selectedSegment = DisksSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
+            stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+        }
 
         if settings.mode == .tile {
             let volumes = NSPopUpButton()

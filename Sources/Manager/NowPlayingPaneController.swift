@@ -41,14 +41,17 @@ final class NowPlayingPaneController: PaneViewController {
     }
 
     override func buildControls(in stack: NSStackView) {
+        // A widget in the notch is always a bar.
+        if !WidgetInstance.isNotch(instance) {
         let mode = NSSegmentedControl(
-            labels: NowPlayingSettings.Mode.allCases.map(\.label),
-            trackingMode: .selectOne,
-            target: self,
-            action: #selector(modeChanged)
-        )
-        mode.selectedSegment = NowPlayingSettings.Mode.allCases.firstIndex(of: model.value.mode) ?? 0
-        stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+                labels: NowPlayingSettings.Mode.allCases.map(\.label),
+                trackingMode: .selectOne,
+                target: self,
+                action: #selector(modeChanged)
+            )
+            mode.selectedSegment = NowPlayingSettings.Mode.allCases.firstIndex(of: model.value.mode) ?? 0
+            stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+        }
 
         let spec = BarLayout.nowPlaying
         let width = NSStepper()

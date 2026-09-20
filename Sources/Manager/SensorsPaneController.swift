@@ -32,11 +32,14 @@ final class SensorsPaneController: PaneViewController {
     override func refreshTick() -> Bool { false }
 
     override func buildControls(in stack: NSStackView) {
+        // A widget in the notch is always a bar.
+        if !WidgetInstance.isNotch(instance) {
         let mode = NSSegmentedControl(labels: SensorsSettings.Mode.allCases.map(\.label),
-                                      trackingMode: .selectOne,
-                                      target: self, action: #selector(modeChanged))
-        mode.selectedSegment = SensorsSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
-        stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+                                          trackingMode: .selectOne,
+                                          target: self, action: #selector(modeChanged))
+            mode.selectedSegment = SensorsSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
+            stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+        }
 
         if settings.mode == .tile {
             let sensor = NSPopUpButton()

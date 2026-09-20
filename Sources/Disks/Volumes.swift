@@ -151,7 +151,12 @@ struct DisksSettings: Equatable {
         let store = SettingsStore.shared
         let defaults = DisksSettings()
         return DisksSettings(
-            mode: Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue)) ?? defaults.mode,
+            // In the notch there is no room for a square tile, so the shape is
+            // not a choice: it is always the bar.
+            mode: WidgetInstance.isNotch(instance)
+                ? .bar
+                : Mode(rawValue: store.string(Key.mode(instance), or: defaults.mode.rawValue))
+                    ?? defaults.mode,
             tileVolume: store.string(Key.tileVolume(instance), or: defaults.tileVolume),
             showsFree: store.bool(Key.showsFree(instance), or: defaults.showsFree),
             accentHex: store.string(Key.accent(instance), or: defaults.accentHex)

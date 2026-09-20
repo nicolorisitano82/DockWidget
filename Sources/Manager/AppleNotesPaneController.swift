@@ -50,11 +50,14 @@ final class AppleNotesPaneController: PaneViewController {
     }
 
     override func buildControls(in stack: NSStackView) {
+        // A widget in the notch is always a bar.
+        if !WidgetInstance.isNotch(instance) {
         let mode = NSSegmentedControl(labels: AppleNotesSettings.Mode.allCases.map(\.label),
-                                      trackingMode: .selectOne,
-                                      target: self, action: #selector(modeChanged))
-        mode.selectedSegment = AppleNotesSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
-        stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+                                          trackingMode: .selectOne,
+                                          target: self, action: #selector(modeChanged))
+            mode.selectedSegment = AppleNotesSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
+            stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
+        }
 
         let folders = NSPopUpButton()
         folders.target = self
