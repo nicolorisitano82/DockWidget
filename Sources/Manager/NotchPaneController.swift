@@ -94,7 +94,9 @@ final class NotchPaneController: PaneViewController {
 
 /// What can go in the notch, by instance identifier.
 enum NotchOffer {
+    /// The widgets that can go in the notch, as their notch instances.
     static let all = ["nowplaying", "sensors", "disks", "actions", "note", "applenotes"]
+        .map(WidgetInstance.notchID(kind:))
 
     static func name(of instance: String) -> String {
         WidgetCatalog.kinds.first { $0.kind == WidgetInstance.kind(of: instance) }?.baseName

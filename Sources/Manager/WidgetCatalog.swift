@@ -27,10 +27,15 @@ struct WidgetDescriptor {
     /// thing twice.
     let isReplicable: Bool
     let surface: WidgetSurface
+    /// True when this descriptor stands for the widget's place in the notch
+    /// rather than a tile in the Dock.
+    var isInNotch = false
     let paneFactory: (String) -> PaneViewController
 
-    /// Settings prefix and bundle suffix: "clock", "clock2"…
-    var id: String { WidgetInstance.id(kind: kind, copy: copy) }
+    /// Settings prefix and bundle suffix: "clock", "clock2", "clock@notch"…
+    var id: String {
+        isInNotch ? WidgetInstance.notchID(kind: kind) : WidgetInstance.id(kind: kind, copy: copy)
+    }
     var bundleID: String { "dev.nicolo.dockwidgets.\(id)" }
     var helperBundleName: String { WidgetInstance.bundleName(base: bundleBase, copy: copy) }
     /// What the Dock calls the tile, which is what the overlay anchors to.
@@ -49,6 +54,13 @@ struct WidgetDescriptor {
                 .appendingPathComponent(helperBundleName, isDirectory: true)
     }
 
+    /// The same widget, as it appears in the notch.
+    var inNotch: WidgetDescriptor {
+        var copy = self
+        copy.isInNotch = true
+        return copy
+    }
+
     /// The same widget, as another copy of itself.
     func copy(number: Int) -> WidgetDescriptor {
         WidgetDescriptor(kind: kind, copy: number, bundleBase: bundleBase, baseName: baseName,
@@ -56,7 +68,9 @@ struct WidgetDescriptor {
                          surface: surface, paneFactory: paneFactory)
     }
 
-    var isInstalled: Bool { DockTiles.contains(self) }
+    var isInstalled: Bool {
+        isInNotch ? NotchSettings.current.widgets.contains(id) : DockTiles.contains(self)
+    }
 
     var exists: Bool { FileManager.default.fileExists(atPath: helperURL.path) }
 
@@ -142,6 +156,17 @@ enum WidgetCatalog {
     static func copies(of kind: WidgetDescriptor) -> [WidgetDescriptor] {
         guard kind.isReplicable else { return [kind] }
         return WidgetInstances.all(of: kind.kind).map { kind.copy(number: WidgetInstance.copy(of: $0)) }
+    }
+
+    /// Everywhere this widget currently sits: its copies in the Dock, and the
+    /// notch when it has been put there.
+    static func placements(of kind: WidgetDescriptor) -> [WidgetDescriptor] {
+        var list = kind.surface == .dock ? copies(of: kind) : [kind]
+        if NotchOffer.all.contains(WidgetInstance.notchID(kind: kind.kind)),
+           NotchSettings.current.widgets.contains(WidgetInstance.notchID(kind: kind.kind)) {
+            list.append(kind.inNotch)
+        }
+        return list
     }
 
     static func widget(id: String) -> WidgetDescriptor? {

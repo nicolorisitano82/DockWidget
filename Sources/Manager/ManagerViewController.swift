@@ -22,9 +22,12 @@ final class ManagerViewController: NSViewController {
     private var selectedCopy = 1
 
     private var kinds: [WidgetDescriptor] { WidgetCatalog.kinds }
-    private var copies: [WidgetDescriptor] { WidgetCatalog.copies(of: kinds[selectedKind]) }
+    /// Copies in the Dock plus, when it is there, the place in the notch.
+    private var copies: [WidgetDescriptor] { WidgetCatalog.placements(of: kinds[selectedKind]) }
+    /// -1 stands for the notch, which is a place rather than a copy.
     private var widget: WidgetDescriptor? {
-        copies.first { $0.copy == selectedCopy } ?? copies.first
+        if selectedCopy == -1 { return copies.first(where: \.isInNotch) }
+        return copies.first { !$0.isInNotch && $0.copy == selectedCopy } ?? copies.first
     }
 
     override func loadView() {
@@ -147,7 +150,8 @@ final class ManagerViewController: NSViewController {
     func select(instance: String) {
         let kind = WidgetInstance.kind(of: instance)
         guard let index = kinds.firstIndex(where: { $0.kind == kind }) else { return }
-        select(kind: index, copy: WidgetInstance.copy(of: instance))
+        select(kind: index,
+               copy: WidgetInstance.isNotch(instance) ? -1 : WidgetInstance.copy(of: instance))
     }
 
     func select(kind index: Int, copy: Int = 1) {
@@ -162,18 +166,29 @@ final class ManagerViewController: NSViewController {
 
         copyButton.removeAllItems()
         for descriptor in copies {
-            copyButton.addItem(withTitle: descriptor.copy <= 1
-                               ? T("Prima copia", "First copy")
-                               : T("Copia \(descriptor.copy)", "Copy \(descriptor.copy)"))
+            if descriptor.isInNotch {
+                copyButton.addItem(withTitle: T("Nel notch", "In the notch"))
+            } else {
+                copyButton.addItem(withTitle: descriptor.copy <= 1
+                                   ? T("Prima copia", "First copy")
+                                   : T("Copia \(descriptor.copy)", "Copy \(descriptor.copy)"))
+            }
         }
-        copyButton.selectItem(at: copies.firstIndex { $0.copy == selectedCopy } ?? 0)
-        // The notch bar has no tile to pin, so it has no switch either: it is
-        // turned on from its own pane.
-        let inDock = kinds[selectedKind].surface == .dock
-        dockSwitch.isHidden = !inDock
-        switchLabel.isHidden = !inDock
+        let chosen = copies.firstIndex {
+            selectedCopy == -1 ? $0.isInNotch : (!$0.isInNotch && $0.copy == selectedCopy)
+        }
+        copyButton.selectItem(at: chosen ?? 0)
+        // The notch bar itself has no tile to pin. A widget placed in the
+        // notch has no tile either, but it can be taken out from here.
+        let isNotchPlacement = selectedCopy == -1
+        let inDock = kinds[selectedKind].surface == .dock && !isNotchPlacement
+        dockSwitch.isHidden = kinds[selectedKind].surface != .dock
+        switchLabel.isHidden = dockSwitch.isHidden
+        switchLabel.stringValue = isNotchPlacement
+            ? T("Nel notch", "In the notch")
+            : T("Nel Dock", "In the Dock")
 
-        let replicable = kinds[selectedKind].isReplicable && inDock
+        let replicable = kinds[selectedKind].isReplicable && kinds[selectedKind].surface == .dock
         copyButton.isHidden = !replicable || copies.count < 2
         addCopyButton.isHidden = !replicable
         removeCopyButton.isHidden = !replicable
@@ -183,7 +198,7 @@ final class ManagerViewController: NSViewController {
         guard let widget else { return }
         titleLabel.stringValue = widget.name
         summaryLabel.stringValue = widget.summary
-        dockSwitch.state = inDock && widget.isInstalled ? .on : .off
+        dockSwitch.state = widget.isInstalled ? .on : .off
 
         pane?.view.removeFromSuperview()
         pane?.removeFromParent()
@@ -205,8 +220,8 @@ final class ManagerViewController: NSViewController {
     }
 
     @objc private func copyChanged(_ sender: NSPopUpButton) {
-        let copy = copies[max(0, sender.indexOfSelectedItem)].copy
-        select(kind: selectedKind, copy: copy)
+        let descriptor = copies[max(0, sender.indexOfSelectedItem)]
+        select(kind: selectedKind, copy: descriptor.isInNotch ? -1 : descriptor.copy)
     }
 
     @objc private func addCopy() {
@@ -243,6 +258,19 @@ final class ManagerViewController: NSViewController {
                 "Questa copia gira da \(folder). Il Dock punterebbe lì, e quella cartella viene ricreata a ogni compilazione: la tile resterebbe orfana.",
                 "This copy runs from \(folder). The Dock would point there, and that folder is rebuilt on every compile: the tile would be left orphaned.")
             alert.runModal()
+            return
+        }
+
+        if widget.isInNotch {
+            // Taking it out of the notch is taking it out of that list.
+            var settings = NotchSettings.current
+            if dockSwitch.state == .on {
+                if !settings.widgets.contains(widget.id) { settings.widgets.append(widget.id) }
+            } else {
+                settings.widgets.removeAll { $0 == widget.id }
+            }
+            settings.save()
+            select(kind: selectedKind, copy: settings.widgets.contains(widget.id) ? -1 : 1)
             return
         }
 

@@ -12,12 +12,25 @@ enum WidgetInstance {
         copy <= 1 ? kind : "\(kind)\(copy)"
     }
 
+    /// A widget placed in the notch is another instance of it, with settings
+    /// of its own: the notch is a different place with different room, and the
+    /// same clock wants to look different there.
+    static let notchSuffix = "@notch"
+
+    static func notchID(kind: String) -> String { kind + notchSuffix }
+
+    static func isNotch(_ instance: String) -> Bool { instance.hasSuffix(notchSuffix) }
+
+    private static func base(_ instance: String) -> String {
+        instance.components(separatedBy: notchSuffix).first ?? instance
+    }
+
     static func kind(of instance: String) -> String {
-        String(instance.reversed().drop { $0.isNumber }.reversed())
+        String(base(instance).reversed().drop { $0.isNumber }.reversed())
     }
 
     static func copy(of instance: String) -> Int {
-        let digits = instance.reversed().prefix { $0.isNumber }.reversed()
+        let digits = base(instance).reversed().prefix { $0.isNumber }.reversed()
         return Int(String(digits)) ?? 1
     }
 

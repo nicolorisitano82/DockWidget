@@ -32,7 +32,7 @@ final class BarView: BarContentView {
     }
 
     private var palette: TilePalette {
-        TilePalette.resolve(dark: SystemAppearance.shared.isDark,
+        TilePalette.resolve(dark: isDarkContext,
                             accent: NowPlayingSettings.current(resolvedInstance("nowplaying")).accent)
     }
 
@@ -75,7 +75,7 @@ final class BarView: BarContentView {
     override func draw(_ dirtyRect: NSRect) {
         let metrics = Metrics(plate: plate, controlSide: controlSide, gap: controlGap)
         let palette = self.palette
-        let dark = SystemAppearance.shared.isDark
+        let dark = isDarkContext
 
         drawWidgetBackground()
 
@@ -102,7 +102,7 @@ final class BarView: BarContentView {
         let palette = self.palette
 
         guard state.hasCoverArt, let artwork = state.artwork else {
-            NSColor(calibratedWhite: SystemAppearance.shared.isDark ? 1 : 0, alpha: 0.08).setFill()
+            NSColor(calibratedWhite: isDarkContext ? 1 : 0, alpha: 0.08).setFill()
             path.fill()
             drawSymbol("music.note", in: rect.insetBy(dx: rect.width * 0.28, dy: rect.height * 0.28),
                        color: palette.secondary)
@@ -160,7 +160,7 @@ final class BarView: BarContentView {
         let isActive = hovered == .progress || pressed == .progress
         let rect = isActive ? rect0.insetBy(dx: 0, dy: -rect0.height * 0.35) : rect0
         let radius = rect.height / 2
-        NSColor(calibratedWhite: SystemAppearance.shared.isDark ? 1 : 0, alpha: 0.18).setFill()
+        NSColor(calibratedWhite: isDarkContext ? 1 : 0, alpha: 0.18).setFill()
         NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
 
         guard let progress = state.progress() else { return }
@@ -185,7 +185,7 @@ final class BarView: BarContentView {
         let isHovered = hovered == target
 
         if isHovered || isPressed {
-            let dark = SystemAppearance.shared.isDark
+            let dark = isDarkContext
             let alpha: CGFloat = isPressed ? (dark ? 0.26 : 0.18) : (dark ? 0.14 : 0.09)
             NSColor(calibratedWhite: dark ? 1 : 0, alpha: alpha).setFill()
             NSBezierPath(ovalIn: rect).fill()

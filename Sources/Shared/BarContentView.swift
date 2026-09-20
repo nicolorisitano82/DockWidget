@@ -26,6 +26,16 @@ class BarContentView: NSView {
     /// The instance to read settings for, falling back to the kind itself.
     func resolvedInstance(_ kind: String) -> String { instance.isEmpty ? kind : instance }
 
+    /// Inside the notch the panel is black whatever the Mac's theme is, so the
+    /// content has to be drawn dark or a light theme would put white cards on
+    /// a black slab.
+    var forcesDarkContent = false {
+        didSet { if forcesDarkContent != oldValue { needsDisplay = true } }
+    }
+
+    /// The theme this view should draw for.
+    var isDarkContext: Bool { forcesDarkContent || SystemAppearance.shared.isDark }
+
     func reloadSettings() {}
 
     /// One Dock cell's width, which is the icon size the Dock is using.

@@ -50,7 +50,7 @@ final class SensorsBarView: BarContentView {
     }
 
     private func draw(sensor: SensorID, in rect: NSRect) {
-        let palette = TilePalette.resolve(dark: SystemAppearance.shared.isDark,
+        let palette = TilePalette.resolve(dark: isDarkContext,
                                           accent: settings.accent)
         let reading = SensorSampler.shared.reading(sensor)
         let side = min(rect.width, rect.height)

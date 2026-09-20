@@ -49,7 +49,7 @@ final class NoteBarView: BarContentView {
 
     override func draw(_ dirtyRect: NSRect) {
         let plate = self.plate
-        let dark = SystemAppearance.shared.isDark
+        let dark = isDarkContext
         let palette = TilePalette.resolve(dark: dark, accent: settings.accent)
 
         drawWidgetBackground()

@@ -135,7 +135,7 @@ final class AppleNotesBarView: BarContentView {
     override func draw(_ dirtyRect: NSRect) {
         drawWidgetBackground()
         let plate = contentPlate
-        let palette = TilePalette.resolve(dark: SystemAppearance.shared.isDark,
+        let palette = TilePalette.resolve(dark: isDarkContext,
                                           accent: settings.accent)
 
         let stripe = NSRect(x: plate.minX, y: plate.minY + plate.height * 0.18,
@@ -169,7 +169,7 @@ final class AppleNotesBarView: BarContentView {
 
         let button = newButton
         if hovered == 1 || pressed == 1 {
-            NSColor(calibratedWhite: SystemAppearance.shared.isDark ? 1 : 0,
+            NSColor(calibratedWhite: isDarkContext ? 1 : 0,
                     alpha: pressed == 1 ? 0.20 : 0.12).setFill()
             NSBezierPath(ovalIn: button).fill()
         }

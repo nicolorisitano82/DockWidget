@@ -8,10 +8,14 @@ import AppKit
 /// notch itself having stretched rather than as a window that appeared under it.
 final class NotchPanel: NSObject {
     private let panel: NSPanel
-    private let glass = NSVisualEffectView()
+    /// Black, not glass. The notch and the bezel around the screen are black,
+    /// and the panel is meant to read as that shape stretching — a translucent
+    /// slab reads as a window that appeared underneath it instead.
+    private let slab = NSView()
     private let content = NotchContentView()
     private var collapsedFrame = NSRect.zero
     private var isOpen = false
+    private var openFrame = NSRect.zero
     private var closeWork: DispatchWorkItem?
     private var settingsObserver: NSObjectProtocol?
 
@@ -32,15 +36,13 @@ final class NotchPanel: NSObject {
 
         super.init()
 
-        glass.material = .hudWindow
-        glass.state = .active
-        glass.blendingMode = .behindWindow
-        glass.wantsLayer = true
-        glass.layer?.masksToBounds = true
-        glass.autoresizingMask = [.width, .height]
-        glass.addSubview(content)
+        slab.wantsLayer = true
+        slab.layer?.backgroundColor = NSColor.black.cgColor
+        slab.layer?.masksToBounds = true
+        slab.autoresizingMask = [.width, .height]
+        slab.addSubview(content)
 
-        panel.contentView = glass
+        panel.contentView = slab
         content.autoresizingMask = [.width, .height]
     }
 
@@ -68,9 +70,10 @@ final class NotchPanel: NSObject {
         content.reload(instances: settings.widgets)
         if !isOpen {
             panel.setFrame(collapsedFrame, display: false)
-            shape(radius: 0)
+            // Hidden, not merely flush with the notch: a black rectangle over
+            // the notch squares off the rounded corners the hardware has.
+            panel.orderOut(nil)
         }
-        panel.orderFrontRegardless()
     }
 
     // MARK: Opening and closing
@@ -83,7 +86,9 @@ final class NotchPanel: NSObject {
         let trigger = collapsedFrame.insetBy(dx: -8, dy: -2)
         if trigger.contains(point) {
             open()
-        } else if isOpen, !panel.frame.insetBy(dx: -12, dy: -12).contains(point) {
+        } else if isOpen, !openFrame.insetBy(dx: -10, dy: -10).contains(point) {
+            // The pointer has left the panel's own area: the frame it is
+            // animating towards, not the one it happens to have this instant.
             scheduleClose()
         }
     }
@@ -92,14 +97,21 @@ final class NotchPanel: NSObject {
         closeWork?.cancel()
         guard !isOpen, let screen = NotchGeometry.screen else { return }
         isOpen = true
+        panel.setFrame(collapsedFrame, display: false)
+        panel.orderFrontRegardless()
 
         let settings = NotchSettings.current
         let width = max(settings.expandedWidth, collapsedFrame.width + 120)
-        let height = CGFloat(max(content.rowCount, 1)) * NotchContentView.rowHeight + 22
+        // The first row starts below the notch itself, or it would sit beside
+        // the camera housing where nothing can be read.
+        content.topInset = collapsedFrame.height + 6
+        let height = content.topInset
+            + CGFloat(max(content.rowCount, 1)) * NotchContentView.rowHeight + 12
         let frame = NSRect(x: collapsedFrame.midX - width / 2,
                            y: screen.frame.maxY - height,
                            width: width, height: height)
 
+        openFrame = frame
         shape(radius: 22)
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.22
@@ -125,21 +137,27 @@ final class NotchPanel: NSObject {
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().setFrame(collapsedFrame, display: true)
         } completionHandler: { [weak self] in
-            self?.shape(radius: 0)
+            self?.panel.orderOut(nil)
         }
     }
 
     /// Square at the top, round at the bottom: the shape the notch would have
     /// if it could stretch.
     private func shape(radius: CGFloat) {
-        glass.layer?.cornerRadius = radius
-        glass.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        slab.layer?.cornerRadius = radius
+        slab.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
     }
 }
 
 /// The widgets inside the notch, one row each.
 final class NotchContentView: NSView {
     static let rowHeight: CGFloat = 52
+
+    /// How far down the first row starts: the height of the notch, so the
+    /// content clears it.
+    var topInset: CGFloat = 32 {
+        didSet { needsLayout = true }
+    }
 
     private var rows: [BarContentView] = []
 
@@ -155,8 +173,9 @@ final class NotchContentView: NSView {
     override func layout() {
         super.layout()
         for (index, row) in rows.enumerated() {
-            row.frame = NSRect(x: 12, y: bounds.height - CGFloat(index + 1) * Self.rowHeight - 8,
-                               width: bounds.width - 24, height: Self.rowHeight)
+            row.frame = NSRect(x: 14,
+                               y: bounds.height - topInset - CGFloat(index + 1) * Self.rowHeight,
+                               width: bounds.width - 28, height: Self.rowHeight)
         }
     }
 }

@@ -36,6 +36,7 @@ enum NotchWidgets {
         }
         guard let made else { return nil }
         made.instance = instance
+        made.forcesDarkContent = true
         // A notch row is about four Dock tiles wide; the height clamps the rest.
         made.tileCount = 4
         made.reloadSettings()

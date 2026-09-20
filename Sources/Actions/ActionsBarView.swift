@@ -49,7 +49,7 @@ final class ActionsBarView: BarContentView {
         let isHovered = hovered == index
 
         if slot.isEmpty {
-            NSColor(calibratedWhite: SystemAppearance.shared.isDark ? 1 : 0,
+            NSColor(calibratedWhite: isDarkContext ? 1 : 0,
                     alpha: isHovered ? 0.16 : 0.08).setFill()
             path.fill()
         } else {

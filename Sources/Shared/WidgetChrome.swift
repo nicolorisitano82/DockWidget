@@ -25,13 +25,13 @@ extension BarContentView {
         let plate = self.plate
         guard WidgetChrome.showsBackground else { return plate }
 
-        let palette = TilePalette.resolve(dark: SystemAppearance.shared.isDark, accent: .systemBlue)
+        let palette = TilePalette.resolve(dark: isDarkContext, accent: .systemBlue)
         let radius = plate.height * TileGeometry.cornerRatio
         let path = NSBezierPath(roundedRect: plate, xRadius: radius, yRadius: radius)
 
         NSGraphicsContext.saveGraphicsState()
         let shadow = NSShadow()
-        shadow.shadowColor = NSColor(calibratedWhite: 0, alpha: SystemAppearance.shared.isDark ? 0.5 : 0.22)
+        shadow.shadowColor = NSColor(calibratedWhite: 0, alpha: isDarkContext ? 0.5 : 0.22)
         shadow.shadowBlurRadius = plate.height * 0.16
         shadow.shadowOffset = NSSize(width: 0, height: -plate.height * 0.04)
         shadow.set()
