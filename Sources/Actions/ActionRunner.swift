@@ -33,8 +33,7 @@ enum ActionRunner {
     private static func perform(_ action: SystemAction) {
         switch action {
         case .lockScreen:
-            shell("/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession",
-                  ["-suspend"])
+            lockScreen()
         case .sleep:
             shell("/usr/bin/pmset", ["sleepnow"])
         case .screenSaver:
@@ -56,10 +55,32 @@ enum ActionRunner {
         }
     }
 
-    private static func tapKey(_ code: CGKeyCode) {
+    /// Locks the screen.
+    ///
+    /// The old recipe — CGSession inside the user menu extra — points at a
+    /// path macOS no longer has, and a missing executable fails quietly, which
+    /// is exactly how this looked: a button that did nothing. The login
+    /// framework still has the call the menu bar itself uses, and a keystroke
+    /// stands behind it.
+    private static func lockScreen() {
+        typealias Lock = @convention(c) () -> Int32
+        if let handle = dlopen(
+            "/System/Library/PrivateFrameworks/login.framework/Versions/Current/login", RTLD_LAZY),
+           let symbol = dlsym(handle, "SACLockScreenImmediate") {
+            _ = unsafeBitCast(symbol, to: Lock.self)()
+            return
+        }
+        // Control-Command-Q, the shortcut the system offers for the same thing.
+        tapKey(12, flags: [.maskCommand, .maskControl])
+    }
+
+    private static func tapKey(_ code: CGKeyCode, flags: CGEventFlags = []) {
         guard let source = CGEventSource(stateID: .hidSystemState) else { return }
-        CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true)?.post(tap: .cghidEventTap)
-        CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)?.post(tap: .cghidEventTap)
+        for isDown in [true, false] {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: isDown)
+            event?.flags = flags
+            event?.post(tap: .cghidEventTap)
+        }
     }
 
     private static func script(_ source: String) {
