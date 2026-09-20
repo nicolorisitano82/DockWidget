@@ -104,6 +104,7 @@ final class NotchPanel: NSObject {
 
     private func open() {
         closeWork?.cancel()
+        closeWork = nil
         guard !isOpen, let screen = NotchGeometry.screen else { return }
         isOpen = true
         panel.setFrame(collapsedFrame, display: false)
@@ -130,9 +131,17 @@ final class NotchPanel: NSObject {
         content.isHidden = false
     }
 
+    /// Starts the grace period once, and leaves it alone.
+    ///
+    /// The pointer is checked twelve times a second, so re-arming the timer on
+    /// every check postponed the closing by another third of a second each
+    /// time — which is to say, forever.
     private func scheduleClose() {
-        closeWork?.cancel()
-        let work = DispatchWorkItem { [weak self] in self?.close() }
+        guard closeWork == nil else { return }
+        let work = DispatchWorkItem { [weak self] in
+            self?.closeWork = nil
+            self?.close()
+        }
         closeWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
     }

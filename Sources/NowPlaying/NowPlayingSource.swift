@@ -22,6 +22,7 @@ final class NowPlayingSource {
     private var started = false
     private var owningChannel: NowPlayingState.Origin = .none
     private var loggedChannel: NowPlayingState.Origin?
+    private var lastUpdate = Date.distantPast
 
     private static let broadcasts: [(name: String, bundleID: String)] = [
         ("com.apple.Music.playerInfo", "com.apple.Music"),
@@ -63,8 +64,10 @@ final class NowPlayingSource {
 
             // Notifications do get missed when a player restarts, and a stuck
             // progress bar is the visible symptom.
+            // Always, not only while something plays: the published state has
+            // to keep saying "still true" or the readers will stop believing it.
             let timer = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
-                guard let self, self.mediaRemoteAnswered, self.state.isPlaying else { return }
+                guard let self, self.mediaRemoteAnswered else { return }
                 self.refreshFromMediaRemote()
             }
             RunLoop.main.add(timer, forMode: .common)
@@ -195,10 +198,13 @@ final class NowPlayingSource {
     }
 
     private func publish(_ next: NowPlayingState, from channel: NowPlayingState.Origin) {
-        // A weaker channel never overwrites a stronger one, but the channel that
-        // owns the state may always update it — including to "nothing playing".
-        guard rank(channel) >= rank(owningChannel) else { return }
+        // A weaker channel never overwrites a stronger one — unless the
+        // stronger one has gone quiet. A reader that stopped running leaves its
+        // last answer behind, and that answer ages into a lie.
+        let wentQuiet = Date().timeIntervalSince(lastUpdate) > 20
+        guard rank(channel) >= rank(owningChannel) || wentQuiet else { return }
         owningChannel = channel
+        lastUpdate = Date()
         state = next
         logChannel(channel)
 

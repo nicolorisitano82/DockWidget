@@ -76,6 +76,10 @@ enum WidgetInstaller {
     /// Only on a deliberate quit: doing this on logout would empty the Dock at
     /// every restart and leave it empty until the manager was opened again.
     static func uninstallAllForQuit() {
+        // The agent goes first and unconditionally: it draws the bars and the
+        // notch, and the notch has no tile whose absence would stop it.
+        BarAgent.stop()
+
         let installed = WidgetCatalog.all.filter(\.isInstalled)
         SettingsStore.shared.set(installed.map(\.id), for: restoreKey)
         guard !installed.isEmpty else { return }
@@ -86,7 +90,6 @@ enum WidgetInstaller {
                 DockTiles.remove(widget)
             }
         }
-        BarAgent.stop()
     }
 
     /// Puts back what the last quit took away.

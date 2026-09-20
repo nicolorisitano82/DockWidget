@@ -65,9 +65,21 @@ enum NowPlayingFeed {
 
     // MARK: Reading (manager and agent side)
 
+    /// How long a published state stays believable without a new one.
+    ///
+    /// The privileged reader lives in the Dock's plug-in host, so it only runs
+    /// while the widget has a tile in the Dock. Put the widget only in the
+    /// notch and nobody publishes any more — and what was last published stays
+    /// on screen saying Netflix while Music plays.
+    static let freshness: TimeInterval = 90
+
     static func read() -> NowPlayingState? {
         guard let data = try? Data(contentsOf: stateURL),
               let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        if let publishedAt = payload["updatedAt"] as? Double,
+           Date().timeIntervalSince1970 - publishedAt > freshness {
+            return nil
+        }
 
         var state = NowPlayingState()
         state.origin = .published
