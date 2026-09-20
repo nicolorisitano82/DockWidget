@@ -76,7 +76,7 @@ final class NotchPanel: NSObject {
             return
         }
         collapsedFrame = NotchGeometry.rect(on: screen)
-        content.reload(instances: settings.widgets)
+        content.apply(instances: settings.widgets)
         if !isOpen {
             panel.setFrame(collapsedFrame, display: false)
             // Hidden, not merely flush with the notch: a black rectangle over
@@ -129,6 +129,7 @@ final class NotchPanel: NSObject {
             panel.animator().setFrame(frame, display: true)
         }
         content.isHidden = false
+        content.startBeating()
     }
 
     /// Starts the grace period once, and leaves it alone.
@@ -149,6 +150,7 @@ final class NotchPanel: NSObject {
     private func close() {
         guard isOpen else { return }
         isOpen = false
+        content.stopBeating()
         content.isHidden = true
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.18
@@ -178,14 +180,43 @@ final class NotchContentView: NSView {
     }
 
     private var rows: [BarContentView] = []
+    private var shown: [String] = []
+    private var beat: Timer?
 
     var rowCount: Int { rows.count }
 
-    func reload(instances: [String]) {
+    /// Builds the rows when the chosen widgets change, and otherwise just lets
+    /// the ones already there re-read their settings: rebuilding on every
+    /// change would leak a listener each time.
+    func apply(instances: [String]) {
+        guard instances != shown else {
+            rows.forEach { $0.reloadSettings() }
+            return
+        }
+        shown = instances
         rows.forEach { $0.removeFromSuperview() }
         rows = instances.compactMap { NotchWidgets.view(for: $0) }
         rows.forEach(addSubview)
         needsLayout = true
+    }
+
+    /// A beat while the panel is open.
+    ///
+    /// In the Dock each bar has a controller that redraws it; here there is
+    /// none, so a progress bar would sit still between one track and the next.
+    func startBeating() {
+        stopBeating()
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            self?.rows.forEach { $0.needsDisplay = true }
+        }
+        timer.tolerance = 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        beat = timer
+    }
+
+    func stopBeating() {
+        beat?.invalidate()
+        beat = nil
     }
 
     override func setFrameSize(_ newSize: NSSize) {
