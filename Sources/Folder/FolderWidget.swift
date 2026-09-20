@@ -46,7 +46,10 @@ final class FolderMonitor {
 
     private var source: DispatchSourceFileSystemObject?
     private var descriptor: CInt = -1
-    private var watched: String = ""
+    /// nil until a path has been applied — including the empty one. Deciding
+    /// this from `source` instead would loop forever when no folder is chosen,
+    /// because then there is no source to have.
+    private var watched: String?
     private var listeners: [UUID: () -> Void] = [:]
 
     @discardableResult
@@ -60,11 +63,11 @@ final class FolderMonitor {
 
     func removeListener(_ token: UUID) {
         listeners.removeValue(forKey: token)
-        if listeners.isEmpty { stop() }
+        if listeners.isEmpty { reset() }
     }
 
     func watch(_ path: String) {
-        guard path != watched || source == nil else { return }
+        guard watched != path else { return }
         stop()
         watched = path
         reload()
@@ -90,11 +93,17 @@ final class FolderMonitor {
     private func stop() {
         source?.cancel()
         source = nil
-        watched = ""
+    }
+
+    /// Called when the last listener goes away: the next one starts fresh.
+    private func reset() {
+        stop()
+        watched = nil
     }
 
     private func reload() {
         guard let url = FolderSettings.current.url else {
+            guard !items.isEmpty || count != 0 else { return }
             items = []
             count = 0
             listeners.values.forEach { $0() }
@@ -106,6 +115,7 @@ final class FolderMonitor {
             options: [.skipsHiddenFiles]
         )) ?? []
 
+        let previous = items
         // Most recent first: what just landed is what you are looking for.
         items = contents.sorted { lhs, rhs in
             let left = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]))?
@@ -114,6 +124,9 @@ final class FolderMonitor {
                 .contentModificationDate ?? .distantPast
             return left > right
         }
+        // Only wake anybody when something actually moved: a listener that
+        // redraws can come straight back here.
+        guard items != previous || count != items.count else { return }
         count = items.count
         listeners.values.forEach { $0() }
     }
