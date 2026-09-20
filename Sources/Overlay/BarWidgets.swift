@@ -13,9 +13,9 @@ struct BarWidgetKind {
 
     func controllers(playback: inout [UUID]) -> [OverlayBarController] {
         var built: [OverlayBarController] = []
-        for copy in 1...WidgetInstance.maximumCopies {
-            let instance = WidgetInstance.id(kind: template.id, copy: copy)
-            let anchor = WidgetInstance.anchorTitle(base: base, copy: copy)
+        for instance in WidgetInstances.all(of: template.id) {
+            let anchor = WidgetInstance.anchorTitle(base: base,
+                                                    copy: WidgetInstance.copy(of: instance))
             let view = makeView(instance)
             view.instance = instance
             built.append(OverlayBarController(

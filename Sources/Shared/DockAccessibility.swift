@@ -140,7 +140,7 @@ enum BarLayout {
     }
 
     static let nowPlaying = Spec(
-        id: "nowPlaying",
+        id: "nowplaying",
         anchorTitle: "NowPlaying",
         minimumSpacers: 3,
         defaultSpacers: 3,

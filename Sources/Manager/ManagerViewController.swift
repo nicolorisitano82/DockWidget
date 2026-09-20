@@ -11,6 +11,8 @@ final class ManagerViewController: NSViewController {
     private let titleLabel = NSTextField(labelWithString: "")
     private let summaryLabel = NSTextField(labelWithString: "")
     private let copyButton = NSPopUpButton()
+    private let addCopyButton = NSButton(title: "+", target: nil, action: nil)
+    private let removeCopyButton = NSButton(title: "−", target: nil, action: nil)
     private let dockSwitch = NSSwitch()
     private var rows: [WidgetRowView] = []
     private var pane: PaneViewController?
@@ -73,7 +75,19 @@ final class ManagerViewController: NSViewController {
         let switchLabel = NSTextField(labelWithString: T("Nel Dock", "In the Dock"))
         switchLabel.font = .systemFont(ofSize: 12, weight: .medium)
 
-        let headerRow = NSStackView(views: [titleLabel, copyButton, NSView(), switchLabel, dockSwitch])
+        addCopyButton.bezelStyle = .circular
+        addCopyButton.target = self
+        addCopyButton.action = #selector(addCopy)
+        addCopyButton.toolTip = T("Aggiungi una copia di questo widget",
+                                  "Add another copy of this widget")
+
+        removeCopyButton.bezelStyle = .circular
+        removeCopyButton.target = self
+        removeCopyButton.action = #selector(removeCopy)
+        removeCopyButton.toolTip = T("Elimina questa copia", "Delete this copy")
+
+        let headerRow = NSStackView(views: [titleLabel, copyButton, addCopyButton, removeCopyButton,
+                                            NSView(), switchLabel, dockSwitch])
         headerRow.orientation = .horizontal
         headerRow.spacing = 10
         headerRow.alignment = .centerY
@@ -152,7 +166,12 @@ final class ManagerViewController: NSViewController {
                                : T("Copia \(descriptor.copy)", "Copy \(descriptor.copy)"))
         }
         copyButton.selectItem(at: copies.firstIndex { $0.copy == selectedCopy } ?? 0)
-        copyButton.isHidden = copies.count < 2
+        let replicable = kinds[selectedKind].isReplicable
+        copyButton.isHidden = !replicable || copies.count < 2
+        addCopyButton.isHidden = !replicable
+        removeCopyButton.isHidden = !replicable
+        // The first copy ships with the app and stays.
+        removeCopyButton.isEnabled = selectedCopy > 1
 
         guard let widget else { return }
         titleLabel.stringValue = widget.name
@@ -181,6 +200,28 @@ final class ManagerViewController: NSViewController {
     @objc private func copyChanged(_ sender: NSPopUpButton) {
         let copy = copies[max(0, sender.indexOfSelectedItem)].copy
         select(kind: selectedKind, copy: copy)
+    }
+
+    @objc private func addCopy() {
+        guard kinds[selectedKind].isReplicable,
+              let created = InstanceFactory.create(from: kinds[selectedKind]) else { return }
+        select(kind: selectedKind, copy: created.copy)
+    }
+
+    @objc private func removeCopy() {
+        guard let widget, widget.copy > 1 else { return }
+
+        let alert = NSAlert()
+        alert.messageText = T("Eliminare \(widget.name)?", "Delete \(widget.name)?")
+        alert.informativeText = T(
+            "La copia esce dal Dock e le sue impostazioni vengono dimenticate. Le altre copie restano come sono.",
+            "The copy leaves the Dock and its settings are forgotten. The other copies are untouched.")
+        alert.addButton(withTitle: T("Elimina", "Delete"))
+        alert.addButton(withTitle: T("Annulla", "Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        InstanceFactory.destroy(widget)
+        select(kind: selectedKind, copy: 1)
     }
 
     @objc private func toggleInstalled() {

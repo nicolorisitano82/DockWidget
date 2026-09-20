@@ -26,7 +26,7 @@ struct NowPlayingSettings: Equatable {
         static func accent(_ instance: String) -> String { "\(instance).accent" }
     }
 
-    static var current: NowPlayingSettings { current("nowPlaying") }
+    static var current: NowPlayingSettings { current("nowplaying") }
 
     static func current(_ instance: String) -> NowPlayingSettings {
         let store = SettingsStore.shared
@@ -40,7 +40,7 @@ struct NowPlayingSettings: Equatable {
         )
     }
 
-    func save(_ instance: String = "nowPlaying") {
+    func save(_ instance: String = "nowplaying") {
         SettingsStore.shared.set([
             Key.mode(instance): mode.rawValue,
             Key.showsArtwork(instance): showsArtwork,

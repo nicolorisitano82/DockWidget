@@ -11,6 +11,14 @@ struct WidgetDescriptor {
     let baseName: String
     let summary: String
     let symbol: String
+    /// Whether a second copy would say something different from the first.
+    ///
+    /// The rule is about meaning, not mechanics: a widget can be multiplied
+    /// when each copy has a subject of its own — a time zone, a folder, a
+    /// volume, a note, a set of actions. One that reports the single thing the
+    /// machine is doing cannot: two now-playing widgets would say the same
+    /// thing twice.
+    let isReplicable: Bool
     let paneFactory: (String) -> PaneViewController
 
     /// Settings prefix and bundle suffix: "clock", "clock2"…
@@ -22,10 +30,22 @@ struct WidgetDescriptor {
 
     var name: String { copy <= 1 ? baseName : "\(baseName) \(copy)" }
 
+    /// The first copy ships inside the app; the others are made on demand and
+    /// live outside it, where replacing the app cannot take them away.
     var helperURL: URL {
-        Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Library/Widgets", isDirectory: true)
-            .appendingPathComponent(helperBundleName, isDirectory: true)
+        copy <= 1
+            ? Bundle.main.bundleURL
+                .appendingPathComponent("Contents/Library/Widgets", isDirectory: true)
+                .appendingPathComponent(helperBundleName, isDirectory: true)
+            : WidgetInstance.copiesDirectory
+                .appendingPathComponent(helperBundleName, isDirectory: true)
+    }
+
+    /// The same widget, as another copy of itself.
+    func copy(number: Int) -> WidgetDescriptor {
+        WidgetDescriptor(kind: kind, copy: number, bundleBase: bundleBase, baseName: baseName,
+                         summary: summary, symbol: symbol, isReplicable: isReplicable,
+                         paneFactory: paneFactory)
     }
 
     var isInstalled: Bool { DockTiles.contains(self) }
@@ -74,7 +94,7 @@ enum WidgetCatalog {
         template(kind: "nowplaying", bundle: "NowPlaying", name: T("In riproduzione", "Now Playing"),
                  summary: T("Copertina, stato della riproduzione e avanzamento del brano.",
                             "Cover art, playback state and track progress."),
-                 symbol: "music.note") { NowPlayingPaneController(instance: $0) },
+                 symbol: "music.note", replicable: false) { NowPlayingPaneController(instance: $0) },
         template(kind: "note", bundle: "Appunto", name: T("Appunto", "Note"),
                  summary: T("Due righe da tenere sott'occhio, che si aprono in un click.",
                             "A couple of lines kept in sight, one click from being edited."),
@@ -103,11 +123,8 @@ enum WidgetCatalog {
     }
 
     static func copies(of kind: WidgetDescriptor) -> [WidgetDescriptor] {
-        (1...WidgetInstance.maximumCopies).map { copy in
-            WidgetDescriptor(kind: kind.kind, copy: copy, bundleBase: kind.bundleBase,
-                             baseName: kind.baseName, summary: kind.summary,
-                             symbol: kind.symbol, paneFactory: kind.paneFactory)
-        }.filter(\.exists)
+        guard kind.isReplicable else { return [kind] }
+        return WidgetInstances.all(of: kind.kind).map { kind.copy(number: WidgetInstance.copy(of: $0)) }
     }
 
     static func widget(id: String) -> WidgetDescriptor? {
@@ -115,9 +132,10 @@ enum WidgetCatalog {
     }
 
     private static func template(kind: String, bundle: String, name: String, summary: String,
-                                 symbol: String,
+                                 symbol: String, replicable: Bool = true,
                                  pane: @escaping (String) -> PaneViewController) -> WidgetDescriptor {
         WidgetDescriptor(kind: kind, copy: 1, bundleBase: bundle, baseName: name,
-                         summary: summary, symbol: symbol, paneFactory: pane)
+                         summary: summary, symbol: symbol, isReplicable: replicable,
+                         paneFactory: pane)
     }
 }

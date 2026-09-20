@@ -1,93 +1,116 @@
 # Dock Widgets
 
-Widget dentro il Dock di macOS, senza sostituirlo: due app che si mettono nel Dock
-e disegnano la propria tile tramite `NSDockTilePlugIn` — API pubblica, nessuna
-SPI privata per il funzionamento di base, nessun permesso TCC.
+Widget dentro il Dock di macOS, senza sostituirlo. Il Dock resta quello di sistema
+e continua a fare il layout, l'ingrandimento e la scomparsa automatica: noi ci
+mettiamo il contenuto.
 
-- **Orologio** (`DockClock.app`) — quadrante analogico o digitale, secondi, data, colore.
-- **In riproduzione** (`DockNowPlaying.app`) — copertina, stato play/pausa, barra di avanzamento.
+**[Scarica la 1.0](https://github.com/nicolorisitano82/DockWidget/releases/latest/download/DockWidgets.dmg)** ·
+[sito del progetto](https://nicolorisitano82.github.io/DockWidget/) · macOS 14+ · licenza MIT
+
+Interfaccia in italiano e inglese, secondo la lingua del Mac.
+
+## I widget
+
+| Widget | Forma | Cosa fa |
+|---|---|---|
+| **Orologio** | tile | Sei quadranti: analogico, digitale, flip, anelli, minimale, a parole. Secondi, data, fuso orario |
+| **In riproduzione** | tile o barra | Copertina vera, avanzamento cliccabile per saltare nel brano, comandi |
+| **Appunto** | barra | Due righe sempre in vista, un click apre il pannello per scriverle |
+| **Cartella** | tile | Contenuto, conteggio, ultimi arrivi. Il click apre, il drop ci sposta i file dentro. Icona colorabile come nel Finder |
+| **Dischi** | tile o barra | Spazio per volume, unità esterne appena collegate, espulsione dal tasto destro |
+| **Sensori** | tile o barra | CPU, memoria, disco, rete, batteria, watt assorbiti, stato termico |
+| **Azioni** | barra | Quattro celle: icona, colori, e un'azione ciascuna |
+
+Quasi tutti si possono moltiplicare con **+** e **−**: due orologi su fusi diversi,
+due cartelle su posti diversi. *In riproduzione* no, e la ragione è funzionale
+invece che tecnica — una copia ha senso solo se ha un soggetto proprio, e la
+riproduzione in corso è una sola.
 
 ## Come funziona
 
-Il Dock carica i bundle `.docktileplugin` di terze parti dentro
-`com.apple.dock.external.extra.<arch>.xpc`, un servizio XPC che ha
-`com.apple.security.cs.disable-library-validation` — per questo accetta codice
-firmato da team diversi da Apple.
+Il Dock è un processo di sistema protetto: non ci si inietta codice. Ma ha due
+porte aperte, ed entrambe sono API pubbliche.
 
 ```
-DockClock.app/
-├── Contents/Info.plist              → NSDockTilePlugIn = "ClockWidget.docktileplugin"
-├── Contents/MacOS/DockClock         → app host: finestra impostazioni + anteprima
-└── Contents/PlugIns/ClockWidget.docktileplugin/
-    ├── Contents/Info.plist          → NSPrincipalClass = "ClockDockTilePlugin"
-    └── Contents/MacOS/ClockWidget   → Mach-O bundle
+DockWidgets.app
+├── Contents/MacOS/DockWidgets              manager, vive nella barra dei menu
+├── Contents/Library/Widgets/*.app          un'app per widget, ognuna con
+│   └── Contents/PlugIns/*.docktileplugin   il plug-in che disegna la tile
+└── Contents/Library/LoginItems/            l'agent che disegna le barre
 ```
 
-Il plug-in resta caricato finché l'app è nel Dock, **anche ad app chiusa**: il
-Dock gli passa un `NSDockTile`, noi ci mettiamo dentro una `NSView` e chiamiamo
-`display()` quando serve. Layout, magnification, auto-hide e multi-monitor li
-gestisce il Dock.
+**La tile** la disegna un `NSDockTilePlugIn`, che il Dock carica in un servizio XPC
+riservato alle estensioni di terze parti e tiene vivo *anche ad app chiusa*.
+Nessun permesso.
 
-Le impostazioni viaggiano nel dominio condiviso `dev.nicolo.dockwidgets`; l'app
-host scrive e manda una notifica distribuita, il plug-in rilegge e ridisegna.
+**La barra** ha bisogno di spazio: lo chiediamo al Dock inserendo delle
+`spacer-tile`, leggiamo via Accessibility dove le ha messe e ci appoggiamo sopra
+un pannello non attivante. Il layout resta suo, l'ingrandimento anche.
 
-## Build
+**Le copie** oltre la prima vengono create al momento in
+`~/Library/Application Support/DockWidgets/Widgets`, firmate sul posto, e
+riallineate al modello quando l'app viene aggiornata.
 
-Serve solo `swiftc` dei Command Line Tools — niente Xcode.
+## Compilare
+
+Serve solo `swiftc` dei Command Line Tools. Niente Xcode, niente dipendenze.
 
 ```bash
-./build.sh                          # arco nativo, firma ad-hoc
-ARCHS="arm64 x86_64" ./build.sh     # universal
-SIGN_IDENTITY="Developer ID Application: …" ./build.sh
+./Tools/make-signing-cert.sh   # una volta sola
+./build.sh && ./install.sh
 ```
 
-Risultato in `build/`.
+Il certificato self-signed non è un vezzo: macOS lega i permessi alla firma del
+binario, e con una firma ad-hoc ogni ricompilazione ti farebbe riconcedere
+l'Accessibilità da capo.
 
-## Installazione
-
-```bash
-cp -R build/DockClock.app build/DockNowPlaying.app /Applications/
-open /Applications/DockClock.app
-```
-
-Nella finestra: **Aggiungi al Dock** (aggiunge la tile e riavvia il Dock).
-Alla prima comparsa macOS registra il plug-in come elemento in background:
-se la tile resta l'icona dell'app, abilitalo in *Impostazioni di Sistema →
-Generali → Elementi login ed estensioni*.
-
-## In riproduzione: da dove arrivano i dati
-
-Due canali, in ordine di preferenza:
-
-1. **MediaRemote** (framework privato). Da macOS 15.4 risponde solo a processi di
-   cui il sistema si fida: un'app normale riceve un dizionario vuoto. Il processo
-   che carica il plug-in è firmato Apple, quindi vale la pena provare — il codice
-   lo *sonda*, non lo dà per scontato. Se risponde: ogni player, copertina,
-   posizione e controlli di riproduzione.
-2. **Annunci di Music e Spotify** (`DistributedNotificationCenter`). Nessun
-   permesso, nessuna API privata, ma solo quei due player, niente copertina
-   (si usa l'icona del player) e niente controlli.
-
-La finestra dell'app host mostra quale canale ha risposto.
-
-## Limiti (della strada scelta, non dell'implementazione)
-
-- La tile è quadrata e piccola: niente testo lungo. Titolo e artista stanno nel
-  menu contestuale della tile.
-- Click sulla tile = lancia/attiva l'app host. Dentro la tile non c'è interazione:
-  il menu contestuale è l'unico punto di contatto.
-- Un widget per app: due widget = due bundle nel Dock.
-- L'utente può disattivare il plug-in dagli elementi in background.
-
-Per widget larghi o cliccabili servirebbe un'altra strada (tile `spacer-tile` nel
-Dock + finestra overlay allineata via Accessibility), molto più fragile.
+Altri comandi: `./Tools/make-dmg.sh` per l'immagine disco,
+`ARCHS="arm64 x86_64" ./build.sh` per un binario universal.
 
 ## Struttura
 
 ```
-Sources/Shared/       SystemAppearance, palette, store impostazioni, TileView, TilePlugin
-Sources/Clock/        impostazioni, disegno del quadrante, classe principale del plug-in
-Sources/NowPlaying/   stato, bridge MediaRemote, sorgente, disegno, classe principale
-Sources/Host/         finestra AppKit: anteprima live, controlli, installazione nel Dock
-Tools/MakeIcons/      genera le .icns disegnando la tile stessa
+Sources/Shared/      appearance, palette, impostazioni, basi delle viste, accesso AX al Dock
+Sources/Clock/       quadranti e plug-in dell'orologio
+Sources/NowPlaying/  stato, ponte MediaRemote, sorgente, viste
+Sources/Note/        appunto
+Sources/Folder/      monitor, icona colorabile, tile
+Sources/Disks/       volumi montati, tile e barra
+Sources/Sensors/     letture di sistema, campionatore, tile e barra
+Sources/Actions/     celle, azioni, esecutore
+Sources/Overlay/     l'agent e i controller delle barre
+Sources/Manager/     finestra, catalogo, installazione nel Dock, copie
+Tools/               icone, screenshot del sito, certificato, immagine disco
+docs/                il sito, servito da GitHub Pages
 ```
+
+## Aggiungere un widget
+
+1. **Disegnalo.** Una `TileView` per la forma quadrata, una `BarContentView` per
+   quella larga. Ogni misura è una frazione della tile, perché la dimensione la
+   decide il Dock e cambia di continuo.
+2. **Dichiaralo.** Una voce in `WidgetCatalog`: nome, simbolo, se è replicabile e,
+   se è una barra, la sua larghezza minima.
+3. **Configuralo.** Un `PaneViewController` per il pannello delle impostazioni.
+4. **Compila.** `build.sh` assembla bundle, plug-in, icone e firma da solo.
+
+## Cose imparate per strada
+
+- Da macOS 15.4 **MediaRemote risponde solo ai processi di cui il sistema si fida**:
+  stesso codice e stesso istante, 32 chiavi dentro il processo del Dock e zero
+  dentro il nostro. Il plug-in è diventato il lettore privilegiato che passa i
+  dati agli altri.
+- Il Dock **conserva le chiavi che non conosce** dentro le sue voci: i nostri
+  spazi portano una firma e si ritrovano ovunque vengano trascinati.
+- Scrivere le preferenze e poi mandare `killall Dock` è una corsa che si perde:
+  morendo, il Dock salva la copia che ha in memoria. La sequenza giusta è
+  **sospendi, scrivi, uccidi da sospeso**.
+- L'arte di un'icona macOS occupa **824 punti su 1024**; il resto è il margine
+  dell'ombra.
+- `powermetrics` vuole root. `IOReport` no, ma su 11.414 canali di questa macchina
+  l'unico contatore di energia che si muove è quello della GPU: ogni dominio
+  viene sondato, e quello che tace non compare nei menu.
+
+## Licenza
+
+MIT. Vedi [LICENSE](LICENSE).

@@ -1,16 +1,13 @@
 import Foundation
 
-/// A widget can exist more than once: two clocks on different time zones, two
-/// folders watching different places.
+/// A widget can exist as many times as you want it to: two clocks on different
+/// time zones, three folders watching three places.
 ///
 /// Each copy is its own app bundle — the Dock gives one tile per application —
 /// and its own set of settings. The instance identifier is the prefix of both:
 /// the first copy of a kind keeps the bare kind ("clock"), so nothing written
-/// before instances existed has to move.
+/// before copies existed has to move.
 enum WidgetInstance {
-    /// How many copies of each widget the build makes available.
-    static let maximumCopies = 3
-
     static func id(kind: String, copy: Int) -> String {
         copy <= 1 ? kind : "\(kind)\(copy)"
     }
@@ -24,11 +21,7 @@ enum WidgetInstance {
         return Int(String(digits)) ?? 1
     }
 
-    static func all(of kind: String) -> [String] {
-        (1...maximumCopies).map { id(kind: kind, copy: $0) }
-    }
-
-    /// The bundle the build produces for a copy: "Orologio.app", "Orologio 2.app".
+    /// The bundle a copy lives in: "Orologio.app", "Orologio 2.app".
     static func bundleName(base: String, copy: Int) -> String {
         copy <= 1 ? "\(base).app" : "\(base) \(copy).app"
     }
@@ -44,12 +37,53 @@ enum WidgetInstance {
         (identifier ?? "").components(separatedBy: ".")
             .last(where: { !$0.isEmpty && $0 != "tile" }) ?? ""
     }
+
+    /// Where copies beyond the first are kept.
+    ///
+    /// Not inside the app: the app is replaced wholesale on every update, and
+    /// the Dock would find its tiles pointing at bundles that vanished.
+    static var copiesDirectory: URL {
+        URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/Application Support/DockWidgets/Widgets",
+                                    isDirectory: true)
+    }
 }
 
-extension SettingsStore {
-    /// Settings keys are prefixed with the instance, so "clock2.style" sits
-    /// beside "clock.style" without either knowing about the other.
-    static func key(_ name: String, for instance: String) -> String {
-        "\(instance).\(name)"
+/// Which copies of each widget exist, kept with the settings so that every
+/// process — manager, agent, plug-ins — sees the same list.
+enum WidgetInstances {
+    static func key(_ kind: String) -> String { "instances.\(kind)" }
+
+    /// Always starts with the bare kind: the first copy is the one the app
+    /// ships with and cannot be removed.
+    static func all(of kind: String) -> [String] {
+        let stored = SettingsStore.shared.strings(key(kind)) ?? []
+        let extras = stored.filter { $0 != kind && WidgetInstance.kind(of: $0) == kind }
+        return [kind] + extras.sorted { WidgetInstance.copy(of: $0) < WidgetInstance.copy(of: $1) }
+    }
+
+    /// Adds the next copy and returns its identifier.
+    @discardableResult
+    static func add(to kind: String) -> String {
+        let used = Set(all(of: kind).map(WidgetInstance.copy))
+        var next = 2
+        while used.contains(next) { next += 1 }
+
+        let instance = WidgetInstance.id(kind: kind, copy: next)
+        var stored = SettingsStore.shared.strings(key(kind)) ?? []
+        stored.append(instance)
+        SettingsStore.shared.set(stored, for: key(kind))
+        return instance
+    }
+
+    static func remove(_ instance: String) {
+        let kind = WidgetInstance.kind(of: instance)
+        let stored = (SettingsStore.shared.strings(key(kind)) ?? []).filter { $0 != instance }
+        SettingsStore.shared.set(stored, for: key(kind))
+    }
+
+    /// Every copy of every widget that has a bar, for the agent to draw.
+    static func all(ofKinds kinds: [String]) -> [String] {
+        kinds.flatMap { all(of: $0) }
     }
 }

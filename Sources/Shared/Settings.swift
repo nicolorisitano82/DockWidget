@@ -29,6 +29,37 @@ final class SettingsStore {
         defaults.string(forKey: key) ?? fallback
     }
 
+    /// Moves settings written under an old key prefix to a new one.
+    ///
+    /// The now-playing widget was "nowPlaying" in its settings and "nowplaying"
+    /// in its bundle identifier; once the identifier became the name of the
+    /// instance the two had to agree, and what was already configured had to
+    /// come along.
+    func migrate(prefix old: String, to new: String) {
+        let values = defaults.dictionaryRepresentation()
+        var moved = false
+        for (key, value) in values where key.hasPrefix(old) {
+            let replacement = new + key.dropFirst(old.count)
+            guard values[replacement] == nil else { continue }
+            defaults.set(value, forKey: replacement)
+            defaults.removeObject(forKey: key)
+            moved = true
+        }
+        guard moved else { return }
+        defaults.synchronize()
+    }
+
+    /// Forgets everything a removed copy of a widget had configured.
+    func removeAll(withPrefix prefix: String) {
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.synchronize()
+        DistributedNotificationCenter.default().postNotificationName(
+            SharedDefaults.changedNotification, object: nil, userInfo: nil, deliverImmediately: true
+        )
+    }
+
     func strings(_ key: String) -> [String]? {
         defaults.stringArray(forKey: key)
     }

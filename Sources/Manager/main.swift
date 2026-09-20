@@ -31,6 +31,8 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         self.window = window
         self.controller = controller
 
+        SettingsStore.shared.migrate(prefix: "nowPlaying.", to: "nowplaying.")
+        InstanceFactory.refreshAll()
         WidgetInstaller.restoreAfterQuit()
         reconcileBars()
 

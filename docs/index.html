@@ -31,10 +31,14 @@
       the magnification and the auto-hide. We only bring the content.
     </p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/nicolorisitano82/DockWidget">Open the repository</a>
-      <a class="btn quiet" href="#build">Build it in three commands</a>
+      <a class="btn primary" href="https://github.com/nicolorisitano82/DockWidget/releases/latest/download/DockWidgets.dmg">Download 1.0</a>
+      <a class="btn quiet" href="https://github.com/nicolorisitano82/DockWidget">Open the repository</a>
+      <a class="btn quiet" href="#build">Or build it yourself</a>
     </div>
-    <p class="fineprint">Swift · AppKit · macOS 14+ · MIT licensed · no dependencies</p>
+    <p class="fineprint">
+      macOS 14+ · 3.2&nbsp;MB · MIT licensed · no dependencies ·
+      signed locally, so the first launch needs right-click → Open
+    </p>
 
     <div class="stage">
       <div class="dock" id="dock">
@@ -298,7 +302,14 @@
 
 <section id="build">
   <div class="wrap">
-    <h2>Build it</h2>
+    <h2>Get it, or build it</h2>
+    <p class="sub" style="margin-bottom:22px">
+      The <a href="https://github.com/nicolorisitano82/DockWidget/releases/latest/download/DockWidgets.dmg">disk image</a>
+      is signed with a local certificate and not notarised by Apple — notarising takes a
+      paid developer account, which this project deliberately does not require. macOS will
+      say it cannot check it: <strong>right-click the app, then Open</strong>, once.
+      Building it yourself avoids that entirely.
+    </p>
     <p class="sub">
       All you need is <code>swiftc</code> from the Command Line Tools. No Xcode, nothing to
       download, no developer account.
