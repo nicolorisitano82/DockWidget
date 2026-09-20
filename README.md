@@ -4,8 +4,8 @@ Widget dentro il Dock di macOS, senza sostituirlo. Il Dock resta quello di siste
 e continua a fare il layout, l'ingrandimento e la scomparsa automatica: noi ci
 mettiamo il contenuto.
 
-**[Scarica la 1.1](https://github.com/nicolorisitano82/DockWidget/releases/latest/download/Underdock.dmg)** ·
-[sito del progetto](https://nicolorisitano82.github.io/DockWidget/) · macOS 14+ · licenza MIT
+**[Scarica la 1.1](https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg)** ·
+[sito del progetto](https://nicolorisitano82.github.io/Underdock/) · macOS 14+ · licenza MIT
 
 Interfaccia in italiano e inglese, secondo la lingua del Mac.
 
