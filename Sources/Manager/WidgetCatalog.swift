@@ -2,6 +2,13 @@ import AppKit
 
 /// One copy of one widget: what the Dock pins, what the settings belong to,
 /// and what the manager shows.
+/// Where a widget lives. Most sit in the Dock; the notch bar is its own place
+/// and has no tile to pin.
+enum WidgetSurface {
+    case dock
+    case notch
+}
+
 struct WidgetDescriptor {
     let kind: String
     /// 1, 2, 3 — the same widget configured differently each time.
@@ -19,6 +26,7 @@ struct WidgetDescriptor {
     /// machine is doing cannot: two now-playing widgets would say the same
     /// thing twice.
     let isReplicable: Bool
+    let surface: WidgetSurface
     let paneFactory: (String) -> PaneViewController
 
     /// Settings prefix and bundle suffix: "clock", "clock2"…
@@ -45,7 +53,7 @@ struct WidgetDescriptor {
     func copy(number: Int) -> WidgetDescriptor {
         WidgetDescriptor(kind: kind, copy: number, bundleBase: bundleBase, baseName: baseName,
                          summary: summary, symbol: symbol, isReplicable: isReplicable,
-                         paneFactory: paneFactory)
+                         surface: surface, paneFactory: paneFactory)
     }
 
     var isInstalled: Bool { DockTiles.contains(self) }
@@ -111,10 +119,19 @@ enum WidgetCatalog {
                  summary: T("CPU, memoria, disco, rete, batteria: uno per tile.",
                             "CPU, memory, disk, network, battery: one per tile."),
                  symbol: "gauge.with.dots.needle.bottom.50percent") { SensorsPaneController(instance: $0) },
+        template(kind: "applenotes", bundle: "Note", name: T("Note di Apple", "Apple Notes"),
+                 summary: T("L'ultima nota di Note, con un tasto per scriverne una nuova.",
+                            "The latest note from Notes, with a button to start a new one."),
+                 symbol: "note.text.badge.plus") { AppleNotesPaneController(instance: $0) },
         template(kind: "actions", bundle: "Azioni", name: T("Azioni", "Actions"),
                  summary: T("Quattro celle: un'icona, i tuoi colori, un'azione a testa.",
                             "Four cells: an icon, your colours, an action each."),
                  symbol: "square.grid.2x2.fill") { ActionsPaneController(instance: $0) },
+        template(kind: "notch", bundle: "Notch", name: T("Notch", "Notch"),
+                 summary: T("Una striscia che scende dal notch quando ci passi sopra.",
+                            "A strip that comes down from the notch when the pointer arrives."),
+                 symbol: "rectangle.topthird.inset.filled",
+                 replicable: false, surface: .notch) { NotchPaneController(instance: $0) },
     ]
 
     /// Every copy of every widget, whether or not it is in the Dock.
@@ -133,9 +150,10 @@ enum WidgetCatalog {
 
     private static func template(kind: String, bundle: String, name: String, summary: String,
                                  symbol: String, replicable: Bool = true,
+                                 surface: WidgetSurface = .dock,
                                  pane: @escaping (String) -> PaneViewController) -> WidgetDescriptor {
         WidgetDescriptor(kind: kind, copy: 1, bundleBase: bundle, baseName: name,
                          summary: summary, symbol: symbol, isReplicable: replicable,
-                         paneFactory: pane)
+                         surface: surface, paneFactory: pane)
     }
 }

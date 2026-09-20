@@ -74,7 +74,8 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         if !repairs.isEmpty {
             DockTiles.transaction { repairs.forEach { $0() } }
         }
-        if needsAgent, !BarAgent.isRunning {
+        // The notch panel lives in the same agent as the bars.
+        if needsAgent || NotchSettings.current.isEnabled, !BarAgent.isRunning {
             BarAgent.start()
         }
     }

@@ -31,6 +31,10 @@ class BarContentView: NSView {
     /// One Dock cell's width, which is the icon size the Dock is using.
     var tileWidth: CGFloat { bounds.width / CGFloat(max(tileCount, 1)) }
 
+    /// The plate minus a margin: content that touches the panel's edge reads
+    /// as content that overflowed it.
+    var contentPlate: NSRect { plate.insetBy(dx: plate.height * 0.13, dy: 0) }
+
     /// How big a round control or a square cell should be.
     ///
     /// Measured from the tile rather than from the bar, so a three-tile bar and
@@ -42,7 +46,9 @@ class BarContentView: NSView {
 
     /// The band the neighbouring icons occupy: same height, same centre line.
     var plate: NSRect {
-        let iconSide = tileWidth * TileGeometry.artworkSideRatio
+        // Never taller than the box it is drawn in: in the Dock the width
+        // decides, in the notch the height does.
+        let iconSide = min(tileWidth * TileGeometry.artworkSideRatio, bounds.height * 0.88)
         return NSRect(x: bounds.minX + (tileWidth - iconSide) / 2,
                       y: bounds.midY - iconSide / 2,
                       width: bounds.width - (tileWidth - iconSide),

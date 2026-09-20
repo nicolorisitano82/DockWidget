@@ -7,6 +7,8 @@ import AppKit
 /// so the agent can simply build them all and let them decide.
 final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
     private var bars: [OverlayBarController] = []
+    private let notch = NotchPanel()
+    private var pointerTimer: Timer?
     private var trustTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -82,12 +84,25 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         bars = kinds.flatMap { $0.controllers() }
         playbackTokens = bag.tokens
         bars.forEach { $0.start() }
+
+        notch.start()
+        // The notch has no tracking area of its own while it is closed: a
+        // window that catches the pointer up there would swallow the menu
+        // bar's own hovering. So the pointer is watched instead, gently.
+        let timer = Timer(timeInterval: 1.0 / 12, repeats: true) { [weak self] _ in
+            self?.notch.pointerMoved(to: NSEvent.mouseLocation)
+        }
+        timer.tolerance = 1.0 / 24
+        RunLoop.main.add(timer, forMode: .common)
+        pointerTimer = timer
     }
 
     private var playbackTokens: [UUID] = []
 
     func applicationWillTerminate(_ notification: Notification) {
         bars.forEach { $0.stop() }
+        pointerTimer?.invalidate()
+        notch.stop()
     }
 
     private var isDuplicate: Bool {

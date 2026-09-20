@@ -1,11 +1,18 @@
 import Foundation
 
+/// Where the processes leave things for each other: published state, relayed
+/// artwork, the diagnostics log.
+enum SharedPaths {
+    static var cache: URL {
+        URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/Caches/dev.nicolo.dockwidgets", isDirectory: true)
+    }
+}
+
 /// The plug-in lives inside a process we do not own and whose unified-log
 /// output does not survive, so diagnostics go to a file we can read back.
 enum Diagnostics {
-    static let logURL = URL(fileURLWithPath: NSHomeDirectory())
-        .appendingPathComponent("Library/Caches/dev.nicolo.dockwidgets", isDirectory: true)
-        .appendingPathComponent("diagnostics.log")
+    static let logURL = SharedPaths.cache.appendingPathComponent("diagnostics.log")
 
     private static var fired: Set<String> = []
     private static let lock = NSLock()

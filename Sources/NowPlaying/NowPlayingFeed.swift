@@ -11,10 +11,7 @@ enum NowPlayingFeed {
     static let stateChanged = Notification.Name("dev.nicolo.dockwidgets.nowPlayingChanged")
     static let commandRequested = Notification.Name("dev.nicolo.dockwidgets.nowPlayingCommand")
 
-    static var directory: URL {
-        URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Caches/dev.nicolo.dockwidgets", isDirectory: true)
-    }
+    static var directory: URL { SharedPaths.cache }
 
     static var stateURL: URL { directory.appendingPathComponent("nowplaying.json") }
 

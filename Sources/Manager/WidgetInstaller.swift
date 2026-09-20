@@ -7,6 +7,7 @@ import AppKit
 /// the Dock with nothing left to identify them by.
 enum WidgetInstaller {
     static func install(_ widget: WidgetDescriptor) {
+        guard widget.surface == .dock else { return }
         DockTiles.transaction {
             DockTiles.add(widget)
             if let spec = widget.barSpec {

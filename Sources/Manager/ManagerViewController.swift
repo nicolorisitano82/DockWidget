@@ -14,6 +14,7 @@ final class ManagerViewController: NSViewController {
     private let addCopyButton = NSButton(title: "+", target: nil, action: nil)
     private let removeCopyButton = NSButton(title: "−", target: nil, action: nil)
     private let dockSwitch = NSSwitch()
+    private let switchLabel = NSTextField(labelWithString: "")
     private var rows: [WidgetRowView] = []
     private var pane: PaneViewController?
 
@@ -72,7 +73,7 @@ final class ManagerViewController: NSViewController {
 
         dockSwitch.target = self
         dockSwitch.action = #selector(toggleInstalled)
-        let switchLabel = NSTextField(labelWithString: T("Nel Dock", "In the Dock"))
+        switchLabel.stringValue = T("Nel Dock", "In the Dock")
         switchLabel.font = .systemFont(ofSize: 12, weight: .medium)
 
         addCopyButton.bezelStyle = .circular
@@ -166,7 +167,13 @@ final class ManagerViewController: NSViewController {
                                : T("Copia \(descriptor.copy)", "Copy \(descriptor.copy)"))
         }
         copyButton.selectItem(at: copies.firstIndex { $0.copy == selectedCopy } ?? 0)
-        let replicable = kinds[selectedKind].isReplicable
+        // The notch bar has no tile to pin, so it has no switch either: it is
+        // turned on from its own pane.
+        let inDock = kinds[selectedKind].surface == .dock
+        dockSwitch.isHidden = !inDock
+        switchLabel.isHidden = !inDock
+
+        let replicable = kinds[selectedKind].isReplicable && inDock
         copyButton.isHidden = !replicable || copies.count < 2
         addCopyButton.isHidden = !replicable
         removeCopyButton.isHidden = !replicable
@@ -176,7 +183,7 @@ final class ManagerViewController: NSViewController {
         guard let widget else { return }
         titleLabel.stringValue = widget.name
         summaryLabel.stringValue = widget.summary
-        dockSwitch.state = widget.isInstalled ? .on : .off
+        dockSwitch.state = inDock && widget.isInstalled ? .on : .off
 
         pane?.view.removeFromSuperview()
         pane?.removeFromParent()
@@ -255,7 +262,8 @@ final class ManagerViewController: NSViewController {
 
     private func refreshInstallState() {
         for (index, row) in rows.enumerated() {
-            row.isInstalled = WidgetCatalog.copies(of: kinds[index]).contains { $0.isInstalled }
+            row.isInstalled = kinds[index].surface == .dock
+                && WidgetCatalog.copies(of: kinds[index]).contains { $0.isInstalled }
         }
         dockSwitch.state = widget?.isInstalled == true ? .on : .off
     }

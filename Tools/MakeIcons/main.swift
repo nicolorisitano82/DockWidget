@@ -120,6 +120,10 @@ func makeView(side: CGFloat) -> NSView {
         let view = DisksTileView(frame: frame)
         view.reloadSettings()
         return view
+    case "applenotes":
+        let view = AppleNotesTileView(frame: frame)
+        view.reloadSettings()
+        return view
     case "note":
         let view = NoteIconView(frame: frame)
         view.reloadSettings()

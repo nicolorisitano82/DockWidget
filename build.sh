@@ -40,6 +40,8 @@ SENSORS=("$ROOT"/Sources/Sensors/*.swift)
 DISKS=("$ROOT"/Sources/Disks/*.swift)
 FOLDER=("$ROOT"/Sources/Folder/*.swift)
 NOTE=("$ROOT"/Sources/Note/*.swift)
+APPLENOTES=("$ROOT"/Sources/AppleNotes/*.swift)
+NOTCH=("$ROOT"/Sources/Notch/*.swift)
 WIDGET_HOST=("$ROOT"/Sources/WidgetHost/*.swift)
 
 MANAGER_APP="$BUILD/DockWidgets.app"
@@ -125,14 +127,14 @@ make_widget() {
 echo "→ strumento icone"
 swiftc -swift-version 5 -O -sdk "$SDK" -target "$(uname -m)-apple-macos${DEPLOY}" \
   -module-name makeicons -o "$BUILD/tmp/makeicons" \
-  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" \
+  "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" \
   "$ROOT/Tools/MakeIcons/main.swift"
 
 echo "→ manager"
 mkdir -p "$MANAGER_APP/Contents/MacOS" "$MANAGER_APP/Contents/Resources" "$WIDGETS_DIR"
 swift_build "$MANAGER_APP/Contents/MacOS/DockWidgets" DockWidgets app \
   "${SHARED[@]}" "${CLOCK[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" \
-  "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${MANAGER[@]}"
+  "${DISKS[@]}" "${FOLDER[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" "${MANAGER[@]}"
 cp "$ROOT/Resources/Manager-Info.plist" "$MANAGER_APP/Contents/Info.plist"
 check_plist "$MANAGER_APP/Contents/Info.plist"
 printf 'APPL????' > "$MANAGER_APP/Contents/PkgInfo"
@@ -142,7 +144,7 @@ echo "→ agent barra"
 AGENT_APP="$AGENTS_DIR/NowPlayingBar.app"
 mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
 swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
-  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${NOTE[@]}" \
+  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" \
   "${OVERLAY[@]}"
 cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
 check_plist "$AGENT_APP/Contents/Info.plist"
@@ -164,6 +166,8 @@ make_widget "Cartella" "FolderHost" "folder" \
   "FolderWidget" "FolderDockTilePlugin" "folder" "Cartella.app" "${FOLDER[@]}"
 make_widget "Appunto" "NoteHost" "note" \
   "BlankWidget" "BlankDockTilePlugin" "note" "Appunto.app" "${BLANK_TILE[@]}"
+make_widget "Note" "AppleNotesHost" "applenotes" \
+  "AppleNotesWidget" "AppleNotesDockTilePlugin" "applenotes" "Note.app" "${APPLENOTES[@]}"
 
 for target in "${SIGN_QUEUE[@]}" "$MANAGER_APP"; do
   codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$target" || {

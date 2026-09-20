@@ -107,7 +107,7 @@ final class DisksBarView: BarContentView {
     /// volume in a three-tile bar should look like one disk with room beside
     /// it, not like one enormous disk.
     private func cells() -> [NSRect] {
-        let plate = self.plate
+        let plate = contentPlate
         let width = plate.width / CGFloat(max(tileCount, 1))
         return (0..<max(tileCount, 1)).map {
             NSRect(x: plate.minX + CGFloat($0) * width, y: plate.minY,
