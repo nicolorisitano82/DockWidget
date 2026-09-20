@@ -11,7 +11,7 @@ enum NotchWidgets {
         switch WidgetInstance.kind(of: instance) {
         case "nowplaying":
             let view = BarView(frame: .zero)
-            view.onCommand = { NowPlayingFeed.send($0) }
+            view.onCommand = { NowPlayingControl.send($0) }
             playbackTokens.append(NowPlayingSource.shared.addListener { [weak view] state in
                 view?.state = state
             })

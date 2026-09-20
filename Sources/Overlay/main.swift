@@ -49,7 +49,7 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         let kinds: [BarWidgetKind] = [
             BarWidgetKind(base: "NowPlaying", template: BarLayout.nowPlaying, makeView: { instance in
                 let view = BarView(frame: NSRect(x: 0, y: 0, width: 200, height: 50))
-                view.onCommand = { NowPlayingFeed.send($0) }
+                view.onCommand = { NowPlayingControl.send($0) }
                 view.onOpenPlayer = { openCurrentPlayer() }
                 bag.tokens.append(NowPlayingSource.shared.addListener { [weak view] state in
                     view?.state = state

@@ -48,8 +48,9 @@ enum ActionRunner {
         case .emptyTrash:
             script("tell application \"Finder\" to empty trash")
         case .playPause:
-            // Goes through the Dock plug-in, the one process MediaRemote answers.
-            NowPlayingFeed.send(.togglePlayPause)
+            // Through the Dock plug-in when it is there, through the media keys
+            // when it is not.
+            NowPlayingControl.send(.togglePlayPause)
         case .screenshot:
             shell("/usr/sbin/screencapture", ["-i", "-c"])
         }
