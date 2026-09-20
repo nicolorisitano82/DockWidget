@@ -60,11 +60,11 @@ final class NowPlayingDockTilePlugin: TilePlugin {
 
         let canControl = MediaRemoteBridge.shared.canSendCommands && NowPlayingSource.shared.mediaRemoteAnswered
         if canControl {
-            items.append(menuItem(state.isPlaying ? "Pausa" : "Riproduci", #selector(togglePlayPause)))
-            items.append(menuItem("Brano successivo", #selector(nextTrack)))
-            items.append(menuItem("Brano precedente", #selector(previousTrack)))
+            items.append(menuItem(state.isPlaying ? T("Pausa", "Pause") : T("Riproduci", "Play"), #selector(togglePlayPause)))
+            items.append(menuItem(T("Brano successivo", "Next track"), #selector(nextTrack)))
+            items.append(menuItem(T("Brano precedente", "Previous track"), #selector(previousTrack)))
         } else {
-            let note = NSMenuItem(title: "Controlli non disponibili", action: nil, keyEquivalent: "")
+            let note = NSMenuItem(title: T("Controlli non disponibili", "Controls unavailable"), action: nil, keyEquivalent: "")
             note.isEnabled = false
             items.append(note)
         }
@@ -72,7 +72,7 @@ final class NowPlayingDockTilePlugin: TilePlugin {
         if let bundleID = state.playerBundleID,
            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
             let name = FileManager.default.displayName(atPath: url.path)
-            items.append(menuItem("Apri \(name)", #selector(openPlayer)))
+            items.append(menuItem(T("Apri \(name)", "Open \(name)"), #selector(openPlayer)))
         }
         return items
     }

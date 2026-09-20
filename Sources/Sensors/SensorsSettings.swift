@@ -3,7 +3,7 @@ import AppKit
 struct SensorsSettings: Equatable {
     enum Mode: String, CaseIterable {
         case tile, bar
-        var label: String { self == .tile ? "Standard" : "Barra" }
+        var label: String { self == .tile ? "Standard" : T("Barra", "Bar") }
     }
 
     var mode: Mode = .tile
@@ -59,10 +59,19 @@ struct SensorsSettings: Equatable {
     /// Narrowing the bar hides the tail but never forgets it, so widening it
     /// again brings back exactly what was there.
     func visibleBarSensors(count: Int) -> [SensorID] {
-        var visible = Array(barSensors.prefix(count))
-        for candidate in SensorID.available where visible.count < count {
+        // A sensor this machine cannot answer for is skipped rather than shown
+        // as a dash — but it stays in the stored list, because the same
+        // settings may travel to a Mac that does report it.
+        let available = SensorID.available
+        var visible = Array(barSensors.filter(available.contains).prefix(count))
+        for candidate in available where visible.count < count {
             if !visible.contains(candidate) { visible.append(candidate) }
         }
         return visible
+    }
+
+    /// The tile falls back the same way when its sensor is not available here.
+    var effectiveTileSensor: SensorID {
+        SensorID.available.contains(tileSensor) ? tileSensor : (SensorID.available.first ?? .cpu)
     }
 }

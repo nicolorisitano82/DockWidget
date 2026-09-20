@@ -90,7 +90,7 @@ final class BarView: BarContentView {
             drawText(in: metrics.text, palette: palette)
             drawProgress(in: metrics.progress, palette: palette)
         } else {
-            let label = "Niente in riproduzione" as NSString
+            let label = T("Niente in riproduzione", "Nothing playing") as NSString
             let font = NSFont.systemFont(ofSize: max(8, metrics.text.height * 0.42), weight: .medium)
             label.draw(at: NSPoint(x: metrics.text.minX, y: metrics.text.midY - font.pointSize * 0.6),
                        withAttributes: [.font: font, .foregroundColor: palette.secondary])
@@ -289,7 +289,7 @@ final class BarView: BarContentView {
             menu.addItem(track)
             menu.addItem(.separator())
         }
-        let open = NSMenuItem(title: "Apri il player", action: #selector(openPlayer), keyEquivalent: "")
+        let open = NSMenuItem(title: T("Apri il player", "Open the player"), action: #selector(openPlayer), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         NSMenu.popUpContextMenu(menu, with: event, for: self)

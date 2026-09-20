@@ -19,14 +19,14 @@ enum SensorID: String, Codable, CaseIterable {
     var label: String {
         switch self {
         case .cpu: return "CPU"
-        case .memory: return "Memoria"
-        case .disk: return "Disco"
-        case .network: return "Rete"
-        case .battery: return "Batteria"
-        case .power: return "Consumo"
-        case .thermal: return "Stato termico"
-        case .cpuPower: return "Potenza CPU"
-        case .gpuPower: return "Potenza GPU"
+        case .memory: return T("Memoria", "Memory")
+        case .disk: return T("Disco", "Disk")
+        case .network: return T("Rete", "Network")
+        case .battery: return T("Batteria", "Battery")
+        case .power: return T("Consumo", "Power draw")
+        case .thermal: return T("Stato termico", "Thermal state")
+        case .cpuPower: return T("Potenza CPU", "CPU power")
+        case .gpuPower: return T("Potenza GPU", "GPU power")
         }
     }
 

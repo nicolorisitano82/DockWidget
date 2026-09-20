@@ -37,8 +37,8 @@ enum WidgetCatalog {
     static let all: [WidgetDescriptor] = [
         WidgetDescriptor(
             id: "clock",
-            name: "Orologio",
-            summary: "Cinque quadranti, con secondi e data.",
+            name: T("Orologio", "Clock"),
+            summary: T("Cinque quadranti, con secondi e data.", "Six faces, with seconds and date."),
             helperBundleName: "Orologio.app",
             symbol: "clock.fill",
             barSpec: { nil },
@@ -46,8 +46,8 @@ enum WidgetCatalog {
         ),
         WidgetDescriptor(
             id: "nowplaying",
-            name: "In riproduzione",
-            summary: "Copertina, stato della riproduzione e avanzamento del brano.",
+            name: T("In riproduzione", "Now Playing"),
+            summary: T("Copertina, stato della riproduzione e avanzamento del brano.", "Cover art, playback state and track progress."),
             helperBundleName: "NowPlaying.app",
             symbol: "music.note",
             barSpec: { NowPlayingSettings.current.mode == .bar ? BarLayout.nowPlaying : nil },
@@ -55,8 +55,8 @@ enum WidgetCatalog {
         ),
         WidgetDescriptor(
             id: "sensors",
-            name: "Sensori",
-            summary: "CPU, memoria, disco, rete, batteria: uno per tile.",
+            name: T("Sensori", "Sensors"),
+            summary: T("CPU, memoria, disco, rete, batteria: uno per tile.", "CPU, memory, disk, network, battery: one per tile."),
             helperBundleName: "Sensori.app",
             symbol: "gauge.with.dots.needle.bottom.50percent",
             barSpec: { SensorsSettings.current.mode == .bar ? BarLayout.sensors : nil },
@@ -64,8 +64,8 @@ enum WidgetCatalog {
         ),
         WidgetDescriptor(
             id: "actions",
-            name: "Azioni",
-            summary: "Quattro celle: un'icona, i tuoi colori, un'azione a testa.",
+            name: T("Azioni", "Actions"),
+            summary: T("Quattro celle: un'icona, i tuoi colori, un'azione a testa.", "Four cells: an icon, your colours, an action each."),
             helperBundleName: "Azioni.app",
             symbol: "square.grid.2x2.fill",
             barSpec: { BarLayout.actions },

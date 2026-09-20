@@ -7,7 +7,7 @@ struct NowPlayingSettings: Equatable {
         /// A wide interactive bar drawn by the agent over spacer tiles.
         case bar
 
-        var label: String { self == .tile ? "Tile" : "Barra" }
+        var label: String { self == .tile ? "Tile" : T("Barra", "Bar") }
     }
 
     var mode: Mode = .tile

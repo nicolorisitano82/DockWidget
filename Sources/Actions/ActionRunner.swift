@@ -40,7 +40,7 @@ enum ActionRunner {
         case .screenSaver:
             shell("/usr/bin/open", ["-a", "ScreenSaverEngine"])
         case .missionControl:
-            shell("/usr/bin/open", ["-a", "Mission Control"])
+            shell("/usr/bin/open", ["-a", T("Mission Control", "Mission Control")])
         case .showDesktop:
             // F11 is the default binding; posting the key is the only way in
             // without a private Dock API.

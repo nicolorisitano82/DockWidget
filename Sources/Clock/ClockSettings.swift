@@ -2,15 +2,16 @@ import AppKit
 
 struct ClockSettings: Equatable {
     enum Style: String, CaseIterable {
-        case analog, digital, flip, rings, minimal
+        case analog, digital, flip, rings, minimal, word
 
         var label: String {
             switch self {
-            case .analog: return "Analogico"
-            case .digital: return "Digitale"
+            case .analog: return T("Analogico", "Analog")
+            case .digital: return T("Digitale", "Digital")
             case .flip: return "Flip"
-            case .rings: return "Anelli"
-            case .minimal: return "Minimale"
+            case .rings: return T("Anelli", "Rings")
+            case .minimal: return T("Minimale", "Minimal")
+            case .word: return T("A parole", "In words")
             }
         }
 
@@ -21,6 +22,7 @@ struct ClockSettings: Equatable {
             case .flip: return FlipFace()
             case .rings: return RingsFace()
             case .minimal: return MinimalFace()
+            case .word: return WordFace()
             }
         }
     }
@@ -29,7 +31,7 @@ struct ClockSettings: Equatable {
         case system, h12, h24
         var label: String {
             switch self {
-            case .system: return "Come il sistema"
+            case .system: return T("Come il sistema", "Follow the system")
             case .h12: return "12 ore"
             case .h24: return "24 ore"
             }
@@ -41,6 +43,16 @@ struct ClockSettings: Equatable {
     var showsSeconds: Bool = true
     var showsDate: Bool = true
     var accentHex: String = "#FF453A"
+    /// Empty means the Mac's own zone.
+    var timeZoneID: String = ""
+
+    var timeZone: TimeZone { TimeZone(identifier: timeZoneID) ?? .autoupdatingCurrent }
+
+    var calendar: Calendar {
+        var calendar = Calendar.autoupdatingCurrent
+        calendar.timeZone = timeZone
+        return calendar
+    }
 
     var accent: NSColor { NSColor(hexString: accentHex) ?? .systemRed }
 
@@ -50,6 +62,7 @@ struct ClockSettings: Equatable {
         static let showsSeconds = "clock.showsSeconds"
         static let showsDate = "clock.showsDate"
         static let accent = "clock.accent"
+        static let timeZone = "clock.timeZone"
     }
 
     static var current: ClockSettings {
@@ -60,7 +73,8 @@ struct ClockSettings: Equatable {
             hourFormat: HourFormat(rawValue: store.string(Key.hourFormat, or: defaults.hourFormat.rawValue)) ?? defaults.hourFormat,
             showsSeconds: store.bool(Key.showsSeconds, or: defaults.showsSeconds),
             showsDate: store.bool(Key.showsDate, or: defaults.showsDate),
-            accentHex: store.string(Key.accent, or: defaults.accentHex)
+            accentHex: store.string(Key.accent, or: defaults.accentHex),
+            timeZoneID: store.string(Key.timeZone, or: defaults.timeZoneID)
         )
     }
 
@@ -76,4 +90,32 @@ struct ClockSettings: Equatable {
             return showsSeconds ? "HH:mm:ss" : "HH:mm"
         }
     }
+}
+
+/// A short list of zones, because a picker with six hundred entries is not a
+/// picker. "" is the Mac's own zone.
+enum ClockZones {
+    static let all: [(label: String, identifier: String)] = [
+        (T("Fuso del Mac", "The Mac's own zone"), ""),
+        ("Roma", "Europe/Rome"),
+        ("Londra", "Europe/London"),
+        ("Parigi", "Europe/Paris"),
+        ("Berlino", "Europe/Berlin"),
+        ("Madrid", "Europe/Madrid"),
+        ("Atene", "Europe/Athens"),
+        ("Mosca", "Europe/Moscow"),
+        ("New York", "America/New_York"),
+        ("Chicago", "America/Chicago"),
+        ("Denver", "America/Denver"),
+        ("Los Angeles", "America/Los_Angeles"),
+        ("São Paulo", "America/Sao_Paulo"),
+        ("Dubai", "Asia/Dubai"),
+        ("Mumbai", "Asia/Kolkata"),
+        ("Shanghai", "Asia/Shanghai"),
+        ("Tokyo", "Asia/Tokyo"),
+        ("Singapore", "Asia/Singapore"),
+        ("Sydney", "Australia/Sydney"),
+        ("Auckland", "Pacific/Auckland"),
+        ("UTC", "UTC"),
+    ]
 }

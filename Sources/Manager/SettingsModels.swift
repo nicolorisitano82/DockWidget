@@ -12,6 +12,7 @@ final class ClockSettingsModel {
             ClockSettings.Key.showsSeconds: value.showsSeconds,
             ClockSettings.Key.showsDate: value.showsDate,
             ClockSettings.Key.accent: value.accentHex,
+            ClockSettings.Key.timeZone: value.timeZoneID,
         ])
     }
 }
@@ -35,23 +36,23 @@ final class NowPlayingSettingsModel {
 enum AccentPalette {
     /// Icon colours: the accents plus the two neutrals an icon usually wants.
     static var icons: [(name: String, hex: String)] {
-        [("Bianco", "#FFFFFF"), ("Nero", "#1C1C1E")] + swatches
+        [(T("Bianco", "White"), "#FFFFFF"), (T("Nero", "Black"), "#1C1C1E")] + swatches
     }
 
     /// Cell backgrounds: the accents plus a dark neutral.
     static var surfaces: [(name: String, hex: String)] {
-        swatches + [("Ardesia", "#2C2C2E")]
+        swatches + [(T("Ardesia", "Slate"), "#2C2C2E")]
     }
 
     static let swatches: [(name: String, hex: String)] = [
-        ("Rosso", "#FF453A"),
-        ("Arancione", "#FF9F0A"),
-        ("Giallo", "#FFD60A"),
-        ("Verde", "#32D74B"),
-        ("Blu", "#0A84FF"),
-        ("Viola", "#BF5AF2"),
-        ("Rosa", "#FF375F"),
-        ("Grafite", "#98989D"),
+        (T("Rosso", "Red"), "#FF453A"),
+        (T("Arancione", "Orange"), "#FF9F0A"),
+        (T("Giallo", "Yellow"), "#FFD60A"),
+        (T("Verde", "Green"), "#32D74B"),
+        (T("Blu", "Blue"), "#0A84FF"),
+        (T("Viola", "Purple"), "#BF5AF2"),
+        (T("Rosa", "Pink"), "#FF375F"),
+        (T("Grafite", "Graphite"), "#98989D"),
     ]
 }
 

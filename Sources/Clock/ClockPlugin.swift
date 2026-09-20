@@ -23,8 +23,8 @@ final class ClockDockTilePlugin: TilePlugin {
 
     override func customMenuItems() -> [NSMenuItem] {
         [
-            menuItem("Copia l'ora", #selector(copyTime)),
-            menuItem("Apri Calendario", #selector(openCalendar)),
+            menuItem(T("Copia l'ora", "Copy the time"), #selector(copyTime)),
+            menuItem(T("Apri Calendario", "Open Calendar"), #selector(openCalendar)),
         ]
     }
 

@@ -39,7 +39,7 @@ final class ActionsPaneController: PaneViewController {
                                       trackingMode: .selectOne,
                                       target: self, action: #selector(cellChanged))
         cell.selectedSegment = 0
-        stack.addArrangedSubview(labeled("Cella", cell))
+        stack.addArrangedSubview(labeled(T("Cella", "Cell"), cell))
 
         let symbols = NSPopUpButton()
         for name in ActionSymbols.all {
@@ -58,7 +58,7 @@ final class ActionsPaneController: PaneViewController {
             self.slot.iconHex = hex
         }
         iconSwatches = iconColours
-        stack.addArrangedSubview(labeled("Colore icona", iconColours))
+        stack.addArrangedSubview(labeled(T("Colore icona", "Icon colour"), iconColours))
 
         let cellColours = AccentSwatchView(selectedHex: slot.backgroundHex, entries: AccentPalette.surfaces)
         cellColours.onSelect = { [weak self] hex in
@@ -66,15 +66,15 @@ final class ActionsPaneController: PaneViewController {
             self.slot.backgroundHex = hex
         }
         cellSwatches = cellColours
-        stack.addArrangedSubview(labeled("Colore cella", cellColours))
+        stack.addArrangedSubview(labeled(T("Colore cella", "Cell colour"), cellColours))
 
         let kinds = NSPopUpButton()
-        kinds.addItems(withTitles: ["Nessuna", "Apri un'app", "Apri un indirizzo o un file",
-                                    "Scorciatoia", "Azione di sistema"])
+        kinds.addItems(withTitles: [T("Nessuna", "None"), T("Apri un'app", "Open an app"), T("Apri un indirizzo o un file", "Open an address or a file"),
+                                    T("Scorciatoia", "Shortcut"), T("Azione di sistema", "System action")])
         kinds.target = self
         kinds.action = #selector(kindChanged)
         kindButton = kinds
-        stack.addArrangedSubview(labeled("Azione", kinds))
+        stack.addArrangedSubview(labeled(T("Azione", "Action"), kinds))
 
         let label = NSTextField(labelWithString: "")
         label.font = .systemFont(ofSize: 11)
@@ -82,13 +82,13 @@ final class ActionsPaneController: PaneViewController {
         parameterLabel = label
 
         let field = NSTextField()
-        field.placeholderString = "esempio.com oppure ~/Documenti"
+        field.placeholderString = T("esempio.com oppure ~/Documenti", "example.com or ~/Documents")
         field.target = self
         field.action = #selector(parameterFieldChanged)
         field.widthAnchor.constraint(equalToConstant: 220).isActive = true
         parameterField = field
 
-        let button = NSButton(title: "Scegli…", target: self, action: #selector(chooseApp))
+        let button = NSButton(title: T("Scegli…", "Choose…"), target: self, action: #selector(chooseApp))
         parameterButton = button
 
         let choice = NSPopUpButton()
@@ -134,11 +134,11 @@ final class ActionsPaneController: PaneViewController {
 
         switch slot.kind {
         case .none:
-            parameterLabel?.stringValue = "La cella resta vuota."
+            parameterLabel?.stringValue = T("La cella resta vuota.", "The cell stays empty.")
         case .app(let path):
             button?.isHidden = false
             parameterLabel?.stringValue = path.isEmpty
-                ? "Nessuna app scelta"
+                ? T("Nessuna app scelta", "No app chosen")
                 : URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         case .open(let target):
             field?.isHidden = false
@@ -148,8 +148,8 @@ final class ActionsPaneController: PaneViewController {
             let names = ShortcutsCatalog.names()
             choice?.removeAllItems()
             if names.isEmpty {
-                choice?.addItem(withTitle: "Nessuna scorciatoia")
-                parameterLabel?.stringValue = "Crea una scorciatoia nell'app Comandi rapidi."
+                choice?.addItem(withTitle: T("Nessuna scorciatoia", "No shortcuts"))
+                parameterLabel?.stringValue = T("Crea una scorciatoia nell'app Comandi rapidi.", "Create one in the Shortcuts app.")
             } else {
                 choice?.addItems(withTitles: names)
                 choice?.selectItem(withTitle: name)

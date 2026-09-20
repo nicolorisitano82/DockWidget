@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dock Widgets — live widgets inside the macOS Dock</title>
+<meta name="description" content="Real widgets inside the macOS Dock, without replacing it. Clock, now playing, actions and sensors. Open source, MIT licensed.">
+<meta property="og:title" content="Dock Widgets">
+<meta property="og:description" content="Widgets inside the macOS Dock. Not a fake Dock — yours.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="mark">Dock&nbsp;Widgets <span>· macOS</span></div>
+    <a href="#how">How it works</a>
+    <a href="#widgets">Widgets</a>
+    <a href="#notes">Field notes</a>
+    <a href="#contribute">Contribute</a>
+    <a class="ghost" href="https://github.com/nicolorisitano82/DockWidget">GitHub</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Widgets inside the Dock.<br><em>Yours</em>, not a replica.</h1>
+    <p class="lead">
+      Almost every app in this category hides the system Dock and draws a fake one.
+      This one doesn't: the widgets live in the real Dock, which keeps doing the layout,
+      the magnification and the auto-hide. We only bring the content.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/nicolorisitano82/DockWidget">Open the repository</a>
+      <a class="btn quiet" href="#build">Build it in three commands</a>
+    </div>
+    <p class="fineprint">Swift · AppKit · macOS 14+ · MIT licensed · no dependencies</p>
+
+    <div class="stage">
+      <div class="dock" id="dock">
+        <div class="tile app-a"></div>
+        <div class="tile app-b"></div>
+        <div class="tile" style="background-image:url(assets/clock-faces.png); background-size:500% 100%; background-position:0% 50%;"></div>
+        <div class="tile app-c"></div>
+        <div class="tile wide" style="background-image:url(assets/now-playing.png)"></div>
+        <div class="tile wide pair" style="background-image:url(assets/actions.png)"></div>
+        <div class="tile" style="background-image:url(assets/sensors-tile.png)"></div>
+        <div class="sep"></div>
+        <div class="tile app-d"></div>
+      </div>
+      <p class="dock-hint">Move the pointer across it — the magnification is the real Dock's, computed from distance.</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section id="how">
+  <div class="wrap">
+    <h2>Three layers, no fake Dock</h2>
+    <p class="sub">
+      The Dock is a protected system process: you cannot inject code into it. But macOS
+      leaves two doors open, and both of them are public API.
+    </p>
+    <div class="cards">
+      <div class="card">
+        <div class="num">1</div>
+        <h3>A plug-in inside the tile</h3>
+        <p>
+          <code>NSDockTilePlugIn</code> has existed since 2009 and nobody uses it any more.
+          The Dock loads the bundle into an XPC service reserved for third-party extras and
+          keeps it alive <strong>even when the app is closed</strong>. That is where the
+          square tile is drawn.
+        </p>
+      </div>
+      <div class="card">
+        <div class="num">2</div>
+        <h3>An overlay on the spacers</h3>
+        <p>
+          A wide widget needs room, so we ask the Dock for it by inserting
+          <em>spacer tiles</em>, read back over Accessibility where it put them, and rest a
+          panel on top. The layout stays the Dock's — the magnification too.
+        </p>
+      </div>
+      <div class="card">
+        <div class="num">3</div>
+        <h3>A manager in the menu bar</h3>
+        <p>
+          No icon in the Dock: the space in the Dock belongs to the widgets. From the menu
+          bar you turn them on, configure them, and on quit the Dock goes back to exactly
+          what it was.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="widgets">
+  <div class="wrap">
+    <h2>Four widgets, two shapes</h2>
+    <p class="sub">
+      Every widget can be a square tile or a bar as wide as you like. The images below are
+      not mock-ups: they are the same views the Dock draws, rendered by a tool that compiles
+      the project's own code.
+    </p>
+
+    <div class="shots">
+      <div class="shot">
+        <img src="assets/clock-faces.png" alt="Five clock faces: analog, digital, flip, rings, minimal">
+        <div class="meta">
+          <h3>Clock — six faces</h3>
+          <p>Analog, digital, split-flap, concentric rings, minimal, and the time spelled out in words. Seconds, date and time zone optional.</p>
+        </div>
+      </div>
+
+      <div class="shot">
+        <img src="assets/now-playing.png" alt="Now playing bar with cover art, title, progress and controls">
+        <div class="meta">
+          <h3>Now Playing — interactive</h3>
+          <p>Real cover art, a progress bar you can click to seek, controls that answer the pointer. As a tile it is a square with the cover and the progress.</p>
+        </div>
+      </div>
+
+      <div class="shot">
+        <img src="assets/actions.png" alt="Four coloured cells with icons">
+        <div class="meta">
+          <h3>Actions — four cells</h3>
+          <p>An icon, a cell colour, an icon colour, and one action each: open an app, an address, a shortcut, or one of the system actions. No labels.</p>
+        </div>
+      </div>
+
+      <div class="shot pair">
+        <img src="assets/sensors-tile.png" alt="Sensor tile with a ring and the CPU percentage">
+        <div class="meta">
+          <h3>Sensors — one or many</h3>
+          <p>
+            CPU, memory, disk, network, battery, watts drawn, thermal state. As a tile, one
+            sensor; as a bar, one per slot — and narrowing the bar never forgets what you
+            had chosen.
+          </p>
+        </div>
+      </div>
+      <div class="shot">
+        <img src="assets/sensors-bar.png" alt="Sensor bar with CPU, memory, network and battery">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="notes">
+  <div class="wrap">
+    <h2>Field notes</h2>
+    <p class="sub">
+      Building inside the Dock means measuring instead of assuming. These are the things
+      that are in no documentation, found by getting them wrong first.
+    </p>
+
+    <div class="notes">
+      <div class="note">
+        <div class="tag">MediaRemote</div>
+        <p>
+          Since macOS 15.4 the now-playing registry only answers processes the system
+          trusts. Same code, same instant: <strong>32 keys inside the Dock's process, zero
+          inside ours</strong>. So the plug-in became the privileged reader that relays the
+          data to everything else.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Spacers</div>
+        <p>
+          The Dock <strong>keeps keys it does not recognise</strong> inside its own entries.
+          Every spacer we create carries our signature, so we find it again wherever the
+          user drags it. Without that, it stayed in the Dock forever.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Preferences</div>
+        <p>
+          Writing and then sending <code>killall Dock</code> is a race: on its way out the
+          Dock saves the copy it holds in memory, undoing your change. The sequence that
+          works is <strong>suspend, write, kill while suspended</strong>. Four runs out of four.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Proportions</div>
+        <p>
+          A macOS icon's art fills <strong>824 points out of 1024</strong>; the rest is the
+          margin its shadow lives in. Drawing 880 is enough to make a widget look bigger
+          than its neighbours without anyone being able to say why.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Energy</div>
+        <p>
+          <code>powermetrics</code> requires root. <code>IOReport</code> does not — but
+          across <strong>11,414 channels</strong> on this machine the only counter that
+          moves is the GPU's. So every domain is probed, and one that stays silent is not
+          even offered in the menus.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Accessibility</div>
+        <p>
+          The Dock reports its tile positions <strong>already magnified</strong>, and one
+          read costs 0.04&nbsp;ms. Following the magnification at 60&nbsp;Hz costs 2.4&nbsp;ms of
+          CPU per second — which is the reason the overlay can exist at all.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contribute">
+  <div class="wrap">
+    <h2>It's open, and built to be extended</h2>
+    <p class="sub">
+      MIT licensed: take it, change it, sell it, no permission needed. The architecture is
+      arranged so that a new widget is a file, not an expedition.
+    </p>
+
+    <div class="split">
+      <div>
+        <h3 style="margin-top:0">Adding a widget</h3>
+        <ol class="steps">
+          <li><strong>Draw it.</strong> A <code>TileView</code> for the square shape, a <code>BarContentView</code> for the wide one. Every measurement is a fraction of the tile.</li>
+          <li><strong>Declare it.</strong> One entry in <code>WidgetCatalog</code>: name, symbol, and — if it is a bar — its minimum width.</li>
+          <li><strong>Configure it.</strong> A <code>PaneViewController</code> for the settings pane.</li>
+          <li><strong>Build.</strong> <code>build.sh</code> assembles bundles, plug-ins, icons and signature on its own.</li>
+        </ol>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Ideas already lined up</h3>
+        <p style="color:var(--text-dim); margin-top:0">
+          Weather · next calendar event · countdown · currencies and crypto · Trash with a
+          count · a folder that shows its contents · a bookmark with its favicon · quick
+          note · per-volume disk usage · CPU watts on the Macs that report them ·
+          temperatures via <code>IOHIDEventSystem</code>.
+        </p>
+        <div class="badges">
+          <span class="badge">MIT</span>
+          <span class="badge">No dependencies</span>
+          <span class="badge">No Xcode required</span>
+          <span class="badge">Public API wherever possible</span>
+          <span class="badge">English &amp; Italian</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap">
+    <h2>Build it</h2>
+    <p class="sub">
+      All you need is <code>swiftc</code> from the Command Line Tools. No Xcode, nothing to
+      download, no developer account.
+    </p>
+<pre><code>git clone https://github.com/nicolorisitano82/DockWidget.git
+cd DockWidget
+./Tools/make-signing-cert.sh   <span class="c"># once, so the permissions stick</span>
+./build.sh &amp;&amp; ./install.sh</code></pre>
+    <p style="color:var(--text-dim); font-size:15.5px">
+      The self-signed certificate is not a flourish: macOS ties a permission to the
+      binary's signature, and with an ad-hoc one every rebuild would quietly make you grant
+      Accessibility all over again.
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 · MIT licensed</span>
+    <a href="https://github.com/nicolorisitano82/DockWidget">Repository</a>
+    <a href="https://github.com/nicolorisitano82/DockWidget/issues">Report or propose</a>
+    <span style="margin-left:auto">Made with AppKit, and a fair number of Dock restarts.</span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

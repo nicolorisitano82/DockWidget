@@ -36,11 +36,11 @@ final class ClockTileView: TileView {
 
     private func rebuildFormatters() {
         timeFormatter.locale = .autoupdatingCurrent
-        timeFormatter.timeZone = .autoupdatingCurrent
+        timeFormatter.timeZone = settings.timeZone
         timeFormatter.dateFormat = settings.timeFormat()
 
         dateFormatter.locale = .autoupdatingCurrent
-        dateFormatter.timeZone = .autoupdatingCurrent
+        dateFormatter.timeZone = settings.timeZone
         dateFormatter.setLocalizedDateFormatFromTemplate("EEE d")
     }
 

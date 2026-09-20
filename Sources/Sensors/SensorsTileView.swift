@@ -24,7 +24,7 @@ final class SensorsTileView: TileView {
     private func subscribe() {
         if let token { SensorSampler.shared.removeListener(token) }
         SensorSampler.shared.setInterval(settings.refresh)
-        token = SensorSampler.shared.addListener(for: [settings.tileSensor]) { [weak self] in
+        token = SensorSampler.shared.addListener(for: [settings.effectiveTileSensor]) { [weak self] in
             self?.needsDisplay = true
         }
     }
@@ -32,8 +32,8 @@ final class SensorsTileView: TileView {
     /// What the tile shows now, so a plug-in can skip a redraw that would paint
     /// the same pixels.
     var renderToken: String {
-        let reading = SensorSampler.shared.reading(settings.tileSensor)
-        return "\(settings.tileSensor.rawValue)|\(reading.text)|\(Int((reading.fraction ?? 0) * 100))"
+        let reading = SensorSampler.shared.reading(settings.effectiveTileSensor)
+        return "\(settings.effectiveTileSensor.rawValue)|\(reading.text)|\(Int((reading.fraction ?? 0) * 100))"
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -42,7 +42,7 @@ final class SensorsTileView: TileView {
         let card = drawCard()
         let palette = self.palette
         let side = card.width
-        let reading = SensorSampler.shared.reading(settings.tileSensor)
+        let reading = SensorSampler.shared.reading(settings.effectiveTileSensor)
 
         let ringBox = card.insetBy(dx: side * 0.14, dy: side * 0.14)
         if let fraction = reading.fraction {
@@ -51,11 +51,11 @@ final class SensorsTileView: TileView {
         } else if settings.showsSparkline {
             let line = NSRect(x: card.minX + side * 0.16, y: card.midY - side * 0.30,
                               width: card.width - side * 0.32, height: side * 0.22)
-            SensorGauge.sparkline(in: line, samples: SensorSampler.shared.trend(settings.tileSensor),
+            SensorGauge.sparkline(in: line, samples: SensorSampler.shared.trend(settings.effectiveTileSensor),
                                   color: palette.accent)
         }
 
-        SensorGauge.symbol(settings.tileSensor.symbol,
+        SensorGauge.symbol(settings.effectiveTileSensor.symbol,
                            in: NSRect(x: card.midX - side * 0.10, y: card.midY + side * 0.12,
                                       width: side * 0.20, height: side * 0.16),
                            color: palette.secondary)

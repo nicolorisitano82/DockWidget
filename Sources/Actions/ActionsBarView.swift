@@ -125,7 +125,7 @@ final class ActionsBarView: BarContentView {
         title.isEnabled = false
         menu.addItem(title)
         menu.addItem(.separator())
-        let configure = NSMenuItem(title: "Configura…", action: #selector(configure), keyEquivalent: "")
+        let configure = NSMenuItem(title: T("Configura…", "Configure…"), action: #selector(configure), keyEquivalent: "")
         configure.target = self
         menu.addItem(configure)
         NSMenu.popUpContextMenu(menu, with: event, for: self)

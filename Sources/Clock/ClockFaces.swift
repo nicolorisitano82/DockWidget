@@ -10,11 +10,14 @@ struct ClockFaceContext {
     let timeText: String
     let dateText: String
 
+    /// Carries the chosen zone, so a face never reaches for Calendar.current.
+    var calendar: Calendar { settings.calendar }
+
     var side: CGFloat { card.width }
     var centre: NSPoint { NSPoint(x: card.midX, y: card.midY) }
 
     var parts: (hours: CGFloat, minutes: CGFloat, seconds: CGFloat) {
-        let components = Calendar.current.dateComponents([.hour, .minute, .second], from: date)
+        let components = calendar.dateComponents([.hour, .minute, .second], from: date)
         let seconds = CGFloat(components.second ?? 0)
         let minutes = CGFloat(components.minute ?? 0) + seconds / 60
         let hours = CGFloat((components.hour ?? 0) % 12) + minutes / 60
@@ -172,7 +175,7 @@ struct FlipFace: ClockFace {
         let palette = context.palette
         let card = context.card
         let side = context.side
-        let components = Calendar.current.dateComponents([.hour, .minute], from: context.date)
+        let components = context.calendar.dateComponents([.hour, .minute], from: context.date)
 
         let hour24 = components.hour ?? 0
         let showsAmPm = context.settings.hourFormat == .h12
@@ -287,6 +290,86 @@ struct MinimalFace: ClockFace {
                                   .foregroundColor: palette.secondary,
                                   .kern: side * 0.006,
                               ])
+        }
+    }
+}
+
+/// The time spelled out, the way you would say it.
+///
+/// A real word clock is a grid with the unused words dimmed; at Dock size that
+/// grid is unreadable, so only the lit words are drawn.
+struct WordFace: ClockFace {
+    private static let hours = ["dodici", "una", "due", "tre", "quattro", "cinque",
+                                "sei", "sette", "otto", "nove", "dieci", "undici"]
+
+    func draw(_ context: ClockFaceContext) {
+        let palette = context.palette
+        let side = context.side
+        let card = context.card
+
+        let components = context.calendar.dateComponents([.hour, .minute], from: context.date)
+        let hour24 = components.hour ?? 0
+        let minute = components.minute ?? 0
+
+        // Italian says "le dieci e venti" up to the half hour and "le undici
+        // meno venti" after it, so past the half the hour rolls forward.
+        let rounded = Int((Double(minute) / 5).rounded()) * 5
+        let pastHalf = rounded > 30
+        let displayHour = (hour24 + (pastHalf ? 1 : 0)) % 12
+        let hourWord = Self.hours[displayHour]
+
+        let minuteWord: String
+        switch rounded {
+        case 0, 60: minuteWord = "in punto"
+        case 15: minuteWord = "e un quarto"
+        case 30: minuteWord = "e mezza"
+        case 45: minuteWord = "meno un quarto"
+        case let value where value < 30: minuteWord = "e \(Self.spell(value))"
+        default: minuteWord = "meno \(Self.spell(60 - value(of: rounded)))"
+        }
+
+        let isOne = displayHour == 1
+        let lines = [isOne ? "è l'" : "sono le", hourWord, minuteWord]
+        let weights: [NSFont.Weight] = [.medium, .bold, .medium]
+        let colors = [palette.secondary, palette.primary, palette.accent]
+        let sizes: [CGFloat] = [0.13, 0.19, 0.13]
+
+        var y = card.midY + side * (context.settings.showsDate ? 0.20 : 0.15)
+        for (index, line) in lines.enumerated() {
+            let height = side * sizes[index] * 1.5
+            y -= height
+            let text = line.uppercased() as NSString
+            let font = ClockDrawing.fittedFont(for: text, maxWidth: card.width * 0.86,
+                                               startingAt: side * sizes[index], weight: weights[index])
+            text.drawCentered(in: NSRect(x: card.minX, y: y, width: card.width, height: height),
+                              attributes: [.font: font, .foregroundColor: colors[index],
+                                           .kern: side * 0.004])
+        }
+
+        guard context.settings.showsDate else { return }
+        let date = context.dateText.uppercased() as NSString
+        date.drawCentered(in: NSRect(x: card.minX, y: card.minY + side * 0.07,
+                                     width: card.width, height: side * 0.14),
+                          attributes: [
+                              .font: NSFont.roundedSystemFont(ofSize: side * 0.095, weight: .semibold),
+                              .foregroundColor: palette.secondary,
+                              .kern: side * 0.006,
+                          ])
+    }
+
+    private func value(of rounded: Int) -> Int { rounded }
+
+    private static func spell(_ minutes: Int) -> String {
+        switch minutes {
+        case 5: return "cinque"
+        case 10: return "dieci"
+        case 20: return "venti"
+        case 25: return "venticinque"
+        case 35: return "venticinque"
+        case 40: return "venti"
+        case 50: return "dieci"
+        case 55: return "cinque"
+        default: return "\(minutes)"
         }
     }
 }

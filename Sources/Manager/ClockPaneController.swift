@@ -22,21 +22,28 @@ final class ClockPaneController: PaneViewController {
         style.selectItem(at: ClockSettings.Style.allCases.firstIndex(of: model.value.style) ?? 0)
         style.target = self
         style.action = #selector(styleChanged)
-        stack.addArrangedSubview(labeled("Quadrante", style))
+        stack.addArrangedSubview(labeled(T("Quadrante", "Face"), style))
 
         let format = NSPopUpButton()
         format.addItems(withTitles: ClockSettings.HourFormat.allCases.map(\.label))
         format.selectItem(at: ClockSettings.HourFormat.allCases.firstIndex(of: model.value.hourFormat) ?? 0)
         format.target = self
         format.action = #selector(formatChanged)
-        stack.addArrangedSubview(labeled("Formato", format))
+        stack.addArrangedSubview(labeled(T("Formato", "Format"), format))
 
-        stack.addArrangedSubview(labeled("", checkbox("Mostra i secondi", isOn: model.value.showsSeconds,
+        let zone = NSPopUpButton()
+        zone.addItems(withTitles: ClockZones.all.map(\.label))
+        zone.selectItem(at: ClockZones.all.firstIndex { $0.identifier == model.value.timeZoneID } ?? 0)
+        zone.target = self
+        zone.action = #selector(zoneChanged)
+        stack.addArrangedSubview(labeled(T("Fuso orario", "Time zone"), zone))
+
+        stack.addArrangedSubview(labeled("", checkbox(T("Mostra i secondi", "Show seconds"), isOn: model.value.showsSeconds,
                                                       action: #selector(secondsChanged))))
-        stack.addArrangedSubview(labeled("", checkbox("Mostra la data", isOn: model.value.showsDate,
+        stack.addArrangedSubview(labeled("", checkbox(T("Mostra la data", "Show the date"), isOn: model.value.showsDate,
                                                       action: #selector(dateChanged))))
 
-        stack.addArrangedSubview(sectionTitle("Colore"))
+        stack.addArrangedSubview(sectionTitle(T("Colore", "Colour")))
         let swatches = AccentSwatchView(selectedHex: model.value.accentHex)
         swatches.onSelect = { [weak self] hex in
             self?.model.value.accentHex = hex
@@ -52,6 +59,11 @@ final class ClockPaneController: PaneViewController {
 
     @objc private func formatChanged(_ sender: NSPopUpButton) {
         model.value.hourFormat = ClockSettings.HourFormat.allCases[sender.indexOfSelectedItem]
+        reloadTile()
+    }
+
+    @objc private func zoneChanged(_ sender: NSPopUpButton) {
+        model.value.timeZoneID = ClockZones.all[sender.indexOfSelectedItem].identifier
         reloadTile()
     }
 

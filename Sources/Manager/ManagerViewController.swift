@@ -25,7 +25,7 @@ final class ManagerViewController: NSViewController {
         sidebar.edgeInsets = NSEdgeInsets(top: 16, left: 10, bottom: 12, right: 10)
         sidebar.translatesAutoresizingMaskIntoConstraints = false
 
-        let heading = NSTextField(labelWithString: "WIDGET")
+        let heading = NSTextField(labelWithString: T("WIDGET", "WIDGETS"))
         heading.font = .systemFont(ofSize: 10, weight: .semibold)
         heading.textColor = .tertiaryLabelColor
         sidebar.addArrangedSubview(heading)
@@ -40,7 +40,7 @@ final class ManagerViewController: NSViewController {
 
         sidebar.addArrangedSubview(NSView())
         let hint = NSTextField(wrappingLabelWithString:
-            "Attivando o disattivando un widget il Dock si riavvia: è l'unico modo per fargli rileggere le sue preferenze.")
+            T("Attivando o disattivando un widget il Dock si riavvia: è l'unico modo per fargli rileggere le sue preferenze.", "Turning a widget on or off restarts the Dock: it is the only way to make it re-read its preferences."))
         hint.font = .systemFont(ofSize: 10)
         hint.textColor = .tertiaryLabelColor
         hint.preferredMaxLayoutWidth = 196
@@ -58,7 +58,7 @@ final class ManagerViewController: NSViewController {
 
         dockSwitch.target = self
         dockSwitch.action = #selector(toggleInstalled)
-        let switchLabel = NSTextField(labelWithString: "Nel Dock")
+        let switchLabel = NSTextField(labelWithString: T("Nel Dock", "In the Dock"))
         switchLabel.font = .systemFont(ofSize: 12, weight: .medium)
 
         let headerRow = NSStackView(views: [titleLabel, NSView(), switchLabel, dockSwitch])
@@ -163,8 +163,11 @@ final class ManagerViewController: NSViewController {
         if dockSwitch.state == .on, !isInstalledInApplications {
             dockSwitch.state = .off
             let alert = NSAlert()
-            alert.messageText = "Sposta prima Dock Widgets in Applicazioni"
-            alert.informativeText = "Questa copia gira da \(Bundle.main.bundleURL.deletingLastPathComponent().path). Il Dock punterebbe lì, e quella cartella viene ricreata a ogni compilazione: la tile resterebbe orfana."
+            alert.messageText = T("Sposta prima Dock Widgets in Applicazioni", "Move Dock Widgets to Applications first")
+            let folder = Bundle.main.bundleURL.deletingLastPathComponent().path
+            alert.informativeText = T(
+                "Questa copia gira da \(folder). Il Dock punterebbe lì, e quella cartella viene ricreata a ogni compilazione: la tile resterebbe orfana.",
+                "This copy runs from \(folder). The Dock would point there, and that folder is rebuilt on every compile: the tile would be left orphaned.")
             alert.runModal()
             return
         }

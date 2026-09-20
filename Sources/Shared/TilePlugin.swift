@@ -47,7 +47,7 @@ class TilePlugin: NSObject, NSDockTilePlugIn {
         if menu.numberOfItems > 0 {
             menu.addItem(.separator())
         }
-        let settings = NSMenuItem(title: "Impostazioni…", action: #selector(openSettings), keyEquivalent: "")
+        let settings = NSMenuItem(title: T("Impostazioni…", "Settings…"), action: #selector(openSettings), keyEquivalent: "")
         settings.target = self
         menu.addItem(settings)
         return menu

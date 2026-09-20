@@ -81,7 +81,8 @@ struct DiskReader: SensorReader {
         let used = Double(total) - Double(free)
         let fraction = min(max(used / Double(total), 0), 1)
         return Reading(fraction: fraction, text: SensorFormat.percent(fraction),
-                       caption: "\(SensorFormat.bytes(Double(free))) liberi")
+                       caption: T("\(SensorFormat.bytes(Double(free))) liberi",
+                                  "\(SensorFormat.bytes(Double(free))) free"))
     }
 }
 
@@ -111,7 +112,7 @@ struct NetworkReader: SensorReader {
         let now = Date()
         defer { previous = (input, output, now) }
         guard let previous else {
-            return Reading(fraction: nil, text: "—", caption: "Rete")
+            return Reading(fraction: nil, text: "—", caption: T("Rete", "Network"))
         }
         let elapsed = max(now.timeIntervalSince(previous.at), 0.001)
         let down = max(input - previous.input, 0) / elapsed
@@ -138,13 +139,13 @@ struct BatteryReader: SensorReader {
 
             let fraction = min(max(Double(current) / Double(maximum), 0), 1)
             let charging = description[kIOPSIsChargingKey] as? Bool ?? false
-            var caption = charging ? "In carica" : "A batteria"
+            var caption = charging ? T("In carica", "Charging") : T("A batteria", "On battery")
             if let minutes = description[kIOPSTimeToEmptyKey] as? Int, minutes > 0, !charging {
                 caption = "\(minutes / 60)h \(minutes % 60)m"
             }
             return Reading(fraction: fraction, text: SensorFormat.percent(fraction), caption: caption)
         }
-        return Reading(fraction: nil, text: "—", caption: "Nessuna batteria")
+        return Reading(fraction: nil, text: "—", caption: T("Nessuna batteria", "No battery"))
     }
 }
 
@@ -176,7 +177,7 @@ struct PowerReader: SensorReader {
         let charging = milliamps > 0
         return Reading(fraction: min(watts / 60, 1),
                        text: SensorFormat.watts(watts),
-                       caption: charging ? "in carica" : "assorbiti")
+                       caption: charging ? T("in carica", "charging") : T("assorbiti", "drawn"))
     }
 }
 
@@ -187,10 +188,10 @@ struct ThermalReader: SensorReader {
 
     mutating func read() -> Reading {
         switch ProcessInfo.processInfo.thermalState {
-        case .nominal: return Reading(fraction: 0.15, text: "OK", caption: "nominale")
-        case .fair: return Reading(fraction: 0.45, text: "Tiepido", caption: "discreto")
-        case .serious: return Reading(fraction: 0.75, text: "Caldo", caption: "serio")
-        case .critical: return Reading(fraction: 1.0, text: "Critico", caption: "critico")
+        case .nominal: return Reading(fraction: 0.15, text: T("OK", "OK"), caption: T("nominale", "nominal"))
+        case .fair: return Reading(fraction: 0.45, text: T("Tiepido", "Warm"), caption: T("discreto", "fair"))
+        case .serious: return Reading(fraction: 0.75, text: T("Caldo", "Hot"), caption: T("serio", "serious"))
+        case .critical: return Reading(fraction: 1.0, text: T("Critico", "Critical"), caption: T("critico", "critical"))
         @unknown default: return .unavailable
         }
     }

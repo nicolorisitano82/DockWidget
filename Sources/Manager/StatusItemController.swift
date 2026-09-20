@@ -35,18 +35,18 @@ final class StatusItemController {
         menu.delegate = MenuRefresher.shared
         MenuRefresher.shared.controller = self
 
-        let open = NSMenuItem(title: "Apri Dock Widgets", action: #selector(openManager), keyEquivalent: "")
+        let open = NSMenuItem(title: T("Apri Dock Widgets", "Open Dock Widgets"), action: #selector(openManager), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
-        let login = NSMenuItem(title: "Apri al login", action: #selector(toggleLogin(_:)), keyEquivalent: "")
+        let login = NSMenuItem(title: T("Apri al login", "Open at login"), action: #selector(toggleLogin(_:)), keyEquivalent: "")
         login.target = self
         login.tag = loginItemTag
         login.state = LoginItem.isEnabled ? .on : .off
         menu.addItem(login)
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Esci e libera il Dock", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: T("Esci e libera il Dock", "Quit and free the Dock"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
         return menu
@@ -58,7 +58,7 @@ final class StatusItemController {
         for item in menu.items {
             if item.tag == loginItemTag {
                 item.state = LoginItem.isEnabled ? .on : .off
-                item.title = LoginItem.needsApproval ? "Apri al login (da approvare)" : "Apri al login"
+                item.title = LoginItem.needsApproval ? T("Apri al login (da approvare)", "Open at login (needs approval)") : T("Apri al login", "Open at login")
             }
         }
     }

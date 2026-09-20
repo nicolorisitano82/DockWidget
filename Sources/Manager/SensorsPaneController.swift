@@ -25,7 +25,7 @@ final class SensorsPaneController: PaneViewController {
                                       trackingMode: .selectOne,
                                       target: self, action: #selector(modeChanged))
         mode.selectedSegment = SensorsSettings.Mode.allCases.firstIndex(of: settings.mode) ?? 0
-        stack.addArrangedSubview(labeled("Formato", mode))
+        stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
 
         if settings.mode == .tile {
             let sensor = NSPopUpButton()
@@ -33,7 +33,7 @@ final class SensorsPaneController: PaneViewController {
             sensor.selectItem(at: SensorID.available.firstIndex(of: settings.tileSensor) ?? 0)
             sensor.target = self
             sensor.action = #selector(tileSensorChanged)
-            stack.addArrangedSubview(labeled("Sensore", sensor))
+            stack.addArrangedSubview(labeled(T("Sensore", "Sensor"), sensor))
         } else {
             let spec = BarLayout.sensors
             let width = NSStepper()
@@ -43,12 +43,13 @@ final class SensorsPaneController: PaneViewController {
             width.integerValue = spec.spacerCount
             width.target = self
             width.action = #selector(widthChanged)
-            let label = NSTextField(labelWithString: "\(spec.spacerCount + 1) sensori")
+            let label = NSTextField(labelWithString: T("\(spec.spacerCount + 1) sensori",
+                                                   "\(spec.spacerCount + 1) sensors"))
             widthField = label
             let row = NSStackView(views: [width, label])
             row.orientation = .horizontal
             row.spacing = 8
-            stack.addArrangedSubview(labeled("Larghezza", row))
+            stack.addArrangedSubview(labeled(T("Larghezza", "Width"), row))
 
             let rows = NSStackView()
             rows.orientation = .vertical
@@ -60,16 +61,16 @@ final class SensorsPaneController: PaneViewController {
         }
 
         let refresh = NSPopUpButton()
-        refresh.addItems(withTitles: ["1 secondo", "2 secondi", "5 secondi"])
+        refresh.addItems(withTitles: [T("1 secondo", "1 second"), T("2 secondi", "2 seconds"), T("5 secondi", "5 seconds")])
         refresh.selectItem(at: [1.0, 2.0, 5.0].firstIndex(of: settings.refresh) ?? 1)
         refresh.target = self
         refresh.action = #selector(refreshChanged)
-        stack.addArrangedSubview(labeled("Aggiornamento", refresh))
+        stack.addArrangedSubview(labeled(T("Aggiornamento", "Refresh"), refresh))
 
-        stack.addArrangedSubview(checkbox("Mostra l'andamento", isOn: settings.showsSparkline,
+        stack.addArrangedSubview(checkbox(T("Mostra l'andamento", "Show the trend"), isOn: settings.showsSparkline,
                                           action: #selector(sparklineChanged)))
 
-        stack.addArrangedSubview(sectionTitle("Colore"))
+        stack.addArrangedSubview(sectionTitle(T("Colore", "Colour")))
         let swatches = AccentSwatchView(selectedHex: settings.accentHex)
         swatches.onSelect = { [weak self] hex in
             guard let self else { return }
@@ -95,7 +96,7 @@ final class SensorsPaneController: PaneViewController {
             popup.tag = index
             popup.target = self
             popup.action = #selector(barSensorChanged)
-            barRows.addArrangedSubview(labeled("Cella \(index + 1)", popup))
+            barRows.addArrangedSubview(labeled(T("Cella \(index + 1)", "Cell \(index + 1)"), popup))
         }
     }
 
@@ -134,7 +135,7 @@ final class SensorsPaneController: PaneViewController {
         let count = min(max(sender.integerValue, spec.minimumSpacers), spec.maximumSpacers)
         sender.integerValue = count
         SettingsStore.shared.set(Double(count), for: spec.spacerCountKey)
-        widthField?.stringValue = "\(count + 1) sensori"
+        widthField?.stringValue = T("\(count + 1) sensori", "\(count + 1) sensors")
         rebuildBarRows()
         WidgetInstaller.applyBarMode(for: "sensors")
         reloadTile()

@@ -10,7 +10,7 @@ enum ActionKind: Codable, Equatable {
 
     var summary: String {
         switch self {
-        case .none: return "Nessuna azione"
+        case .none: return T("Nessuna azione", "No action")
         case .app(let path): return URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         case .open(let target): return target
         case .shortcut(let name): return name
@@ -25,14 +25,14 @@ enum SystemAction: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .lockScreen: return "Blocca lo schermo"
-        case .sleep: return "Sospendi"
-        case .screenSaver: return "Salvaschermo"
-        case .missionControl: return "Mission Control"
-        case .showDesktop: return "Mostra la scrivania"
-        case .emptyTrash: return "Svuota il cestino"
-        case .playPause: return "Play / Pausa"
-        case .screenshot: return "Screenshot di un'area"
+        case .lockScreen: return T("Blocca lo schermo", "Lock the screen")
+        case .sleep: return T("Sospendi", "Sleep")
+        case .screenSaver: return T("Salvaschermo", "Screen saver")
+        case .missionControl: return T("Mission Control", "Mission Control")
+        case .showDesktop: return T("Mostra la scrivania", "Show the desktop")
+        case .emptyTrash: return T("Svuota il cestino", "Empty the Trash")
+        case .playPause: return T("Play / Pausa", "Play / Pause")
+        case .screenshot: return T("Screenshot di un'area", "Screenshot of an area")
         }
     }
 }

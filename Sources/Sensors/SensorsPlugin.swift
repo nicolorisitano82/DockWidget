@@ -29,8 +29,8 @@ final class SensorsDockTilePlugin: TilePlugin {
     }
 
     override func customMenuItems() -> [NSMenuItem] {
-        let reading = SensorSampler.shared.reading(SensorsSettings.current.tileSensor)
-        let item = NSMenuItem(title: "\(SensorsSettings.current.tileSensor.label): \(reading.text)",
+        let reading = SensorSampler.shared.reading(SensorsSettings.current.effectiveTileSensor)
+        let item = NSMenuItem(title: "\(SensorsSettings.current.effectiveTileSensor.label): \(reading.text)",
                               action: nil, keyEquivalent: "")
         item.isEnabled = false
         return [item]

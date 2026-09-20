@@ -40,7 +40,7 @@ final class NowPlayingPaneController: PaneViewController {
             action: #selector(modeChanged)
         )
         mode.selectedSegment = NowPlayingSettings.Mode.allCases.firstIndex(of: model.value.mode) ?? 0
-        stack.addArrangedSubview(labeled("Formato", mode))
+        stack.addArrangedSubview(labeled(T("Formato", "Format"), mode))
 
         let spec = BarLayout.nowPlaying
         let width = NSStepper()
@@ -54,7 +54,7 @@ final class NowPlayingPaneController: PaneViewController {
         let widthRow = NSStackView(views: [width, widthField!])
         widthRow.orientation = .horizontal
         widthRow.spacing = 8
-        widthRowView = labeled("Larghezza", widthRow)
+        widthRowView = labeled(T("Larghezza", "Width"), widthRow)
         stack.addArrangedSubview(widthRowView!)
 
         accessibilityNote = NSTextField(wrappingLabelWithString: "")
@@ -63,14 +63,14 @@ final class NowPlayingPaneController: PaneViewController {
         accessibilityNote!.preferredMaxLayoutWidth = 392
         stack.addArrangedSubview(accessibilityNote!)
 
-        stack.addArrangedSubview(checkbox("Mostra la copertina", isOn: model.value.showsArtwork,
+        stack.addArrangedSubview(checkbox(T("Mostra la copertina", "Show the cover"), isOn: model.value.showsArtwork,
                                           action: #selector(artworkChanged)))
-        stack.addArrangedSubview(checkbox("Mostra l'avanzamento", isOn: model.value.showsProgress,
+        stack.addArrangedSubview(checkbox(T("Mostra l'avanzamento", "Show progress"), isOn: model.value.showsProgress,
                                           action: #selector(progressChanged)))
-        stack.addArrangedSubview(checkbox("Attenua in pausa", isOn: model.value.dimsWhenPaused,
+        stack.addArrangedSubview(checkbox(T("Attenua in pausa", "Dim when paused"), isOn: model.value.dimsWhenPaused,
                                           action: #selector(dimChanged)))
 
-        stack.addArrangedSubview(sectionTitle("Colore"))
+        stack.addArrangedSubview(sectionTitle(T("Colore", "Colour")))
         let swatches = AccentSwatchView(selectedHex: model.value.accentHex)
         swatches.onSelect = { [weak self] hex in
             self?.model.value.accentHex = hex
@@ -78,7 +78,7 @@ final class NowPlayingPaneController: PaneViewController {
         }
         stack.addArrangedSubview(swatches)
 
-        stack.addArrangedSubview(sectionTitle("Sorgente"))
+        stack.addArrangedSubview(sectionTitle(T("Sorgente", "Source")))
         let channel = NSTextField(labelWithString: "—")
         channel.font = .systemFont(ofSize: 12, weight: .medium)
         channelLabel = channel
@@ -91,7 +91,7 @@ final class NowPlayingPaneController: PaneViewController {
         stack.addArrangedSubview(track)
 
         let note = NSTextField(wrappingLabelWithString:
-            "MediaRemote risponde solo ai processi di cui il sistema si fida: questa finestra di solito no, la tile nel Dock sì, perché la carica un processo firmato da Apple. Senza MediaRemote restano gli annunci di Music e Spotify: titolo e artista, niente copertina né controlli.")
+            T("MediaRemote risponde solo ai processi di cui il sistema si fida: questa finestra di solito no, la tile nel Dock sì, perché la carica un processo firmato da Apple. Senza MediaRemote restano gli annunci di Music e Spotify: titolo e artista, niente copertina né controlli.", "MediaRemote only answers processes the system trusts. This window usually is not one; the tile in the Dock is, because an Apple-signed process loads it. Without MediaRemote what is left are the announcements Music and Spotify broadcast: title and artist, no cover art and no controls."))
         note.font = .systemFont(ofSize: 11)
         note.textColor = .secondaryLabelColor
         note.preferredMaxLayoutWidth = 392
@@ -115,7 +115,9 @@ final class NowPlayingPaneController: PaneViewController {
 
     private func widthLabel(for count: Int) -> String {
         let spec = BarLayout.nowPlaying
-        return count == spec.minimumSpacers ? "\(count) spazi (minimo)" : "\(count) spazi"
+        return count == spec.minimumSpacers
+            ? T("\(count) spazi (minimo)", "\(count) spaces (minimum)")
+            : T("\(count) spazi", "\(count) spaces")
     }
 
     private func applyMode() {
@@ -134,24 +136,24 @@ final class NowPlayingPaneController: PaneViewController {
         }
         note.isHidden = false
         note.stringValue = DockAccessibility.isTrusted
-            ? "La barra segue le tile vuote nel Dock e cresce con la magnification."
-            : "Serve l'accesso Accessibilità: la barra lo chiede al primo avvio, in Impostazioni di Sistema → Privacy e sicurezza → Accessibilità."
+            ? T("La barra segue le tile vuote nel Dock e cresce con la magnification.", "The bar follows the empty tiles in the Dock and grows with the magnification.")
+            : T("Serve l'accesso Accessibilità: la barra lo chiede al primo avvio, in Impostazioni di Sistema → Privacy e sicurezza → Accessibilità.", "Accessibility access is needed: the bar asks for it on first launch, in System Settings → Privacy & Security → Accessibility.")
     }
 
     private func updateSourceLabels() {
         let source = NowPlayingSource.shared
         let state = source.state
         if source.mediaRemoteAnswered {
-            channelLabel?.stringValue = "MediaRemote — metadati completi"
+            channelLabel?.stringValue = T("MediaRemote — metadati completi", "MediaRemote — full metadata")
         } else if state.origin == .broadcast {
-            channelLabel?.stringValue = "Annunci Music / Spotify"
+            channelLabel?.stringValue = T("Annunci Music / Spotify", "Music / Spotify announcements")
         } else {
-            channelLabel?.stringValue = "In attesa di un brano"
+            channelLabel?.stringValue = T("In attesa di un brano", "Waiting for a track")
         }
         if state.hasTrack {
             trackLabel?.stringValue = [state.title, state.artist].compactMap { $0 }.joined(separator: " — ")
         } else {
-            trackLabel?.stringValue = "Nessuna riproduzione in corso"
+            trackLabel?.stringValue = T("Nessuna riproduzione in corso", "Nothing playing")
         }
     }
 
