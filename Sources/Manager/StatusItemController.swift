@@ -54,6 +54,18 @@ final class StatusItemController {
         menu.addItem(login)
 
         menu.addItem(.separator())
+        let updates = NSMenuItem(title: T("Cerca aggiornamenti…", "Check for updates…"),
+                                 action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        menu.addItem(updates)
+
+        let automatic = NSMenuItem(title: T("Controlla ogni giorno", "Look every day"),
+                                   action: #selector(toggleAutomaticUpdates(_:)), keyEquivalent: "")
+        automatic.target = self
+        automatic.state = SettingsStore.shared.bool(Updates.Key.automatic, or: true) ? .on : .off
+        menu.addItem(automatic)
+        menu.addItem(.separator())
+
         let quit = NSMenuItem(title: T("Esci e libera il Dock", "Quit and free the Dock"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
@@ -91,6 +103,16 @@ final class StatusItemController {
 
     @objc private func openManager() {
         onOpen(nil)
+    }
+
+    @objc private func checkForUpdates() {
+        UpdateController.shared.checkForUpdates(nil)
+    }
+
+    @objc private func toggleAutomaticUpdates(_ sender: NSMenuItem) {
+        let wanted = sender.state != .on
+        sender.state = wanted ? .on : .off
+        SettingsStore.shared.set(wanted, for: Updates.Key.automatic)
     }
 
     @objc private func quit() {
