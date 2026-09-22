@@ -2,7 +2,7 @@ import AppKit
 
 struct ClockSettings: Equatable {
     enum Style: String, CaseIterable {
-        case analog, digital, flip, rings, minimal, word
+        case analog, digital, flip, rings, minimal, word, binary, day, matrix
 
         var label: String {
             switch self {
@@ -12,6 +12,9 @@ struct ClockSettings: Equatable {
             case .rings: return T("Anelli", "Rings")
             case .minimal: return T("Minimale", "Minimal")
             case .word: return T("A parole", "In words")
+            case .binary: return T("Binario", "Binary")
+            case .day: return T("Giornata", "The day")
+            case .matrix: return T("Tabellone", "Board")
             }
         }
 
@@ -23,6 +26,9 @@ struct ClockSettings: Equatable {
             case .rings: return RingsFace()
             case .minimal: return MinimalFace()
             case .word: return WordFace()
+            case .binary: return BinaryFace()
+            case .day: return DayFace()
+            case .matrix: return MatrixFace()
             }
         }
     }

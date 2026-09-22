@@ -380,3 +380,161 @@ struct WordFace: ClockFace {
         }
     }
 }
+
+// MARK: - Binary
+
+/// The time in binary: a column per digit, a dot per bit, lit from the bottom.
+///
+/// Unreadable at a glance and that is rather the point — but it is honest about
+/// the time, and at a Dock tile's size the pattern alone tells you the minute
+/// has changed.
+struct BinaryFace: ClockFace {
+    func draw(_ context: ClockFaceContext) {
+        let palette = context.palette
+        let card = context.card
+        let side = context.side
+
+        let components = context.calendar.dateComponents([.hour, .minute, .second],
+                                                         from: context.date)
+        var hour = components.hour ?? 0
+        if context.settings.hourFormat == .h12 { hour = hour % 12 == 0 ? 12 : hour % 12 }
+        let digits = context.settings.showsSeconds
+            ? [hour / 10, hour % 10, (components.minute ?? 0) / 10, (components.minute ?? 0) % 10,
+               (components.second ?? 0) / 10, (components.second ?? 0) % 10]
+            : [hour / 10, hour % 10, (components.minute ?? 0) / 10, (components.minute ?? 0) % 10]
+
+        let columns = CGFloat(digits.count)
+        let plot = card.insetBy(dx: side * 0.14, dy: side * 0.18)
+        let step = plot.width / columns
+        let dot = min(step * 0.42, plot.height * 0.11)
+
+        for (index, digit) in digits.enumerated() {
+            let x = plot.minX + step * (CGFloat(index) + 0.5)
+            // Four bits is enough for a decimal digit; the top one is only ever
+            // needed by the eights.
+            for bit in 0..<4 {
+                let lit = digit & (1 << bit) != 0
+                let y = plot.minY + dot * 1.1 + CGFloat(bit) * (dot * 2.6)
+                let box = NSRect(x: x - dot, y: y - dot, width: dot * 2, height: dot * 2)
+                (lit ? palette.accent : palette.faint).setFill()
+                NSBezierPath(ovalIn: box).fill()
+            }
+        }
+    }
+}
+
+// MARK: - Twenty-four hours
+
+/// One hand, one turn a day: noon at the top, midnight at the bottom, and the
+/// night drawn in so the hour is read as a position in the day rather than a
+/// number.
+struct DayFace: ClockFace {
+    func draw(_ context: ClockFaceContext) {
+        let palette = context.palette
+        let side = context.side
+        let centre = context.centre
+        let radius = side * 0.40
+
+        // The dark half, from six in the evening to six in the morning.
+        let night = NSBezierPath()
+        night.move(to: centre)
+        night.appendArc(withCenter: centre, radius: radius, startAngle: 180, endAngle: 360)
+        night.close()
+        palette.faint.setFill()
+        night.fill()
+
+        let rim = NSBezierPath(ovalIn: NSRect(x: centre.x - radius, y: centre.y - radius,
+                                              width: radius * 2, height: radius * 2))
+        rim.lineWidth = max(1, side * 0.014)
+        palette.cardEdge.setStroke()
+        rim.stroke()
+
+        // A tick every three hours, longer at noon and midnight.
+        for index in 0..<8 {
+            let angle = CGFloat(index) * .pi / 4
+            let long = index % 4 == 0
+            let outer = radius * 0.96
+            let inner = radius * (long ? 0.78 : 0.88)
+            let from = NSPoint(x: centre.x + sin(angle) * inner, y: centre.y + cos(angle) * inner)
+            let to = NSPoint(x: centre.x + sin(angle) * outer, y: centre.y + cos(angle) * outer)
+            let tick = NSBezierPath()
+            tick.move(to: from)
+            tick.line(to: to)
+            tick.lineWidth = max(1, side * (long ? 0.022 : 0.013))
+            (long ? palette.secondary : palette.faint).setStroke()
+            tick.stroke()
+        }
+
+        let components = context.calendar.dateComponents([.hour, .minute], from: context.date)
+        let hours = CGFloat(components.hour ?? 0) + CGFloat(components.minute ?? 0) / 60
+        // Noon at the top: the day runs round once, not twice.
+        let angle = (hours - 12) / 24 * 2 * .pi
+        ClockDrawing.hand(from: centre, angle: angle, length: radius * 0.82,
+                          width: side * 0.032, color: palette.accent, tail: radius * 0.12)
+
+        let cap = side * 0.030
+        palette.primary.setFill()
+        NSBezierPath(ovalIn: NSRect(x: centre.x - cap, y: centre.y - cap,
+                                    width: cap * 2, height: cap * 2)).fill()
+    }
+}
+
+// MARK: - Dot matrix
+
+/// The time as a panel of lamps, the way a station board writes it.
+struct MatrixFace: ClockFace {
+    /// Five columns by seven rows per digit, which is the smallest grid a
+    /// number is still itself in.
+    private static let glyphs: [Character: [UInt8]] = [
+        "0": [0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110],
+        "1": [0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110],
+        "2": [0b01110, 0b10001, 0b00001, 0b00010, 0b00100, 0b01000, 0b11111],
+        "3": [0b11111, 0b00010, 0b00100, 0b00010, 0b00001, 0b10001, 0b01110],
+        "4": [0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010],
+        "5": [0b11111, 0b10000, 0b11110, 0b00001, 0b00001, 0b10001, 0b01110],
+        "6": [0b00110, 0b01000, 0b10000, 0b11110, 0b10001, 0b10001, 0b01110],
+        "7": [0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b01000, 0b01000],
+        "8": [0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b01110],
+        "9": [0b01110, 0b10001, 0b10001, 0b01111, 0b00001, 0b00010, 0b01100],
+        ":": [0b00000, 0b00100, 0b00100, 0b00000, 0b00100, 0b00100, 0b00000],
+    ]
+
+    func draw(_ context: ClockFaceContext) {
+        let palette = context.palette
+        let side = context.side
+        let components = context.calendar.dateComponents([.hour, .minute], from: context.date)
+        var hour = components.hour ?? 0
+        if context.settings.hourFormat == .h12 { hour = hour % 12 == 0 ? 12 : hour % 12 }
+        let text = String(format: "%02d:%02d", hour, components.minute ?? 0)
+
+        // Five columns a digit, one apart, and the colon is narrower.
+        let widths = text.map { $0 == ":" ? 3 : 5 }
+        let columns = widths.reduce(0, +) + (text.count - 1)
+        let plot = context.card.insetBy(dx: side * 0.10, dy: side * 0.22)
+        let cell = min(plot.width / CGFloat(columns), plot.height / 7)
+        let dot = cell * 0.38
+        let originX = plot.midX - cell * CGFloat(columns) / 2
+        let originY = plot.midY + cell * 3.5
+
+        var column = 0
+        for (index, character) in text.enumerated() {
+            guard let rows = Self.glyphs[character] else { continue }
+            let width = widths[index]
+            for (row, bits) in rows.enumerated() {
+                for bit in 0..<width {
+                    // The glyphs are five wide; a narrow character uses the
+                    // middle of them.
+                    let shift = width == 5 ? bit : bit + 1
+                    let lit = bits & (1 << (4 - shift)) != 0
+                    guard lit || context.settings.showsSeconds == false || true else { continue }
+                    let x = originX + cell * (CGFloat(column + bit) + 0.5)
+                    let y = originY - cell * (CGFloat(row) + 0.5)
+                    (lit ? palette.accent : palette.faint).setFill()
+                    NSBezierPath(ovalIn: NSRect(x: x - dot, y: y - dot,
+                                                width: dot * 2, height: dot * 2)).fill()
+                }
+            }
+            column += width + 1
+        }
+    }
+}
