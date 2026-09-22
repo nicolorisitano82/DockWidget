@@ -31,6 +31,11 @@
       This one doesn't: the widgets live in the real Dock, which keeps doing the layout,
       the magnification and the auto-hide. We only bring the content.
     </p>
+    <p class="lead">
+      And a second place to put them: a panel that comes down from the <a href="#notch">notch</a>,
+      with a strip of actions under it — one of which opens a
+      <a href="#notch">mirror</a> that takes a photograph using the screen as its flash.
+    </p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg">Download 1.3</a>
       <a class="btn quiet" href="https://github.com/nicolorisitano82/Underdock">Open the repository</a>
@@ -220,6 +225,43 @@
       meets the menu bar, the way the real notch does.
     </p>
 
+    <div class="notch-stage">
+      <div class="notch-bar">
+        <div class="menu-left"><span class="pill"></span><span class="pill short"></span></div>
+        <div class="menu-right"><span class="pill short"></span><span class="pill"></span></div>
+        <div class="notch-panel">
+          <div class="notch-row tall">
+            <div class="cover"></div>
+            <div class="lines">
+              <div class="line w70"></div>
+              <div class="line dim w45"></div>
+              <div class="line dim w90"></div>
+            </div>
+          </div>
+          <div class="notch-divider"></div>
+          <div class="notch-row">
+            <div class="glyph"></div>
+            <div class="lines"><div class="line dim w70"></div></div>
+            <div class="temp">18°</div>
+          </div>
+          <div class="notch-divider"></div>
+          <div class="notch-row">
+            <div class="lines">
+              <div class="line w45"></div>
+              <div class="line dim w70"></div>
+            </div>
+          </div>
+          <div class="notch-actions">
+            <i></i><i></i><i class="camera"></i><i></i><i></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="notch-hint">
+      Four slots: Now Playing has taken two of them, Weather and Appointments one each —
+      and under the lot, the strip of actions.
+    </p>
+
     <div class="notes">
       <div class="note">
         <div class="tag">Four slots</div>
@@ -242,6 +284,15 @@
       </div>
       <div class="note">
         <div class="tag">Mirror</div>
+        <div class="mirror-mock">
+          <div class="close"></div>
+          <div class="controls">
+            <span class="chip"></span>
+            <span class="chip"></span>
+            <span class="dot"></span>
+            <span class="track"><span></span></span>
+          </div>
+        </div>
         <p>
           A borderless window showing what the camera sees, centred and flipped, the way
           somebody looking at themselves expects. Pinch to zoom <em>towards the pointer</em>,

@@ -142,6 +142,182 @@ nav .ghost {
 .dock .tile.app-d { background: linear-gradient(160deg, #b06bff, #6f39d8); }
 .dock-hint { text-align: center; color: var(--text-faint); font-size: 13.5px; margin-top: 16px; }
 
+/* ---------- the toy notch, and the mirror ---------- */
+
+.notch-stage {
+  margin: 0 0 40px;
+  display: flex;
+  justify-content: center;
+  /* The panel hangs out of the bar, so the room it needs is made here. */
+  padding-bottom: 196px;
+}
+/* The strip of menu bar the panel hangs from, so the shape has something to
+   be a shape against. */
+.notch-bar {
+  width: min(680px, 100%);
+  border-radius: 14px 14px 10px 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--panel-edge);
+  height: 34px;
+  position: relative;
+}
+.notch-bar .menu-left,
+.notch-bar .menu-right {
+  position: absolute;
+  top: 14px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.notch-bar .menu-left { left: 18px; }
+.notch-bar .menu-right { right: 18px; }
+.notch-bar .pill {
+  width: 34px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.notch-bar .pill.short { width: 18px; }
+
+.notch-panel {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  background: #000;
+  border-radius: 0 0 20px 20px;
+  padding: 10px 14px 12px;
+  box-shadow: 0 26px 50px rgba(0, 0, 0, 0.6);
+}
+/* The two fillets, where the panel's edge meets the top of the screen: the arc
+   is the outer edge of the black, so it flares open instead of stepping out.
+   Same geometry the app draws. */
+.notch-panel::before,
+.notch-panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 13px;
+  height: 13px;
+}
+.notch-panel::before {
+  left: -13px;
+  background: radial-gradient(circle at 0 100%, transparent 13px, #000 13px);
+}
+.notch-panel::after {
+  right: -13px;
+  background: radial-gradient(circle at 100% 100%, transparent 13px, #000 13px);
+}
+
+.notch-row { display: flex; align-items: center; gap: 10px; height: 44px; }
+.notch-row.tall { height: 88px; }
+.notch-row .cover {
+  border-radius: 8px;
+  background: linear-gradient(150deg, #ff8a3d, #bf5af2);
+  flex: none;
+  width: 34px;
+  height: 34px;
+}
+.notch-row.tall .cover { width: 66px; height: 66px; border-radius: 12px; }
+.notch-row .lines { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.notch-row .line { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.5); }
+.notch-row .line.dim { background: rgba(255, 255, 255, 0.2); }
+.notch-row .line.w70 { width: 70%; }
+.notch-row .line.w45 { width: 45%; }
+.notch-row .line.w90 { width: 90%; }
+.notch-row .glyph {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  flex: none;
+}
+.notch-row .temp { color: #fff; font-size: 15px; font-weight: 600; flex: none; }
+.notch-divider { height: 1px; background: rgba(255, 255, 255, 0.08); }
+
+/* Up to ten of them, white on black, small, centred. */
+.notch-actions {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  padding-top: 9px;
+}
+.notch-actions i {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.82);
+  display: block;
+}
+.notch-actions i.camera { background: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16); }
+.notch-hint { text-align: center; color: var(--text-faint); font-size: 13.5px; margin: 14px 0 0; }
+
+/* Inside a note card, which is a two-column grid: both the picture and the
+   text that follows it belong in the second column. */
+.note .mirror-mock,
+.note .mirror-mock + p { grid-column: 2; }
+
+.mirror-mock {
+  margin: 0 0 14px;
+  width: min(260px, 100%);
+  height: 168px;
+  border-radius: 20px;
+  background:
+    radial-gradient(120px 90px at 50% 35%, rgba(255, 255, 255, 0.22), transparent 70%),
+    linear-gradient(160deg, #2b3550, #171a24);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  position: relative;
+  overflow: hidden;
+}
+.mirror-mock .close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+}
+.mirror-mock .controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.mirror-mock .chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+}
+.mirror-mock .dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #ffd9a0;
+  opacity: 0.75;
+}
+.mirror-mock .track {
+  width: 58px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.mirror-mock .track span {
+  display: block;
+  width: 62%;
+  height: 100%;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
 /* ---------- sections ---------- */
 
 section { padding: 82px 0; border-top: 1px solid rgba(255, 255, 255, 0.05); }
