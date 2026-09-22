@@ -134,10 +134,12 @@ final class SideHUDView: NSView {
     // MARK: Drawing
 
     /// Held off the rounded corner of the screen on the outer side, and off the
-    /// notch on the inner one.
+    /// notch on the inner one. Both are wider than they look they need to be:
+    /// a readout that starts where the black starts reads as spilling over the
+    /// edge, and the corner of the screen is round.
     private var content: NSRect {
-        let outer: CGFloat = 14
-        let inner: CGFloat = 10
+        let outer: CGFloat = 28
+        let inner: CGFloat = 18
         return NSRect(x: bounds.minX + (side == .left ? outer : inner),
                       y: bounds.minY,
                       width: max(bounds.width - outer - inner, 1),

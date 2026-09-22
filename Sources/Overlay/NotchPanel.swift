@@ -326,8 +326,9 @@ final class NotchContentView: NSView {
         // Either side of the notch, in the band the notch itself occupies.
         let sideWidth = max((bounds.width - notchWidth) / 2, 0)
         for view in levels {
-            // Too narrow to read is worse than absent.
-            guard sideWidth >= 56 else {
+            // Too narrow to read is worse than absent — and the margins take
+            // their share of the room first.
+            guard sideWidth >= 82 else {
                 view.frame = .zero
                 continue
             }
