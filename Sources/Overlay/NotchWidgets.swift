@@ -22,7 +22,7 @@ enum NotchWidgets {
             made = DisksBarView(frame: .zero)
         case "actions":
             let view = ActionsBarView(frame: .zero)
-            view.onRun = { ActionRunner.run($0) }
+            view.onRun = { runAction($0) }
             made = view
         case "note":
             made = NoteBarView(frame: .zero)
@@ -54,6 +54,7 @@ enum NotchWidgets {
         // How many cells this copy asks for — the same setting the Dock bars
         // use for their width, read from this copy rather than the template.
         made.tileCount = cellCount(for: instance)
+        made.verticalSlots = NotchSettings.span(of: instance)
         made.reloadSettings()
         return made
     }

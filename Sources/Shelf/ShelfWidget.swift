@@ -84,14 +84,24 @@ final class ShelfBarView: BarContentView {
 
     // MARK: Layout
 
+    /// Two rows of files where the notch gave two caselle: the difference
+    /// between putting one thing down and putting down what you are working on.
+    private var rowsOfFiles: Int { fillsHeight && verticalSlots >= 2 ? 2 : 1 }
+
     private func slots() -> [NSRect] {
         let plate = contentPlate
-        let side = min(plate.height, controlSide * 1.2)
+        let rows = rowsOfFiles
         let gap = controlGap * 0.8
-        let count = max(Int((plate.width + gap) / (side + gap)), 1)
-        return (0..<count).map { index in
-            NSRect(x: plate.minX + CGFloat(index) * (side + gap),
-                   y: plate.midY - side / 2, width: side, height: side)
+        let rowHeight = (plate.height - gap * CGFloat(rows - 1)) / CGFloat(rows)
+        let side = min(rowHeight, controlSide * 1.2)
+        let perRow = max(Int((plate.width + gap) / (side + gap)), 1)
+        return (0..<(perRow * rows)).map { index in
+            let column = index % perRow
+            let row = index / perRow
+            return NSRect(x: plate.minX + CGFloat(column) * (side + gap),
+                          y: plate.maxY - CGFloat(row + 1) * rowHeight
+                              - CGFloat(row) * gap + (rowHeight - side) / 2,
+                          width: side, height: side)
         }
     }
 
@@ -127,6 +137,7 @@ final class ShelfBarView: BarContentView {
                              xRadius: box.width * 0.24, yRadius: box.width * 0.24).fill()
             }
             let icon = NSWorkspace.shared.icon(forFile: urls[index].path)
+            icon.size = box.size
             icon.draw(in: box.insetBy(dx: box.width * 0.08, dy: box.height * 0.08),
                       from: .zero, operation: .sourceOver, fraction: 1,
                       respectFlipped: true, hints: nil)

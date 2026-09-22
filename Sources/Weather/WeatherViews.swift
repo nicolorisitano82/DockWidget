@@ -54,6 +54,22 @@ final class WeatherBarView: BarContentView {
                          xRadius: 6, yRadius: 6).fill()
         }
 
+        // Two rows: now across the top, the hours across the bottom, each
+        // with the whole width instead of splitting it.
+        if isTall {
+            let half = plate.height * 0.52
+            draw(now: reading,
+                 in: NSRect(x: plate.minX, y: plate.maxY - half,
+                            width: plate.width, height: half),
+                 palette: palette)
+            guard !reading.hours.isEmpty else { return }
+            draw(hours: reading.hours,
+                 in: NSRect(x: plate.minX, y: plate.minY,
+                            width: plate.width, height: plate.height - half - 2),
+                 palette: palette)
+            return
+        }
+
         // What is happening now, on the left; what happens next, filling
         // whatever width is left. A bar as wide as the notch has room for both,
         // and leaving it empty was the whole complaint.
@@ -81,9 +97,25 @@ final class WeatherBarView: BarContentView {
             + 10 + min(lines, 150)
     }
 
+    /// True when the notch gave this copy two rows to fill.
+    private var isTall: Bool { fillsHeight && verticalSlots >= 2 }
+
     private func summaryLine(_ reading: WeatherReading) -> String {
-        guard settings.showsRange else { return reading.summary }
-        return "\(reading.summary)  ↑\(Int(reading.high.rounded()))°  ↓\(Int(reading.low.rounded()))°"
+        var parts: [String] = [reading.summary]
+        if settings.showsRange {
+            parts.append("↑\(Int(reading.high.rounded()))°")
+            parts.append("↓\(Int(reading.low.rounded()))°")
+        }
+        // The extra height is worth something only if it is used: wind and
+        // rain go in beside the rest when there are two rows.
+        if isTall {
+            parts.append("\(Int(reading.wind.rounded())) km/h")
+            if reading.precipitation > 0 {
+                parts.append(String(format: "%.1f mm", reading.precipitation))
+            }
+        }
+        // Wider gaps: the arrows and the wind ran into one another.
+        return parts.joined(separator: "   ")
     }
 
     private func draw(now reading: WeatherReading, in rect: NSRect, palette: TilePalette) {
@@ -115,7 +147,7 @@ final class WeatherBarView: BarContentView {
 
     /// The next hours: the hour, its sky, its temperature.
     private func draw(hours: [WeatherHour], in rect: NSRect, palette: TilePalette) {
-        let cellWidth: CGFloat = 40
+        let cellWidth: CGFloat = isTall ? 46 : 40
         let count = min(hours.count, max(Int(rect.width / cellWidth), 1))
         guard count >= 2 else { return }
         let width = rect.width / CGFloat(count)
@@ -129,7 +161,7 @@ final class WeatherBarView: BarContentView {
             centred(hour.label,
                     in: NSRect(x: cell.minX, y: cell.maxY - third,
                                width: cell.width, height: third),
-                    size: min(third * 0.82, 9.5), weight: .semibold,
+                    size: min(max(third * 0.74, 9), 11), weight: .semibold,
                     colour: palette.secondary)
 
             let side = min(third * 0.96, 14)
@@ -140,7 +172,8 @@ final class WeatherBarView: BarContentView {
 
             centred("\(Int(hour.temperature.rounded()))°",
                     in: NSRect(x: cell.minX, y: cell.minY, width: cell.width, height: third),
-                    size: min(third * 0.88, 10.5), weight: .medium, colour: palette.primary)
+                    size: min(max(third * 0.80, 9.5), 12), weight: .medium,
+                    colour: palette.primary)
         }
     }
 

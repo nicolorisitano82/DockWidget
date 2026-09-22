@@ -36,15 +36,32 @@ final class CalendarBarView: BarContentView {
         needsDisplay = true
     }
 
-    /// One appointment needs about a hundred and seventy points to say anything.
+    /// True when the notch gave this copy two rows to fill.
+    private var isTall: Bool { fillsHeight && verticalSlots >= 2 }
+
+    /// Side by side one appointment needs about a hundred and seventy points;
+    /// stacked it needs a line, and there is room for three or four of them.
     private var cellCount: Int {
-        max(1, min(Int((contentPlate.width / 170).rounded()), 3))
+        guard !isTall else {
+            return max(2, min(Int(contentPlate.height / 22), 4))
+        }
+        return max(1, min(Int((contentPlate.width / 170).rounded()), 3))
     }
 
     private func cells() -> [NSRect] {
         let plate = contentPlate
         let count = CGFloat(cellCount)
-        let gap: CGFloat = 10
+        let gap: CGFloat = isTall ? 2 : 10
+        // Stacked, an appointment is a line across the whole width, which is
+        // what lets the title be read rather than truncated after two words.
+        guard !isTall else {
+            let height = (plate.height - gap * (count - 1)) / count
+            return (0..<cellCount).map { index in
+                NSRect(x: plate.minX,
+                       y: plate.maxY - CGFloat(index + 1) * height - CGFloat(index) * gap,
+                       width: plate.width, height: height)
+            }
+        }
         let width = (plate.width - gap * (count - 1)) / count
         return (0..<cellCount).map { index in
             NSRect(x: plate.minX + CGFloat(index) * (width + gap), y: plate.minY,
@@ -99,6 +116,27 @@ final class CalendarBarView: BarContentView {
         let body = NSRect(x: stripe.maxX + 7, y: rect.minY,
                           width: rect.maxX - stripe.maxX - 7, height: rect.height)
         guard body.width > 20 else { return }
+
+        guard !isTall else {
+            // One line: when, what, and how long until it.
+            let when = event.when()
+            let whenWidth = min(measure(when, size: 11.5, weight: .semibold) + 8, 96)
+            draw(when, in: NSRect(x: body.minX, y: body.minY, width: whenWidth,
+                                  height: body.height),
+                 size: 11.5, weight: .semibold, colour: palette.primary)
+            let count = event.countdown
+            let countWidth = min(measure(count, size: 10.5, weight: .regular) + 6, 72)
+            draw(count, in: NSRect(x: body.maxX - countWidth, y: body.minY,
+                                   width: countWidth, height: body.height),
+                 size: 10.5, weight: .regular,
+                 colour: event.isRunning ? palette.accent : palette.secondary)
+            let titleBox = NSRect(x: body.minX + whenWidth, y: body.minY,
+                                  width: max(body.width - whenWidth - countWidth - 6, 20),
+                                  height: body.height)
+            draw(event.title, in: titleBox, size: 12, weight: .regular,
+                 colour: palette.secondary)
+            return
+        }
 
         let upper = NSRect(x: body.minX, y: body.midY, width: body.width, height: body.height / 2)
         let lower = NSRect(x: body.minX, y: body.minY, width: body.width, height: body.height / 2)

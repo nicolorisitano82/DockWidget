@@ -74,6 +74,12 @@ class BarContentView: NSView {
         fillsHeight ? plate.height * 0.14 : tileWidth * 0.12
     }
 
+    /// How many of the notch's rows this view was given: one, or two when it
+    /// has a fuller layout to put in them.
+    var verticalSlots = 1 {
+        didSet { if verticalSlots != oldValue { needsDisplay = true } }
+    }
+
     /// True where every row must come out the same size whatever it contains
     /// — the notch, where the widgets are stacked and a taller one would look
     /// like a mistake.

@@ -36,16 +36,39 @@ final class SensorsBarView: BarContentView {
         }
     }
 
+    /// True when the notch gave this copy two rows to fill.
+    private var isTall: Bool { fillsHeight && verticalSlots >= 2 }
+
     override func draw(_ dirtyRect: NSRect) {
         drawWidgetBackground()
         let plate = contentPlate
         let sensors = visible
-        let cellWidth = plate.width / CGFloat(max(sensors.count, 1))
+        // Two caselle: the rings keep the top, and underneath each one gets a
+        // line of where it has been — which is the thing an instant reading
+        // cannot tell you.
+        let dials = isTall
+            ? NSRect(x: plate.minX, y: plate.maxY - plate.height * 0.58,
+                     width: plate.width, height: plate.height * 0.58)
+            : plate
+        let cellWidth = dials.width / CGFloat(max(sensors.count, 1))
 
         for (index, sensor) in sensors.enumerated() {
-            let cell = NSRect(x: plate.minX + CGFloat(index) * cellWidth, y: plate.minY,
-                              width: cellWidth, height: plate.height)
-            draw(sensor: sensor, in: cell.insetBy(dx: cellWidth * 0.06, dy: plate.height * 0.04))
+            let cell = NSRect(x: dials.minX + CGFloat(index) * cellWidth, y: dials.minY,
+                              width: cellWidth, height: dials.height)
+            draw(sensor: sensor, in: cell.insetBy(dx: cellWidth * 0.06, dy: dials.height * 0.04))
+        }
+
+        guard isTall else { return }
+        let palette = TilePalette.resolve(dark: isDarkContext, accent: settings.accent)
+        let strip = NSRect(x: plate.minX, y: plate.minY,
+                           width: plate.width, height: plate.height * 0.36)
+        for (index, sensor) in sensors.enumerated() {
+            let cell = NSRect(x: strip.minX + CGFloat(index) * cellWidth, y: strip.minY,
+                              width: cellWidth, height: strip.height)
+            let samples = SensorSampler.shared.trend(sensor)
+            guard samples.count > 1 else { continue }
+            Gauge.sparkline(in: cell.insetBy(dx: cellWidth * 0.10, dy: 1),
+                            samples: samples, color: palette.accent.withAlphaComponent(0.85))
         }
     }
 

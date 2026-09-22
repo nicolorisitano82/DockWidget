@@ -11,6 +11,8 @@ final class NotchPaneController: PaneViewController {
 
     private var settings = NotchSettings.current
     private var slots: [NSPopUpButton] = []
+    private var spans: [NSPopUpButton] = []
+    private var budget: NSTextField?
     private var openLabel: NSTextField?
     private var closeLabel: NSTextField?
 
@@ -38,8 +40,49 @@ final class NotchPaneController: PaneViewController {
             popup.target = self
             popup.action = #selector(slotChanged)
             slots.append(popup)
-            stack.addArrangedSubview(labeled(T("Riga \(index + 1)", "Row \(index + 1)"), popup))
+
+            // How much room that row asks for. Only the widgets with a fuller
+            // layout to show are offered the second casella.
+            let span = NSPopUpButton()
+            span.addItem(withTitle: T("1 casella", "1 slot"))
+            span.addItem(withTitle: T("2 caselle", "2 slots"))
+            span.selectItem(at: NotchSettings.span(of: chosen) == 2 ? 1 : 0)
+            span.isEnabled = !chosen.isEmpty && NotchSettings.canSpanTwo(chosen)
+            span.tag = index
+            span.target = self
+            span.action = #selector(spanChanged)
+            spans.append(span)
+
+            let row = NSStackView(views: [popup, span])
+            row.orientation = .horizontal
+            row.spacing = 8
+            stack.addArrangedSubview(labeled(T("Riga \(index + 1)", "Row \(index + 1)"), row))
         }
+
+        let used = NSTextField(labelWithString: "")
+        used.font = .systemFont(ofSize: 11)
+        used.textColor = .tertiaryLabelColor
+        budget = used
+        stack.addArrangedSubview(used)
+        updateBudget()
+
+        stack.addArrangedSubview(sectionTitle(T("Striscia di azioni", "Action strip")))
+
+        stack.addArrangedSubview(checkbox(
+            T("Sotto l'ultimo widget", "Under the last widget"),
+            isOn: settings.showsActionBar, action: #selector(actionBarChanged)))
+
+        let edit = NSButton(title: T("Modifica le azioni…", "Edit the actions…"),
+                            target: self, action: #selector(editActions))
+        stack.addArrangedSubview(labeled("", edit))
+
+        let stripHint = NSTextField(wrappingLabelWithString: T(
+            "Fino a dieci icone, centrate. Sono un widget Azioni come gli altri, quindi si configurano con lo stesso pannello: icona, colori e cosa fanno.",
+            "Up to ten icons, centred. They are an Actions widget like any other, so the same pane configures them: symbol, colours, and what they do."))
+        stripHint.font = .systemFont(ofSize: 11)
+        stripHint.textColor = .tertiaryLabelColor
+        stripHint.preferredMaxLayoutWidth = 392
+        stack.addArrangedSubview(stripHint)
 
         stack.addArrangedSubview(sectionTitle(T("Ai lati del notch", "Either side of the notch")))
 
@@ -162,6 +205,46 @@ final class NotchPaneController: PaneViewController {
         if settings.isEnabled { BarAgent.start() }
     }
 
+    /// Says how much of the panel is spoken for, and greys the second casella
+    /// where it would not fit or would say nothing.
+    private func updateBudget() {
+        let chosen = settings.widgets
+        let spent = chosen.reduce(0) { $0 + NotchSettings.span(of: $1) }
+        budget?.stringValue = spent > NotchSettings.slots
+            ? T("\(spent) caselle su \(NotchSettings.slots): le ultime non entrano.",
+                "\(spent) slots of \(NotchSettings.slots): the last ones will not fit.")
+            : T("\(spent) caselle su \(NotchSettings.slots).",
+                "\(spent) of \(NotchSettings.slots) slots.")
+
+        for (index, span) in spans.enumerated() {
+            let instance = index < chosen.count ? chosen[index] : ""
+            span.isEnabled = !instance.isEmpty && NotchSettings.canSpanTwo(instance)
+            span.selectItem(at: NotchSettings.span(of: instance) == 2 ? 1 : 0)
+        }
+    }
+
+    @objc private func actionBarChanged(_ sender: NSButton) {
+        settings.showsActionBar = sender.state == .on
+        settings.save()
+        if settings.isEnabled { BarAgent.start() }
+    }
+
+    @objc private func editActions() {
+        // The strip is an actions widget, so it is edited by the actions pane —
+        // wrapped, because a pane on its own has no way out of a sheet.
+        let pane = ActionsPaneController(instance: NotchSettings.actionBarInstance)
+        presentAsSheet(SheetHost(content: pane,
+                                 title: T("Azioni della striscia", "Strip actions")))
+    }
+
+    @objc private func spanChanged(_ sender: NSPopUpButton) {
+        let chosen = settings.widgets
+        guard sender.tag < chosen.count else { return }
+        NotchSettings.setSpan(sender.indexOfSelectedItem + 1, for: chosen[sender.tag])
+        updateBudget()
+        reloadTile()
+    }
+
     @objc private func slotChanged(_ sender: NSPopUpButton) {
         var chosen: [String] = []
         for popup in slots {
@@ -172,6 +255,7 @@ final class NotchPaneController: PaneViewController {
         }
         settings.widgets = chosen
         settings.save()
+        updateBudget()
         reloadTile()
     }
 
@@ -225,4 +309,53 @@ final class NotchPreview: NSView {
                                      ])
         }
     }
+}
+
+
+/// A pane shown as a sheet, with the button that closes it.
+final class SheetHost: NSViewController {
+    private let content: NSViewController
+    private let heading: String
+
+    init(content: NSViewController, title: String) {
+        self.content = content
+        heading = title
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("sheets are only ever built in code") }
+
+    override func loadView() {
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 460, height: 560))
+
+        let label = NSTextField(labelWithString: heading)
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+
+        let done = NSButton(title: T("Fine", "Done"), target: self, action: #selector(finish))
+        done.keyEquivalent = "\r"
+        done.bezelStyle = .rounded
+
+        addChild(content)
+        let body = content.view
+
+        for piece in [label, body, done] {
+            piece.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(piece)
+        }
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
+            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+
+            body.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 10),
+            body.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            body.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            body.bottomAnchor.constraint(equalTo: done.topAnchor, constant: -12),
+
+            done.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            done.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16),
+        ])
+    }
+
+    @objc private func finish() { dismiss(self) }
 }

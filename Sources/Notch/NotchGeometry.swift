@@ -88,9 +88,30 @@ enum NotchLevelKind: String, CaseIterable {
 }
 
 struct NotchSettings: Equatable {
-    /// Three at most: the panel drops from a slot the width of a notch, and a
-    /// list that runs past the screen would defeat the point of it.
-    static let maximumWidgets = 3
+    /// How much room the panel has, counted in rows. A widget takes one, or
+    /// two when it has something worth the extra height.
+    static let slots = 4
+    /// Which is also the most widgets there can be, all of them taking one.
+    static let maximumWidgets = slots
+
+    static func spanKey(_ instance: String) -> String { "\(instance).notchSpan" }
+
+    /// How many rows this copy takes: one, or two where that is allowed.
+    static func span(of instance: String) -> Int {
+        guard canSpanTwo(instance) else { return 1 }
+        return min(max(Int(SettingsStore.shared.double(spanKey(instance), or: 1)), 1), 2)
+    }
+
+    static func setSpan(_ span: Int, for instance: String) {
+        SettingsStore.shared.set(Double(min(max(span, 1), 2)), for: spanKey(instance))
+    }
+
+    /// Whether two rows would say more than one. A widget that has nothing to
+    /// put in the extra height is not offered it.
+    static func canSpanTwo(_ instance: String) -> Bool {
+        ["nowplaying", "weather", "calendar", "sensors", "shelf"]
+            .contains(WidgetInstance.kind(of: instance))
+    }
 
     /// How wide the panel opens. Fixed: a notch panel is a shape people
     /// recognise, and a width that moves makes it a different shape each time.
@@ -106,6 +127,11 @@ struct NotchSettings: Equatable {
     /// And how long it waits before closing again, so that crossing a corner
     /// on the way to a button does not shut it.
     var closeDelay: TimeInterval = 0.35
+    /// A thin line of actions under the last widget. The cells themselves are
+    /// an actions widget like any other, kept under this name.
+    static let actionBarInstance = "notchbar"
+    var showsActionBar = true
+
     /// What sits in the strip left of the notch, and right of it.
     var leftLevel: NotchLevelKind = .none
     var rightLevel: NotchLevelKind = .none
@@ -117,6 +143,21 @@ struct NotchSettings: Equatable {
         side == .left ? leftLevel : rightLevel
     }
 
+    /// The rows that fit: taken in order until the caselle run out, so a
+    /// widget grown to two rows pushes the last one off rather than
+    /// overflowing the panel.
+    var fittedWidgets: [String] {
+        var spent = 0
+        var kept: [String] = []
+        for instance in widgets {
+            let span = NotchSettings.span(of: instance)
+            guard spent + span <= NotchSettings.slots else { continue }
+            spent += span
+            kept.append(instance)
+        }
+        return kept
+    }
+
     enum Key {
         static let enabled = "notch.enabled"
         static let widgets = "notch.widgets"
@@ -125,6 +166,7 @@ struct NotchSettings: Equatable {
         static let leftLevel = "notch.leftLevel"
         static let rightLevel = "notch.rightLevel"
         static let levelStep = "notch.levelStep"
+        static let actionBar = "notch.actionBar"
     }
 
     static var current: NotchSettings {
@@ -133,9 +175,10 @@ struct NotchSettings: Equatable {
         let stored = store.strings(Key.widgets) ?? []
         return NotchSettings(
             isEnabled: store.bool(Key.enabled, or: defaults.isEnabled),
-            widgets: stored.isEmpty ? defaults.widgets : Array(stored.prefix(maximumWidgets)),
+            widgets: stored.isEmpty ? defaults.widgets : Array(stored.prefix(slots)),
             openDelay: store.double(Key.openDelay, or: defaults.openDelay),
             closeDelay: store.double(Key.closeDelay, or: defaults.closeDelay),
+            showsActionBar: store.bool(Key.actionBar, or: defaults.showsActionBar),
             leftLevel: NotchLevelKind(rawValue: store.string(Key.leftLevel,
                                                              or: defaults.leftLevel.rawValue))
                 ?? defaults.leftLevel,
@@ -155,6 +198,7 @@ struct NotchSettings: Equatable {
             Key.leftLevel: leftLevel.rawValue,
             Key.rightLevel: rightLevel.rawValue,
             Key.levelStep: levelStep,
+            Key.actionBar: showsActionBar,
         ])
     }
 }

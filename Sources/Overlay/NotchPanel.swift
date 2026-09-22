@@ -11,7 +11,7 @@ final class NotchPanel: NSObject {
     /// Black, not glass. The notch and the bezel around the screen are black,
     /// and the panel is meant to read as that shape stretching — a translucent
     /// slab reads as a window that appeared underneath it instead.
-    private let slab = NSView()
+    private let slab = NotchSlabView()
     private let content = NotchContentView()
     private var collapsedFrame = NSRect.zero
     private var isOpen = false
@@ -40,8 +40,6 @@ final class NotchPanel: NSObject {
         super.init()
 
         slab.wantsLayer = true
-        slab.layer?.backgroundColor = NSColor.black.cgColor
-        slab.layer?.masksToBounds = true
         slab.autoresizingMask = [.width, .height]
         slab.addSubview(content)
 
@@ -83,7 +81,7 @@ final class NotchPanel: NSObject {
         // width left either side of it once the panel has opened.
         content.bandHeight = collapsedFrame.height
         content.notchWidth = collapsedFrame.width
-        content.apply(instances: settings.widgets)
+        content.apply(instances: settings.fittedWidgets)
         content.applyLevels()
         if !isOpen {
             panel.setFrame(collapsedFrame, display: false)
@@ -147,21 +145,20 @@ final class NotchPanel: NSObject {
         panel.setFrame(collapsedFrame, display: false)
         panel.orderFrontRegardless()
 
+        // Wider than the content by the fillets on either side, which are
+        // drawn outside it and need somewhere to be.
         let width = max(NotchSettings.expandedWidth, collapsedFrame.width + 120)
+            + NotchSlabView.fillet * 2
         // The first row starts below the notch itself, or it would sit beside
         // the camera housing where nothing can be read.
         content.topInset = collapsedFrame.height + NotchContentView.topPadding
-        let rows = CGFloat(max(content.rowCount, 1))
-        let height = content.topInset
-            + rows * NotchContentView.rowHeight
-            + (rows - 1) * NotchContentView.rowSpacing
-            + NotchContentView.bottomPadding
+        let height = content.topInset + content.rowsHeight + NotchContentView.bottomPadding
         let frame = NSRect(x: collapsedFrame.midX - width / 2,
                            y: screen.frame.maxY - height,
                            width: width, height: height)
 
         openFrame = frame
-        shape(radius: 22)
+        slab.isOpen = true
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.22
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
@@ -190,6 +187,7 @@ final class NotchPanel: NSObject {
     private func close() {
         guard isOpen else { return }
         isOpen = false
+        slab.isOpen = false
         hasLeftSinceClose = false
         content.stopBeating()
         content.isHidden = true
@@ -202,12 +200,8 @@ final class NotchPanel: NSObject {
         }
     }
 
-    /// Square at the top, round at the bottom: the shape the notch would have
-    /// if it could stretch.
-    private func shape(radius: CGFloat) {
-        slab.layer?.cornerRadius = radius
-        slab.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-    }
+    // The shape lives in the slab, which draws it.
+
 }
 
 /// The widgets inside the notch, one row each.
@@ -236,33 +230,59 @@ final class NotchContentView: NSView {
     /// A level either side of the notch. Part of the panel: they come down with
     /// it and go up with it, and there is no second window to keep in step.
     private let levels = NotchSide.allCases.map(SideHUDView.init(side:))
+    /// The line of actions under the last row, when there is one.
+    private let actions = NotchActionBar()
 
     private var rows: [BarContentView] = []
+    /// One or two, per row, in the same order.
+    private var spans: [Int] = []
     private var shown: [String] = []
     private var shownWidths: [Int] = []
     private var beat: Timer?
 
     var rowCount: Int { rows.count }
 
+    /// What all the rows come to, spacing included — and the line of actions
+    /// under them where it is shown.
+    var rowsHeight: CGFloat {
+        guard !spans.isEmpty else { return Self.rowHeight + actionBarHeight }
+        let tall = spans.reduce(0) { $0 + CGFloat($1) } * Self.rowHeight
+        return tall + CGFloat(spans.count - 1) * Self.rowSpacing + actionBarHeight
+    }
+
+    private var actionBarHeight: CGFloat {
+        actions.isHidden ? 0 : NotchActionBar.height + 4
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         levels.forEach(addSubview)
+        actions.onRun = { runAction($0) }
+        addSubview(actions)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("the notch is only ever built in code") }
 
-    /// Re-reads which level goes on which side.
+    /// Re-reads which level goes on which side, and what is in the action line.
     func applyLevels() {
         levels.forEach { $0.applySettings() }
+        actions.reload()
+        actions.isHidden = !NotchSettings.current.showsActionBar || actions.isEmpty
+        Diagnostics.once("actionbar-\(actions.isHidden)-\(actions.count)",
+                         "striscia azioni: \(actions.count) celle, nascosta=\(actions.isHidden)")
+        needsLayout = true
     }
 
     /// Builds the rows when the chosen widgets change, and otherwise just lets
     /// the ones already there re-read their settings: rebuilding on every
     /// change would leak a listener each time.
     func apply(instances: [String]) {
+        // The height a row takes is part of what it is: growing one to two
+        // rows has to rebuild the panel, not just redraw it.
         let widths = instances.map { NotchWidgets.cellCount(for: $0) }
-        guard instances != shown || widths != shownWidths else {
+        let heights = instances.map { NotchSettings.span(of: $0) }
+        guard instances != shown || widths != shownWidths || heights != spans else {
             rows.forEach { $0.reloadSettings() }
             return
         }
@@ -270,6 +290,7 @@ final class NotchContentView: NSView {
         shown = instances
         rows.forEach { $0.removeFromSuperview() }
         rows = instances.compactMap { NotchWidgets.view(for: $0) }
+        spans = instances.compactMap { NotchWidgets.view(for: $0) == nil ? nil : NotchSettings.span(of: $0) }
         rows.forEach(addSubview)
         needsLayout = true
     }
@@ -315,11 +336,83 @@ final class NotchContentView: NSView {
                                 width: sideWidth, height: bandHeight)
         }
 
+        var top = topInset
+        defer {
+            // Under everything, across the whole width, centred by the view.
+            actions.frame = NSRect(x: 0, y: bounds.height - top - NotchActionBar.height,
+                                   width: bounds.width, height: NotchActionBar.height)
+        }
         for (index, row) in rows.enumerated() {
-            let top = topInset + CGFloat(index) * (Self.rowHeight + Self.rowSpacing)
-            row.frame = NSRect(x: 16,
-                               y: bounds.height - top - Self.rowHeight,
-                               width: bounds.width - 32, height: Self.rowHeight)
+            let span = index < spans.count ? spans[index] : 1
+            let height = CGFloat(span) * Self.rowHeight
+            let side = 16 + NotchSlabView.fillet
+            row.frame = NSRect(x: side, y: bounds.height - top - height,
+                               width: bounds.width - side * 2, height: height)
+            top += height + Self.rowSpacing
+        }
+        top += 4
+    }
+}
+
+
+/// The black shape the panel is.
+///
+/// Square across the top, round at the bottom, and — where the top meets the
+/// menu bar on either side — the concave fillet the hardware notch has, so the
+/// panel reads as that shape having stretched rather than as a rectangle laid
+/// over it.
+final class NotchSlabView: NSView {
+    /// How far the fillet reaches sideways into the menu bar.
+    static let fillet: CGFloat = 12
+    /// The corner at the bottom, which is convex like any panel's.
+    static let corner: CGFloat = 22
+
+    var isOpen = false {
+        didSet { if isOpen != oldValue { needsDisplay = true } }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let fillet = Self.fillet
+        let corner = Self.corner
+        let body = bounds
+        let path = NSBezierPath()
+
+        // Down the left side from under the fillet, round the bottom, and up
+        // the right to meet its own fillet.
+        path.move(to: NSPoint(x: body.minX + fillet, y: body.maxY))
+        path.line(to: NSPoint(x: body.minX + fillet, y: body.minY + corner))
+        path.appendArc(withCenter: NSPoint(x: body.minX + fillet + corner, y: body.minY + corner),
+                       radius: corner, startAngle: 180, endAngle: 270)
+        path.line(to: NSPoint(x: body.maxX - fillet - corner, y: body.minY))
+        path.appendArc(withCenter: NSPoint(x: body.maxX - fillet - corner, y: body.minY + corner),
+                       radius: corner, startAngle: 270, endAngle: 360)
+        path.line(to: NSPoint(x: body.maxX - fillet, y: body.maxY))
+        path.close()
+
+        NSColor.black.setFill()
+        path.fill()
+
+        guard isOpen else { return }
+        // The two fillets, where the panel's edge meets the top of the screen.
+        // Each is the sliver between the panel's own edge and a quarter circle
+        // centred outside it, level with the foot of the curve: the arc itself
+        // is the black's outer boundary, so the edge flares open as it climbs
+        // rather than stepping out and leaving a corner behind.
+        for onLeft in [true, false] {
+            let outer = onLeft ? body.minX : body.maxX
+            let inner = onLeft ? body.minX + fillet : body.maxX - fillet
+            let curve = NSBezierPath()
+            curve.move(to: NSPoint(x: inner, y: body.maxY))
+            curve.line(to: NSPoint(x: outer, y: body.maxY))
+            curve.appendArc(withCenter: NSPoint(x: outer, y: body.maxY - fillet),
+                            radius: fillet,
+                            startAngle: 90,
+                            endAngle: onLeft ? 0 : 180,
+                            clockwise: onLeft)
+            curve.close()
+            NSColor.black.setFill()
+            curve.fill()
         }
     }
+
 }
