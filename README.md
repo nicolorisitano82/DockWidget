@@ -4,7 +4,7 @@ Widget dentro il Dock di macOS, senza sostituirlo. Il Dock resta quello di siste
 e continua a fare il layout, l'ingrandimento e la scomparsa automatica: noi ci
 mettiamo il contenuto.
 
-**[Scarica la 1.2](https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg)** ·
+**[Scarica la 1.3](https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg)** ·
 [sito del progetto](https://nicolorisitano82.github.io/Underdock/) · macOS 14+ · licenza MIT
 
 Interfaccia in italiano e inglese, secondo la lingua del Mac.
@@ -64,7 +64,14 @@ un'app, un indirizzo, un comando rapido, un'azione di sistema — più lo specch
 **Lo specchio** apre una finestra senza bordi con quello che vede la fotocamera,
 centrata sullo schermo e rovesciata, come si aspetta chi ci si guarda. Si chiude
 con la X in alto a destra. Pizzicando si zooma verso il puntatore, la rotella
-sposta l'inquadratura, il doppio clic rimette tutto a posto. In basso ci sono i
+sposta l'inquadratura, il doppio clic rimette tutto a posto.
+
+L'icona della fotocamera **scatta**: la foto finisce sulla Scrivania col nome
+dell'istante in cui è stata presa, rovesciata come quella che vedevi. Il flash è
+lo schermo — bianco su tutto il monitor e luminosità al massimo per il tempo
+dello scatto, poi tutto com'era.
+
+Accanto ci sono i
 comandi della **luce ad anello** di macOS: accesa o spenta, cinque colori
 dall'ambra all'azzurro, e quanta luce fare. I comandi stanno a riposo quasi
 invisibili e si accendono sotto il puntatore, perché la cosa da guardare è
