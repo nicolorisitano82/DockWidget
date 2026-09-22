@@ -8,6 +8,10 @@ import AppKit
 final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
     private var bars: [OverlayBarController] = []
     private let notch = NotchPanel()
+    private var previewObserver: NSObjectProtocol?
+    private var openObserver: NSObjectProtocol?
+    private var dropObserver: NSObjectProtocol?
+    private var signals: [DispatchSourceSignal] = []
     private var pointerTimer: Timer?
     private var trustTimer: Timer?
 
@@ -59,7 +63,7 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
 
             BarWidgetKind(base: "Azioni", template: BarLayout.actions, makeView: { _ in
                 let view = ActionsBarView(frame: NSRect(x: 0, y: 0, width: 120, height: 50))
-                view.onRun = { ActionRunner.run($0) }
+                view.onRun = { runAction($0) }
                 return view
             }, isEnabled: { _ in true }),
 
@@ -103,6 +107,41 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         playbackTokens = bag.tokens
         bars.forEach { $0.start() }
 
+        // A click on a folder tile asks for its preview; the tile's own helper
+        // has quit by the time this arrives.
+        previewObserver = DistributedNotificationCenter.default().addObserver(
+            forName: WidgetClick.previewRequested, object: nil, queue: .main
+        ) { note in
+            guard let instance = note.object as? String else { return }
+            folderPreview.toggle(instance: instance)
+        }
+
+        // If a previous run ended with the preview open, the Dock is still
+        // without its magnification: it gets it back.
+        DockFreeze.restoreIfNeeded()
+        watchForTermination()
+        FolderReader.restoreGrants()
+
+        openObserver = DistributedNotificationCenter.default().addObserver(
+            forName: WidgetClick.openRequested, object: nil, queue: .main
+        ) { note in
+            guard let path = note.object as? String else { return }
+            Diagnostics.write("apro su richiesta di una tile: \(path)")
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        }
+
+
+        dropObserver = DistributedNotificationCenter.default().addObserver(
+            forName: WidgetClick.dropRequested, object: nil, queue: .main
+        ) { note in
+            // The instance first, then a path a line.
+            let parts = (note.object as? String)?.components(separatedBy: "\n") ?? []
+            guard let instance = parts.first, parts.count > 1 else { return }
+            let files = parts.dropFirst().map { URL(fileURLWithPath: $0) }
+            Diagnostics.write("drop su \(instance): \(files.count) elementi")
+            folderPreview.drop(instance: instance, files: Array(files))
+        }
+
         notch.start()
         // The notch has no tracking area of its own while it is closed: a
         // window that catches the pointer up there would swallow the menu
@@ -121,6 +160,28 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
         bars.forEach { $0.stop() }
         pointerTimer?.invalidate()
         notch.stop()
+        folderPreview.close()
+        DockFreeze.release()
+        mirror.close()
+        for observer in [previewObserver, openObserver, dropObserver].compactMap({ $0 }) {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+    }
+
+    /// A `pkill` — which is how the installer clears the way — sends SIGTERM,
+    /// and that never reaches applicationWillTerminate. Without this the Dock
+    /// would be left without its magnification until the manager next started.
+    private func watchForTermination() {
+        for number in [SIGTERM, SIGINT, SIGHUP] {
+            signal(number, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: number, queue: .main)
+            source.setEventHandler {
+                DockFreeze.release()
+                exit(0)
+            }
+            source.resume()
+            signals.append(source)
+        }
     }
 
     private var isDuplicate: Bool {
@@ -130,6 +191,31 @@ final class OverlayAgentDelegate: NSObject, NSApplicationDelegate {
 }
 
 private let noteEditor = NoteEditorPanel()
+private let folderPreview = FolderPreviewPanel()
+private let mirror = MirrorPanel()
+
+/// Runs an action from inside the agent.
+///
+/// The mirror is a window, and the window belongs here: going through a
+/// distributed notification would mean this process asking itself, which it may
+/// not be awake enough to hear. Everything else goes to the shared runner.
+func runAction(_ kind: ActionKind) {
+    if case .mirror = kind {
+        // Asked of the manager, which is a registered application and can
+        // therefore be shown the camera prompt. With no manager about, this
+        // tries anyway: it works wherever the permission is already given.
+        guard NSRunningApplication.runningApplications(
+            withBundleIdentifier: "dev.nicolo.underdock").isEmpty else {
+            DistributedNotificationCenter.default().postNotificationName(
+                ActionRunner.mirrorRequested, object: nil, userInfo: nil,
+                deliverImmediately: true)
+            return
+        }
+        mirror.toggle()
+        return
+    }
+    ActionRunner.run(kind)
+}
 
 private func openCurrentPlayer() {
     guard let bundleID = NowPlayingSource.shared.state.playerBundleID,

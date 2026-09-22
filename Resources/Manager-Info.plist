@@ -36,5 +36,9 @@
 	<string>Per mostrare i prossimi appuntamenti nel widget. Le date restano sul Mac: non vengono inviate da nessuna parte. / To show your next appointments in the widget. They stay on this Mac and are sent nowhere.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Per mostrare i prossimi appuntamenti nel widget. Le date restano sul Mac: non vengono inviate da nessuna parte. / To show your next appointments in the widget. They stay on this Mac and are sent nowhere.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Per leggere l'ultima nota e la copertina di quello che stai ascoltando. Niente viene modificato e niente esce dal Mac. / To read your latest note and the cover of what you are listening to. Nothing is changed and nothing leaves this Mac.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Per lo specchio: mostra quello che vede la fotocamera in una finestra. Niente viene registrato né inviato. / For the mirror: it shows what the camera sees in a window. Nothing is recorded and nothing is sent.</string>
 </dict>
 </plist>

@@ -7,6 +7,9 @@ enum ActionKind: Codable, Equatable {
     case open(target: String)
     case shortcut(name: String)
     case system(SystemAction)
+    /// Its own kind rather than one of the system actions: it is a window of
+    /// ours with settings of its own, not a switch macOS already has.
+    case mirror
 
     var summary: String {
         switch self {
@@ -15,6 +18,7 @@ enum ActionKind: Codable, Equatable {
         case .open(let target): return target
         case .shortcut(let name): return name
         case .system(let action): return action.label
+        case .mirror: return T("Specchio", "Mirror")
         }
     }
 }
@@ -56,7 +60,7 @@ struct ActionsSettings: Equatable {
     /// stacked in the notch a row is much wider than that, so the number is the
     /// widget's own rather than the same everywhere.
     static let defaultSlots = 4
-    static let minimumSlots = 2
+    static let minimumSlots = 1
     static let maximumSlots = 10
 
     static func key(_ instance: String) -> String { "\(instance).slots" }
@@ -69,8 +73,9 @@ struct ActionsSettings: Equatable {
     static var current: ActionsSettings { current("actions") }
 
     static func current(_ instance: String) -> ActionsSettings {
+        let fallback = defaults(for: instance)
         let wanted = min(max(Int(SettingsStore.shared.double(countKey(instance),
-                                                             or: Double(defaultSlots))),
+                                                             or: Double(fallback.count))),
                              minimumSlots), maximumSlots)
         let raw = SettingsStore.shared.string(key(instance), or: "")
         var slots: [ActionSlot]
@@ -79,7 +84,7 @@ struct ActionsSettings: Equatable {
            !stored.isEmpty {
             slots = stored
         } else {
-            slots = defaults
+            slots = fallback
         }
         while slots.count < wanted { slots.append(.empty) }
         return ActionsSettings(slots: Array(slots.prefix(wanted)))
@@ -92,6 +97,23 @@ struct ActionsSettings: Equatable {
             Self.key(instance): text,
             Self.countKey(instance): Double(slots.count),
         ])
+    }
+
+    /// What a copy starts with.
+    ///
+    /// The strip under the notch gets the mirror: it is the one action with
+    /// nowhere else to live, and a strip that arrives empty is a strip nobody
+    /// discovers.
+    static func defaults(for instance: String) -> [ActionSlot] {
+        guard instance == "notchbar" else { return defaults }
+        return [
+            ActionSlot(symbol: "person.crop.square", iconHex: "#FFFFFF",
+                       backgroundHex: "#0A84FF", kind: .mirror),
+            ActionSlot(symbol: "lock.fill", iconHex: "#FFFFFF", backgroundHex: "#0A84FF",
+                       kind: .system(.lockScreen)),
+            ActionSlot(symbol: "camera.viewfinder", iconHex: "#FFFFFF",
+                       backgroundHex: "#BF5AF2", kind: .system(.screenshot)),
+        ]
     }
 
     /// Something useful on first run, so the widget is not four empty holes.
@@ -113,7 +135,8 @@ enum ActionSymbols {
     static let all: [String] = [
         "lock.fill", "moon.fill", "display", "macwindow.on.rectangle", "desktopcomputer",
         "playpause.fill", "play.fill", "forward.fill", "backward.fill", "speaker.wave.2.fill",
-        "camera.viewfinder", "photo", "trash.fill", "folder.fill", "doc.fill",
+        "camera.viewfinder", "person.crop.square", "person.fill.viewfinder", "web.camera",
+        "photo", "trash.fill", "folder.fill", "doc.fill",
         "envelope.fill", "message.fill", "phone.fill", "video.fill", "calendar",
         "bell.fill", "clock.fill", "alarm.fill", "timer", "stopwatch.fill",
         "star.fill", "heart.fill", "bolt.fill", "flame.fill", "sparkles",

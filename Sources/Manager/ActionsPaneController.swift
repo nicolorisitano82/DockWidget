@@ -12,6 +12,12 @@ final class ActionsPaneController: PaneViewController {
     required init?(coder: NSCoder) { fatalError("panes are only ever built in code") }
 
     private lazy var settings = ActionsSettings.current(instance)
+    private lazy var mirror = MirrorSettings.current
+    private var radiusLabel: NSTextField?
+    private var sideLabel: NSTextField?
+    /// Shown only while the cell being edited is the mirror: it is one of the
+    /// actions, not a thing of its own.
+    private var mirrorRows: [NSView] = []
     private var selected = 0
 
     private var cellPicker: NSSegmentedControl?
@@ -96,7 +102,8 @@ final class ActionsPaneController: PaneViewController {
 
         let kinds = NSPopUpButton()
         kinds.addItems(withTitles: [T("Nessuna", "None"), T("Apri un'app", "Open an app"), T("Apri un indirizzo o un file", "Open an address or a file"),
-                                    T("Scorciatoia", "Shortcut"), T("Azione di sistema", "System action")])
+                                    T("Scorciatoia", "Shortcut"), T("Azione di sistema", "System action"),
+                                    T("Specchio", "Mirror")])
         kinds.target = self
         kinds.action = #selector(kindChanged)
         kindButton = kinds
@@ -129,11 +136,14 @@ final class ActionsPaneController: PaneViewController {
         stack.addArrangedSubview(labeled("", row))
 
         loadSlotIntoControls()
+
+        buildMirrorControls(in: stack)
     }
 
     // MARK: Controls
 
     private func loadSlotIntoControls() {
+        updateMirrorRows()
         symbolButton?.selectItem(withTitle: slot.symbol)
         iconSwatches?.selectedHex = slot.iconHex
         cellSwatches?.selectedHex = slot.backgroundHex
@@ -148,6 +158,7 @@ final class ActionsPaneController: PaneViewController {
         case .open: return 2
         case .shortcut: return 3
         case .system: return 4
+        case .mirror: return 5
         }
     }
 
@@ -185,7 +196,129 @@ final class ActionsPaneController: PaneViewController {
             choice?.removeAllItems()
             choice?.addItems(withTitles: SystemAction.allCases.map(\.label))
             choice?.selectItem(at: SystemAction.allCases.firstIndex(of: action) ?? 0)
+        case .mirror:
+            // It takes no parameter: what it does is set below, in its own
+            // section.
+            parameterLabel?.stringValue = T("Le sue impostazioni sono qui sotto.",
+                                            "Its settings are just below.")
         }
+    }
+
+    /// The mirror is one of the actions these cells can run, so its own few
+    /// settings live here rather than in a pane of their own.
+    private func buildMirrorControls(in stack: NSStackView) {
+        let heading = sectionTitle(T("Specchio", "Mirror"))
+        mirrorRows.append(heading)
+        stack.addArrangedSubview(heading)
+
+        let flip = checkbox(T("Rovescia l'immagine", "Flip the image"),
+                            isOn: mirror.isFlipped, action: #selector(mirrorFlipChanged))
+        mirrorRows.append(flip)
+        stack.addArrangedSubview(flip)
+
+        if VideoEffects.isRingLightSupported {
+            let ring = checkbox(T("Accendi la luce all'apertura", "Turn the light on when it opens"),
+                                isOn: mirror.ringLight, action: #selector(mirrorRingChanged))
+            mirrorRows.append(ring)
+            stack.addArrangedSubview(ring)
+
+            let colour = NSPopUpButton()
+            colour.addItems(withTitles: VideoEffects.lightStops.map(VideoEffects.lightName))
+            colour.selectItem(at: VideoEffects.lightStops.firstIndex {
+                abs($0 - Float(mirror.ringColour)) < 0.13
+            } ?? 2)
+            colour.target = self
+            colour.action = #selector(mirrorWarmChanged)
+            let colourRow = labeled(T("Colore luce", "Light colour"), colour)
+            mirrorRows.append(colourRow)
+            stack.addArrangedSubview(colourRow)
+        }
+
+        if VideoEffects.isStudioLightSupported {
+            let light = checkbox(T("Accendi la luce studio", "Turn Studio Light on"),
+                                 isOn: mirror.studioLight, action: #selector(mirrorLightChanged))
+            mirrorRows.append(light)
+            stack.addArrangedSubview(light)
+        }
+
+        let radius = NSSlider(value: Double(mirror.cornerRadius), minValue: 0, maxValue: 130,
+                              target: self, action: #selector(mirrorRadiusChanged))
+        radius.widthAnchor.constraint(equalToConstant: 170).isActive = true
+        radiusLabel = NSTextField(labelWithString: "\(Int(mirror.cornerRadius)) pt")
+        radiusLabel?.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        let radiusRow = NSStackView(views: [radius, radiusLabel!])
+        radiusRow.orientation = .horizontal
+        radiusRow.spacing = 8
+        let radiusLabelled = labeled(T("Angoli", "Corners"), radiusRow)
+        mirrorRows.append(radiusLabelled)
+        stack.addArrangedSubview(radiusLabelled)
+
+        let side = NSSlider(value: Double(mirror.side), minValue: 140, maxValue: 520,
+                            target: self, action: #selector(mirrorSideChanged))
+        side.widthAnchor.constraint(equalToConstant: 170).isActive = true
+        sideLabel = NSTextField(labelWithString: "\(Int(mirror.side)) pt")
+        sideLabel?.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        let sideRow = NSStackView(views: [side, sideLabel!])
+        sideRow.orientation = .horizontal
+        sideRow.spacing = 8
+        let sideLabelled = labeled(T("Dimensione", "Size"), sideRow)
+        mirrorRows.append(sideLabelled)
+        stack.addArrangedSubview(sideLabelled)
+
+        let hint = NSTextField(wrappingLabelWithString: T(
+            "Finestra senza bordi: la trascini dove vuoi, la rotella o il pizzico ingrandiscono, doppio clic torna a inquadratura piena, un clic la chiude. La luce studio si accende per conto nostro passando da una via privata di macOS, e torna com'era alla chiusura: essendo privata, un aggiornamento può portarsela via, e in quel caso l'interruttore sparisce.",
+            "A borderless window: drag it where you like, the wheel or a pinch zooms in, a double click goes back to the whole frame, a single click closes it. Studio Light is switched on for us through a private corner of macOS, and put back as it was on close: being private, an update may take it away, and the switch goes with it."))
+        hint.font = .systemFont(ofSize: 11)
+        hint.textColor = .tertiaryLabelColor
+        hint.preferredMaxLayoutWidth = 392
+        mirrorRows.append(hint)
+        stack.addArrangedSubview(hint)
+        updateMirrorRows()
+    }
+
+    /// The mirror's own few settings belong to the cell that runs it.
+    private func updateMirrorRows() {
+        let isMirror = slot.kind == .mirror
+        mirrorRows.forEach { $0.isHidden = !isMirror }
+    }
+
+    @objc private func mirrorFlipChanged(_ sender: NSButton) {
+        mirror.isFlipped = sender.state == .on
+        mirror.save()
+    }
+
+    @objc private func mirrorLightChanged(_ sender: NSButton) {
+        mirror.studioLight = sender.state == .on
+        mirror.save()
+    }
+
+    @objc private func mirrorRingChanged(_ sender: NSButton) {
+        mirror.ringLight = sender.state == .on
+        mirror.save()
+    }
+
+    @objc private func mirrorWarmChanged(_ sender: NSPopUpButton) {
+        let stops = VideoEffects.lightStops
+        let index = min(max(sender.indexOfSelectedItem, 0), stops.count - 1)
+        mirror.ringColour = Double(stops[index])
+        mirror.save()
+        // Applied at once when the light is already on, so the choice is seen
+        // rather than described.
+        if VideoEffects.isRingLightOn {
+            VideoEffects.setRingLightColour(stops[index])
+        }
+    }
+
+    @objc private func mirrorRadiusChanged(_ sender: NSSlider) {
+        mirror.cornerRadius = CGFloat(sender.doubleValue)
+        mirror.save()
+        radiusLabel?.stringValue = "\(Int(mirror.cornerRadius)) pt"
+    }
+
+    @objc private func mirrorSideChanged(_ sender: NSSlider) {
+        mirror.side = CGFloat(sender.doubleValue)
+        mirror.save()
+        sideLabel?.stringValue = "\(Int(mirror.side)) pt"
     }
 
     @objc private func countChanged(_ sender: NSStepper) {
@@ -225,9 +358,15 @@ final class ActionsPaneController: PaneViewController {
         case 2: slot.kind = .open(target: "")
         case 3: slot.kind = .shortcut(name: ShortcutsCatalog.names().first ?? "")
         case 4: slot.kind = .system(.lockScreen)
+        case 5: slot.kind = .mirror
         default: slot.kind = .none
         }
         updateParameterControls()
+        // Its settings appear with it, not at the next opening of the pane.
+        updateMirrorRows()
+        // The mirror's own settings appear with it, not at the next opening of
+        // the pane.
+        updateMirrorRows()
     }
 
     @objc private func parameterFieldChanged(_ sender: NSTextField) {

@@ -2,10 +2,19 @@ import AppKit
 
 /// Performs what a cell was configured to do.
 enum ActionRunner {
+    /// Asked for by whoever was clicked; answered by the agent.
+    static let mirrorRequested = Notification.Name("dev.nicolo.underdock.mirrorRequested")
+
     static func run(_ kind: ActionKind) {
         switch kind {
         case .none:
             break
+        case .mirror:
+            // The window belongs to the agent, which is the process that has
+            // one: this may be running inside the manager instead.
+            DistributedNotificationCenter.default().postNotificationName(
+                ActionRunner.mirrorRequested, object: nil, userInfo: nil,
+                deliverImmediately: true)
         case .app(let path):
             let configuration = NSWorkspace.OpenConfiguration()
             configuration.activates = true
