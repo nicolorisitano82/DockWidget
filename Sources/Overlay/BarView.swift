@@ -27,14 +27,48 @@ final class BarView: BarContentView {
     var onCommand: ((NowPlayingFeed.Command) -> Void)?
     var onOpenPlayer: (() -> Void)?
 
+    /// Held while this copy is showing lyrics, so the line is repainted when it
+    /// changes rather than on the panel's slower beat.
+    private var lyricsToken: UUID?
+
+    deinit {
+        if let lyricsToken { LyricsStore.shared.removeListener(lyricsToken) }
+    }
+
     override func reloadSettings() {
+        followLyrics()
         needsDisplay = true
+    }
+
+    private func followLyrics() {
+        let wanted = NowPlayingSettings.current(resolvedInstance("nowplaying")).showsLyrics
+        if wanted, lyricsToken == nil {
+            lyricsToken = LyricsStore.shared.addListener { [weak self] in
+                self?.needsDisplay = true
+            }
+        } else if !wanted, let token = lyricsToken {
+            LyricsStore.shared.removeListener(token)
+            lyricsToken = nil
+        }
     }
 
     private var palette: TilePalette {
         TilePalette.resolve(dark: isDarkContext,
                             accent: NowPlayingSettings.current(resolvedInstance("nowplaying")).accent)
     }
+
+    /// True when the notch gave this copy two rows to fill.
+    var isTall: Bool { fillsHeight && verticalSlots >= 2 }
+
+    /// True when this copy is set to show lyrics and there is a track to have
+    /// them for.
+    private var wantsLyrics: Bool {
+        NowPlayingSettings.current(resolvedInstance("nowplaying")).showsLyrics
+            && state.hasTrack
+    }
+
+    /// Which of the three dots is lit, while the music plays without words.
+    private var dotsFrame: Int { Int(Date().timeIntervalSince1970 * 1.5) }
 
     private struct Metrics {
         let plate: NSRect
@@ -85,10 +119,17 @@ final class BarView: BarContentView {
             drawText(in: metrics.text, palette: palette)
             drawProgress(in: metrics.progress, palette: palette)
         } else {
-            let label = T("Niente in riproduzione", "Nothing playing") as NSString
-            let font = NSFont.systemFont(ofSize: max(8, metrics.text.height * 0.42), weight: .medium)
-            label.draw(at: NSPoint(x: metrics.text.minX, y: metrics.text.midY - font.pointSize * 0.6),
-                       withAttributes: [.font: font, .foregroundColor: palette.secondary])
+            // Drawn inside its box, and capped: at `draw(at:)` it had no width
+            // to respect, so on a two-row panel it grew across the buttons.
+            let label = T("Niente in riproduzione", "Nothing playing")
+            let size = min(max(metrics.text.height * 0.34, 9), 15)
+            let font = NSFont.systemFont(ofSize: size, weight: .medium)
+            let height = font.ascender - font.descender
+            (label as NSString).draw(
+                in: NSRect(x: metrics.text.minX, y: metrics.text.midY - height / 2,
+                           width: metrics.text.width, height: height),
+                withAttributes: [.font: font, .foregroundColor: palette.secondary,
+                                 .paragraphStyle: truncating])
         }
 
         drawControl("backward.fill", in: metrics.previous, target: .previous, palette: palette)
@@ -127,27 +168,74 @@ final class BarView: BarContentView {
     }
 
     private func drawText(in rect: NSRect, palette: TilePalette) {
-        let titleSize = max(8, rect.height * 0.52)
-        let title = (state.title ?? "") as NSString
-        let titleFont = NSFont.systemFont(ofSize: titleSize, weight: .semibold)
-        title.draw(in: NSRect(x: rect.minX, y: rect.maxY - titleSize * 1.25,
-                              width: rect.width, height: titleSize * 1.3),
-                   withAttributes: [
-                       .font: titleFont,
-                       .foregroundColor: palette.primary,
-                       .paragraphStyle: truncating,
-                   ])
+        let lyric = wantsLyrics ? LyricsStore.shared.current(dots: dotsFrame) : nil
 
-        guard let subtitle = state.artist, !subtitle.isEmpty else { return }
-        let subtitleSize = max(7, rect.height * 0.40)
-        let subtitleFont = NSFont.systemFont(ofSize: subtitleSize, weight: .regular)
-        (subtitle as NSString).draw(in: NSRect(x: rect.minX, y: rect.minY,
-                                               width: rect.width, height: subtitleSize * 1.3),
-                                    withAttributes: [
-                                        .font: subtitleFont,
-                                        .foregroundColor: palette.secondary,
-                                        .paragraphStyle: truncating,
-                                    ])
+        // Two rows have the height for three lines: what it is, who made it,
+        // and what is being sung. One row has to choose, and the words win.
+        guard isTall else {
+            drawLine(state.title ?? "", in: rect, portion: 0, of: 1,
+                     size: min(max(rect.height * 0.52, 8), 16), weight: .semibold,
+                     colour: palette.primary)
+            guard let subtitle = lyric ?? state.artist, !subtitle.isEmpty else { return }
+            drawLine(subtitle, in: rect, portion: 1, of: 1,
+                     size: min(max(rect.height * 0.40, 7), 13), weight: .regular,
+                     colour: lyric == nil ? palette.secondary : palette.primary)
+            return
+        }
+
+        let lines: [(String, NSFont.Weight, NSColor)] = {
+            var built: [(String, NSFont.Weight, NSColor)] = [
+                (state.title ?? "", .semibold, palette.primary),
+            ]
+            let by = [state.artist, state.album].compactMap { $0 }
+                .filter { !$0.isEmpty }.joined(separator: " — ")
+            if !by.isEmpty { built.append((by, .regular, palette.secondary)) }
+            if let lyric, !lyric.isEmpty { built.append((lyric, .medium, palette.accent)) }
+            return built
+        }()
+
+        let step = rect.height / CGFloat(max(lines.count, 1))
+        for (index, line) in lines.enumerated() {
+            let size = index == 0 ? min(step * 0.62, 17) : min(step * 0.56, 13)
+            drawLine(line.0,
+                     in: NSRect(x: rect.minX, y: rect.maxY - CGFloat(index + 1) * step,
+                                width: rect.width, height: step),
+                     portion: 0, of: 1, size: size, weight: line.1, colour: line.2)
+        }
+    }
+
+    /// One line, either at the top of the box or at the bottom of it.
+    private func drawLine(_ text: String, in rect: NSRect, portion: Int, of total: Int,
+                          size: CGFloat, weight: NSFont.Weight, colour: NSColor) {
+        let font = NSFont.systemFont(ofSize: size, weight: weight)
+        let box = total == 1 && portion == 0
+            ? NSRect(x: rect.minX, y: rect.maxY - size * 1.25,
+                     width: rect.width, height: size * 1.3)
+            : (total == 1
+                ? NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: size * 1.3)
+                : rect)
+        (text as NSString).draw(in: box, withAttributes: [
+            .font: font, .foregroundColor: colour, .paragraphStyle: truncating,
+        ])
+    }
+
+    /// "3:07", which is how long anybody reads a track time as.
+    private func clock(_ seconds: TimeInterval) -> String {
+        let whole = Int(seconds.rounded())
+        return String(format: "%d:%02d", whole / 60, whole % 60)
+    }
+
+    private func drawTime(_ text: String, in rect: NSRect, size: CGFloat,
+                          colour: NSColor, alignment: NSTextAlignment) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = alignment
+        let font = NSFont.monospacedDigitSystemFont(ofSize: size, weight: .regular)
+        let height = font.ascender - font.descender
+        (text as NSString).draw(
+            in: NSRect(x: rect.minX, y: rect.midY - height / 2,
+                       width: rect.width, height: height),
+            withAttributes: [.font: font, .foregroundColor: colour,
+                             .paragraphStyle: paragraph])
     }
 
     private var truncating: NSParagraphStyle {
@@ -158,7 +246,23 @@ final class BarView: BarContentView {
 
     private func drawProgress(in rect0: NSRect, palette: TilePalette) {
         let isActive = hovered == .progress || pressed == .progress
-        let rect = isActive ? rect0.insetBy(dx: 0, dy: -rect0.height * 0.35) : rect0
+        var rect = isActive ? rect0.insetBy(dx: 0, dy: -rect0.height * 0.35) : rect0
+
+        // Two rows have the width for the clock at each end of the bar.
+        if isTall, let elapsed = state.progressSeconds(), let duration = state.duration,
+           duration > 1 {
+            let size: CGFloat = 9.5
+            let box = min(max(rect.width * 0.12, 30), 44)
+            drawTime(clock(elapsed),
+                     in: NSRect(x: rect.minX, y: rect.midY - size, width: box, height: size * 2),
+                     size: size, colour: palette.secondary, alignment: .left)
+            drawTime("-" + clock(max(duration - elapsed, 0)),
+                     in: NSRect(x: rect.maxX - box, y: rect.midY - size,
+                                width: box, height: size * 2),
+                     size: size, colour: palette.secondary, alignment: .right)
+            rect = NSRect(x: rect.minX + box + 6, y: rect.minY,
+                          width: max(rect.width - (box + 6) * 2, 10), height: rect.height)
+        }
         let radius = rect.height / 2
         NSColor(calibratedWhite: isDarkContext ? 1 : 0, alpha: 0.18).setFill()
         NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()

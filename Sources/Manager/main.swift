@@ -5,6 +5,10 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
     private var controller: ManagerViewController?
     private var statusItem: StatusItemController?
     private var selectionObserver: NSObjectProtocol?
+    private var agentWatch: Timer?
+    private var mirrorObserver: NSObjectProtocol?
+    private var openObserver: NSObjectProtocol?
+    private let mirror = MirrorPanel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = StatusItemController { [weak self] instance in
@@ -74,10 +78,50 @@ final class ManagerAppDelegate: NSObject, NSApplicationDelegate {
         if !repairs.isEmpty {
             DockTiles.transaction { repairs.forEach { $0() } }
         }
-        // The notch panel lives in the same agent as the bars.
-        if needsAgent || NotchSettings.current.isEnabled, !BarAgent.isRunning {
+        // The notch panel and the folder previews live in the same agent as
+        // the bars, so the question is not "is there a bar" but "is the agent
+        // wanted at all".
+        if needsAgent || WidgetInstaller.agentIsWanted, !BarAgent.isRunning {
             BarAgent.start()
         }
+        watchAgent()
+        // Quietly, once a day, and only if the preference allows it.
+        UpdateController.shared.checkQuietlyIfDue()
+
+        // The mirror opens here, not in the agent: a child process started by
+        // hand is not an application as far as TCC is concerned, so its request
+        // for the camera is never answered — measured, not guessed. This one is
+        // launched properly and can be asked.
+        // The agent normally opens what a tile's menu asks for; this is here
+        // for when there is no agent, which is any Dock without a bar widget.
+        openObserver = DistributedNotificationCenter.default().addObserver(
+            forName: WidgetClick.openRequested, object: nil, queue: .main
+        ) { note in
+            guard !BarAgent.isRunning, let path = note.object as? String else { return }
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        }
+
+        mirrorObserver = DistributedNotificationCenter.default().addObserver(
+            forName: ActionRunner.mirrorRequested, object: nil, queue: .main
+        ) { [weak self] _ in self?.mirror.toggle() }
+    }
+
+    /// Keeps an eye on the agent.
+    ///
+    /// Starting it once at launch is not enough: it can be killed from outside
+    /// — the installer does exactly that — and the manager, already running, is
+    /// never asked to start again. So the question is asked now and then
+    /// instead of once.
+    private func watchAgent() {
+        agentWatch?.invalidate()
+        let timer = Timer(timeInterval: 8, repeats: true) { _ in
+            guard WidgetInstaller.agentIsWanted, !BarAgent.isRunning else { return }
+            Diagnostics.write("la barra non c'era più: la riavvio")
+            BarAgent.start()
+        }
+        timer.tolerance = 2
+        RunLoop.main.add(timer, forMode: .common)
+        agentWatch = timer
     }
 
     /// `--widget <id>`, passed when a widget's tile is clicked in the Dock.

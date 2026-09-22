@@ -69,7 +69,19 @@ struct WidgetDescriptor {
     }
 
     var isInstalled: Bool {
-        isInNotch ? NotchSettings.current.widgets.contains(id) : DockTiles.contains(self)
+        if isInNotch { return NotchSettings.current.widgets.contains(id) }
+        // A folder kept as one of the Dock's own stacks has no tile of ours.
+        if let folder = systemStackFolder { return DockStacks.contains(folder) }
+        return DockTiles.contains(self)
+    }
+
+    /// The folder this widget is showing as a system stack, when that is what
+    /// it has been set to.
+    var systemStackFolder: URL? {
+        guard kind == "folder", !isInNotch else { return nil }
+        let settings = FolderSettings.current(id)
+        guard settings.place == .stack else { return nil }
+        return settings.url
     }
 
     var exists: Bool { FileManager.default.fileExists(atPath: helperURL.path) }

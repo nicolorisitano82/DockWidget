@@ -8,6 +8,15 @@ import AppKit
 enum WidgetInstaller {
     static func install(_ widget: WidgetDescriptor) {
         guard widget.surface == .dock else { return }
+        if let folder = widget.systemStackFolder {
+            let settings = FolderSettings.current(widget.id)
+            DockTiles.transaction {
+                DockTiles.remove(widget)
+                DockStacks.set(folder, view: settings.stackView,
+                               sort: settings.stackSort, display: settings.stackDisplay)
+            }
+            return
+        }
         DockTiles.transaction {
             DockTiles.add(widget)
             if let spec = widget.barSpec {
@@ -18,6 +27,10 @@ enum WidgetInstaller {
     }
 
     static func uninstall(_ widget: WidgetDescriptor) {
+        if let folder = widget.systemStackFolder {
+            DockTiles.transaction { DockStacks.remove(folder) }
+            return
+        }
         // The spacers are marked as ours, so they come out wherever the user
         // dragged them — before the tile they were anchored to goes away.
         DockTiles.transaction {
@@ -45,10 +58,42 @@ enum WidgetInstaller {
         BarAgent.start()
     }
 
-    static func stopAgentIfIdle() {
-        if !WidgetCatalog.all.contains(where: { $0.isInstalled && $0.barSpec != nil }) {
-            BarAgent.stop()
+    /// Moves a folder between our own tile and one of the Dock's stacks, and
+    /// keeps the stack's own options in step while it is there.
+    ///
+    /// The folder the stack points at can change too, so the one that was
+    /// there before is taken out by the caller, which knows what it was.
+    static func applyFolderPlace(for id: String, leaving previous: URL? = nil) {
+        guard let widget = WidgetCatalog.widget(id: id) else { return }
+        let settings = FolderSettings.current(id)
+        DockTiles.transaction {
+            if let previous, previous != settings.url { DockStacks.remove(previous) }
+            switch settings.place {
+            case .widget:
+                if let folder = settings.url { DockStacks.remove(folder) }
+                DockTiles.add(widget)
+            case .stack:
+                guard let folder = settings.url else { return }
+                DockTiles.remove(widget)
+                DockStacks.set(folder, view: settings.stackView,
+                               sort: settings.stackSort, display: settings.stackDisplay)
+            }
         }
+    }
+
+    /// Everything the agent is needed for, in one place: the bars it draws,
+    /// the notch panel it holds, and the folder previews it opens.
+    static var agentIsWanted: Bool {
+        NotchSettings.current.isEnabled || wantsPreviews
+            || WidgetCatalog.all.contains { $0.isInstalled && $0.barSpec != nil }
+    }
+
+    static func stopAgentIfIdle() {
+        // The agent draws the bars, but it also holds the notch panel and the
+        // folder previews. Counting only the bars in the Dock meant that a Dock
+        // with no widget in it at all took the notch down with them — and the
+        // previews with it.
+        if !agentIsWanted { BarAgent.stop() }
     }
 
     /// Switches the now-playing widget between the square tile and the wide bar.
@@ -109,6 +154,16 @@ enum WidgetInstaller {
         }
         }
         if wantsAgent { BarAgent.start() }
+    }
+
+    /// True when a folder in the Dock is set to show its preview, which is
+    /// also drawn by the agent.
+    static var wantsPreviews: Bool {
+        WidgetCatalog.all.contains { widget in
+            widget.kind == "folder" && widget.isInstalled
+                && FolderSettings.current(widget.id).place == .widget
+                && FolderSettings.current(widget.id).click == .preview
+        }
     }
 
     private static func wantsBar(_ widget: WidgetDescriptor) -> Bool {
