@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Underdock — live widgets inside the macOS Dock</title>
-<meta name="description" content="Real widgets inside the macOS Dock, without replacing it. Clock, now playing, actions and sensors. Open source, MIT licensed.">
+<meta name="description" content="Real widgets inside the macOS Dock, without replacing it. Clock, now playing, actions, sensors — plus a notch panel with a strip of actions and a camera mirror. Open source, MIT licensed.">
 <meta property="og:title" content="Underdock">
 <meta property="og:description" content="Widgets inside the macOS Dock. Not a fake Dock — yours.">
 <link rel="stylesheet" href="style.css">
@@ -16,6 +16,7 @@
     <div class="mark">Underdock <span>· macOS</span></div>
     <a href="#how">How it works</a>
     <a href="#widgets">Widgets</a>
+    <a href="#notch">Notch</a>
     <a href="#notes">Field notes</a>
     <a href="#contribute">Contribute</a>
     <a class="ghost" href="https://github.com/nicolorisitano82/Underdock">GitHub</a>
@@ -31,12 +32,12 @@
       the magnification and the auto-hide. We only bring the content.
     </p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg">Download 1.1</a>
+      <a class="btn primary" href="https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg">Download 1.2</a>
       <a class="btn quiet" href="https://github.com/nicolorisitano82/Underdock">Open the repository</a>
       <a class="btn quiet" href="#build">Or build it yourself</a>
     </div>
     <p class="fineprint">
-      macOS 14+ · 3.2&nbsp;MB · MIT licensed · no dependencies ·
+      macOS 14+ · 6.7&nbsp;MB · MIT licensed · no dependencies ·
       signed locally, so the first launch needs right-click → Open
     </p>
 
@@ -120,11 +121,12 @@
       <div class="shot">
         <img src="assets/clock-faces.png" alt="Six clock faces: analog, digital, flip, rings, minimal, in words">
         <div class="meta">
-          <h3>Clock — six faces</h3>
+          <h3>Clock — nine faces</h3>
           <p>
-            Analog, digital, split-flap, concentric rings, minimal, and the time spelled
-            out the way you would say it. Seconds and date optional, and any time zone —
-            which is how you keep a second city on the Dock.
+            Analog, digital, split-flap, concentric rings, minimal, the time spelled out
+            the way you would say it, binary, a bar for how far into the day you are, and
+            a station board that drops its digits. Seconds and date optional, and any time
+            zone — which is how you keep a second city on the Dock.
           </p>
         </div>
       </div>
@@ -135,7 +137,8 @@
           <h3>Now Playing — interactive</h3>
           <p>
             Real cover art, a progress bar you can click to seek, controls that answer the
-            pointer. As a tile it is a square with the cover and the progress.
+            pointer, and lyrics that scroll with the track — from LRCLIB, which answers
+            without a key. As a tile it is a square with the cover and the progress.
           </p>
         </div>
       </div>
@@ -183,9 +186,12 @@
         <div class="meta">
           <h3>Folder — alive</h3>
           <p>
-            What is in it, counted, with the latest arrivals peeking out. Drop files on the
-            tile and they move inside; click and it opens. The icon takes a colour and a
-            symbol, the way the Finder customises a folder in macOS 26.
+            What is in it, counted, with the latest arrivals peeking out. Click and a glass
+            sheet opens on the folder — rows that scroll, sorting, a chevron to go back —
+            while the Dock holds still underneath. Drop a file on the tile and the same
+            list comes up in copy mode, with a plus on every folder, so it lands in that
+            one or in one of its children. The icon takes a colour and a symbol, the way
+            the Finder customises a folder in macOS 26.
           </p>
         </div>
       </div>
@@ -199,6 +205,59 @@
             above the bar to write in, and it saves the moment you look away.
           </p>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="notch">
+  <div class="wrap">
+    <h2>A second place: the notch</h2>
+    <p class="sub">
+      Move the pointer onto the notch and a black panel comes down, 400 points wide. The
+      same widgets, in a copy with settings of its own — and in the bar shape only, since
+      that is the shape the panel has room for. At the top it flares outward where it
+      meets the menu bar, the way the real notch does.
+    </p>
+
+    <div class="notes">
+      <div class="note">
+        <div class="tag">Four slots</div>
+        <p>
+          Every widget says how many it takes: one, or <strong>two</strong> where the
+          second has something to say. Now Playing at two rows gives you a big cover, the
+          controls and the lyrics; Weather opens the hours ahead; Appointments goes from
+          the next thing to the whole day; Sensors lines the readings up instead of taking
+          turns; Shelf shows what is on it rather than counting it. A widget grown to two
+          pushes the last one off the list rather than overflowing the panel.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Action strip</div>
+        <p>
+          Under the last widget, a thin line of up to <strong>ten small icons</strong>,
+          white on black, centred: open an app, an address, a shortcut, one of the system
+          actions — and the mirror.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Mirror</div>
+        <p>
+          A borderless window showing what the camera sees, centred and flipped, the way
+          somebody looking at themselves expects. Pinch to zoom <em>towards the pointer</em>,
+          the wheel pans, a double click puts it back. Along the bottom sit the controls
+          for the macOS <strong>ring light</strong>: on or off, five colours from amber to
+          blue, and how much light. The controls are nearly invisible at rest and come up
+          under the pointer, because the picture is the thing worth looking at.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Levels</div>
+        <p>
+          In the black either side of the notch, <strong>brightness</strong> and
+          <strong>volume</strong>. They belong to the panel: there while it is open, gone
+          with it, so the menu bar stays the menu bar.
+        </p>
       </div>
     </div>
   </div>
@@ -255,6 +314,32 @@
           across <strong>11,414 channels</strong> on this machine the only counter that
           moves is the GPU's. So every domain is probed, and one that stays silent is not
           even offered in the menus.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Ring light</div>
+        <p>
+          The colour can be written and read straight back, and nothing on screen changes:
+          the light only looks at its settings when the <strong>amount</strong> of light
+          moves. Switching it off and on does not do it, with a pause between the two or
+          without. So a colour change nudges the intensity by a fortieth and puts it back.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Gestures</div>
+        <p>
+          Clicks are routed by where they land; <strong>gestures go to the key window</strong>.
+          A borderless panel of an accessory application is never key, so the pinch was
+          being delivered to whatever app happened to be in front — the buttons worked and
+          the zoom did nothing.
+        </p>
+      </div>
+      <div class="note">
+        <div class="tag">Tile canvas</div>
+        <p>
+          The Dock hands a tile plug-in a canvas of <strong>128 points at scale 0</strong>.
+          Magnified, that is drawn at twice the size — which is the whole of why a folder
+          icon looked soft, and why the canvas is now 256.
         </p>
       </div>
       <div class="note">

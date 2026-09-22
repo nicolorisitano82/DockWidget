@@ -4,7 +4,7 @@ Widget dentro il Dock di macOS, senza sostituirlo. Il Dock resta quello di siste
 e continua a fare il layout, l'ingrandimento e la scomparsa automatica: noi ci
 mettiamo il contenuto.
 
-**[Scarica la 1.1](https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg)** ·
+**[Scarica la 1.2](https://github.com/nicolorisitano82/Underdock/releases/latest/download/Underdock.dmg)** ·
 [sito del progetto](https://nicolorisitano82.github.io/Underdock/) · macOS 14+ · licenza MIT
 
 Interfaccia in italiano e inglese, secondo la lingua del Mac.
@@ -13,10 +13,10 @@ Interfaccia in italiano e inglese, secondo la lingua del Mac.
 
 | Widget | Forma | Cosa fa |
 |---|---|---|
-| **Orologio** | tile | Sei quadranti: analogico, digitale, flip, anelli, minimale, a parole. Secondi, data, fuso orario |
-| **In riproduzione** | tile o barra | Copertina vera, avanzamento cliccabile per saltare nel brano, comandi |
+| **Orologio** | tile | Nove quadranti: analogico, digitale, flip, anelli, minimale, a parole, binario, giornata, tabellone. Secondi, data, fuso orario |
+| **In riproduzione** | tile o barra | Copertina vera, avanzamento cliccabile per saltare nel brano, comandi, testi sincronizzati |
 | **Appunto** | barra | Due righe sempre in vista, un click apre il pannello per scriverle |
-| **Cartella** | tile | Contenuto, conteggio, ultimi arrivi. Il click apre, il drop ci sposta i file dentro. Icona colorabile come nel Finder |
+| **Cartella** | tile | Contenuto, conteggio, ultimi arrivi. Il click apre l'anteprima, il drop ci copia dentro — anche in una sottocartella. Icona colorabile come nel Finder |
 | **Dischi** | tile o barra | Spazio per volume, unità esterne appena collegate, espulsione dal tasto destro |
 | **Sensori** | tile o barra | CPU, memoria, disco, rete, batteria, watt assorbiti, stato termico |
 | **Note** | tile o barra | Le note di Apple: l'ultima modificata, il conteggio, e il click apre quella nota |
@@ -33,10 +33,21 @@ riproduzione in corso è una sola.
 ## La barra del notch
 
 Oltre al Dock c'è un secondo posto: il notch. Ci passi sopra il puntatore e
-scende un pannello nero largo 400 punti, con fino a tre widget in fila — gli
-stessi widget, ma in una copia che ha le sue impostazioni, indipendenti da
-quella nel Dock. Nel notch stanno **solo** nella forma a barra, e tutte le righe
-hanno la stessa altezza.
+scende un pannello nero largo 400 punti — gli stessi widget, ma in una copia che
+ha le sue impostazioni, indipendenti da quella nel Dock. Nel notch stanno
+**solo** nella forma a barra.
+
+Il pannello ha **quattro caselle**, e ogni widget dichiara quante ne prende: una,
+oppure due dove la seconda ha qualcosa da dire. *In riproduzione* a due caselle
+mette una copertina grande, i comandi e i testi; *Meteo* apre le ore che
+vengono; *Appuntamenti* passa dal prossimo impegno alla giornata intera;
+*Sensori* mette i valori in fila invece di alternarli; *Mensola* mostra quello
+che ha dentro anziché contarlo. Chi non ha niente da metterci la seconda casella
+non la offre nemmeno, e un widget cresciuto a due spinge fuori l'ultimo della
+fila invece di sbordare.
+
+In alto il pannello si apre verso l'esterno, come il notch vero dove incontra la
+barra dei menu.
 
 Il ritardo di apertura e quello di chiusura si regolano: il primo evita che il
 pannello scenda mentre stai solo attraversando il bordo per arrivare alla barra
@@ -44,12 +55,38 @@ dei menu, il secondo ti lascia il tempo di rientrare se esci per sbaglio. Il
 pannello non si riapre finché il puntatore non se ne è andato davvero, così un
 puntatore parcheggiato lassù non lo fa lampeggiare.
 
+### La striscia di azioni
+
+Sotto l'ultimo widget può correre una striscia di **fino a dieci icone**,
+bianche su nero, piccole, centrate: le stesse azioni del widget Azioni — aprire
+un'app, un indirizzo, un comando rapido, un'azione di sistema — più lo specchio.
+
+**Lo specchio** apre una finestra senza bordi con quello che vede la fotocamera,
+centrata sullo schermo e rovesciata, come si aspetta chi ci si guarda. Si chiude
+con la X in alto a destra. Pizzicando si zooma verso il puntatore, la rotella
+sposta l'inquadratura, il doppio clic rimette tutto a posto. In basso ci sono i
+comandi della **luce ad anello** di macOS: accesa o spenta, cinque colori
+dall'ambra all'azzurro, e quanta luce fare. I comandi stanno a riposo quasi
+invisibili e si accendono sotto il puntatore, perché la cosa da guardare è
+l'immagine.
+
 Dentro il pannello, nel nero ai lati del notch, possono starci **luminosità** e
 **volume**. Fanno parte del pannello: ci sono solo mentre è aperto e se ne
 vanno con lui, così la barra dei menu resta la barra dei menu. Di norma mostrano
 l'intensità; un clic ingrossa la barretta per trascinarla, la rotella la muove
 di un passo — quanto grande lo decidi tu. La luminosità compare solo dove il Mac
 la lascia leggere.
+
+## Aggiornamenti
+
+Underdock chiede a GitHub se c'è una versione nuova — una volta al giorno in
+silenzio, o quando glielo chiedi dal menu — e mostra le note di rilascio prima
+di scaricare niente. L'immagine disco scende nei Download come qualsiasi altro
+file, e da lì puoi trascinarla a mano come sempre oppure farla mettere a posto
+dall'app: monta l'immagine, controlla che dentro ci sia la stessa applicazione
+firmata dalla stessa mano, si scambia col bundle in esecuzione e riparte. Un
+aggiornamento firmato da qualcun altro viene rifiutato anche se l'indirizzo è
+quello giusto.
 
 ## Come funziona
 
