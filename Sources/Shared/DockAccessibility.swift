@@ -65,6 +65,23 @@ enum DockAccessibility {
         return run
     }
 
+    /// Where one app's tile is, in Cocoa screen coordinates.
+    static func tileFrame(title: String) -> CGRect? {
+        guard let item = items().first(where: { $0.isApplication && $0.title == title }),
+              let frame = item.frame else { return nil }
+        return flipped(frame)
+    }
+
+    /// The strip the Dock occupies, in Cocoa screen coordinates: the union of
+    /// everything in it, which is the closest thing to its own frame that can
+    /// be had without asking the Dock for its window.
+    static func dockFrame() -> CGRect? {
+        let frames = items().compactMap(\.frame)
+        guard let first = frames.first else { return nil }
+        let union = frames.dropFirst().reduce(first) { $0.union($1) }
+        return flipped(union)
+    }
+
     /// Union of the elements' frames, in Cocoa screen coordinates.
     static func barFrame(anchorTitle: String, spacerCount: Int) -> CGRect? {
         let frames = barElements(anchorTitle: anchorTitle, spacerCount: spacerCount).compactMap(\.frame)

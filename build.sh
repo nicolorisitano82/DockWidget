@@ -151,7 +151,7 @@ echo "→ agent barra"
 AGENT_APP="$AGENTS_DIR/NowPlayingBar.app"
 mkdir -p "$AGENT_APP/Contents/MacOS" "$AGENT_APP/Contents/Resources"
 swift_build "$AGENT_APP/Contents/MacOS/NowPlayingBar" NowPlayingBar app \
-  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" "${SHELF[@]}" "${CALENDAR[@]}" "${WEATHER[@]}" \
+  "${SHARED[@]}" "${NOWPLAYING[@]}" "${ACTIONS[@]}" "${SENSORS[@]}" "${DISKS[@]}" "${NOTE[@]}" "${APPLENOTES[@]}" "${NOTCH[@]}" "${SHELF[@]}" "${CALENDAR[@]}" "${WEATHER[@]}" "${FOLDER[@]}" \
   "${OVERLAY[@]}"
 cp "$ROOT/Resources/Agent-Info.plist" "$AGENT_APP/Contents/Info.plist"
 check_plist "$AGENT_APP/Contents/Info.plist"

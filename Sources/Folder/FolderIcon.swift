@@ -14,6 +14,11 @@ enum FolderIconRenderer {
     static func icon(for url: URL?, tintHex: String, symbol: String) -> NSImage {
         let base: NSImage = url.map { NSWorkspace.shared.icon(forFile: $0.path) }
             ?? NSWorkspace.shared.icon(for: .folder)
+        // The workspace hands back an image that calls itself 32 points across,
+        // and everything downstream — the tint, the stamp, the tile — rasterises
+        // at whatever size it claims. Asking for the size we actually want makes
+        // it pick the large representation it had all along.
+        base.size = NSSize(width: 512, height: 512)
 
         var image = base
         if let tint = NSColor(hexString: tintHex)?.usingColorSpace(.deviceRGB) {

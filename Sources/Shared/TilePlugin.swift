@@ -45,25 +45,36 @@ class TilePlugin: NSObject, NSDockTilePlugIn {
         }
     }
 
-    func dockMenu() -> NSMenu? {
-        let menu = NSMenu()
-        for item in customMenuItems() {
-            menu.addItem(item)
-        }
-        if menu.numberOfItems > 0 {
-            menu.addItem(.separator())
-        }
-        let settings = NSMenuItem(title: T("Impostazioni…", "Settings…"), action: #selector(openSettings), keyEquivalent: "")
-        settings.target = self
-        menu.addItem(settings)
-        return menu
-    }
+    /// No menu of our own.
+    ///
+    /// Measured rather than assumed: the Dock does ask for one — the plug-in
+    /// logs the request — but choosing an item never reaches the target. The
+    /// menu is handed across a process boundary and the action does not travel
+    /// with it, so every item is displayed, pressed, and inert. That went for
+    /// the settings item too, which looked like the one thing that could not
+    /// fail.
+    ///
+    /// Better to leave the Dock its own menu than to offer controls that do
+    /// nothing. What the menu used to promise is in the preview: click the
+    /// tile and the contents are there, one click from opening, with the
+    /// folder itself on the button below.
+    func dockMenu() -> NSMenu? { nil }
 
     // MARK: Lifecycle
+
+    /// How big the tile's own canvas is.
+    ///
+    /// The Dock hands the plug-in a view with no window, so it is drawn at one
+    /// pixel a point — and with magnification on, the tile under the pointer
+    /// reaches 128 points, which is 256 pixels on a Retina screen. At 128 the
+    /// art is enlarged to fill them. Asking for more points is the one lever
+    /// there is: the Dock scales what it gets down to whatever the tile is.
+    static let canvas: CGFloat = 256
 
     private func attach(to dockTile: NSDockTile) {
         self.dockTile = dockTile
         let view = makeTileView()
+        view.frame = NSRect(x: 0, y: 0, width: Self.canvas, height: Self.canvas)
         view.instance = instanceID
         view.reloadSettings()
         tileView = view
@@ -115,6 +126,7 @@ class TilePlugin: NSObject, NSDockTilePlugIn {
     }
 
     @objc private func openSettings() {
+        Diagnostics.write("menu: scelta «impostazioni» da \(instanceID)")
         guard let hostApplicationURL else { return }
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = true

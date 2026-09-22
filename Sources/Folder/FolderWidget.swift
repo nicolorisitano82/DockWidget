@@ -1,9 +1,117 @@
+/// How a folder looks and opens when the Dock is the one holding it.
+enum FolderStack {
+    /// How the Dock lays the contents out when the stack is clicked.
+    enum View: String, CaseIterable {
+        case automatic, fan, grid, list
+
+        /// The numbers the Dock writes for each of them.
+        var code: Int {
+            switch self {
+            case .automatic: return 0
+            case .fan: return 1
+            case .grid: return 2
+            case .list: return 3
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .automatic: return T("Automatica", "Automatic")
+            case .fan: return T("Ventaglio", "Fan")
+            case .grid: return T("Griglia", "Grid")
+            case .list: return T("Elenco", "List")
+            }
+        }
+    }
+
+    enum Sort: String, CaseIterable {
+        case name, dateAdded, dateModified, dateCreated, kind
+
+        var code: Int {
+            switch self {
+            case .name: return 1
+            case .dateAdded: return 2
+            case .dateModified: return 3
+            case .dateCreated: return 4
+            case .kind: return 5
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .name: return T("Nome", "Name")
+            case .dateAdded: return T("Data di aggiunta", "Date added")
+            case .dateModified: return T("Data di modifica", "Date modified")
+            case .dateCreated: return T("Data di creazione", "Date created")
+            case .kind: return T("Tipo", "Kind")
+            }
+        }
+    }
+
+    /// Whether the tile shows the folder itself or a pile of what is in it.
+    enum Display: String, CaseIterable {
+        case folder, stack
+
+        var code: Int { self == .folder ? 1 : 0 }
+
+        var label: String {
+            self == .folder ? T("Cartella", "Folder") : T("Pila", "Stack")
+        }
+    }
+}
+
 import AppKit
 
+/// How the preview's list is ordered.
+enum FolderSort: String, CaseIterable {
+    case name, dateAdded, dateModified, kind, size
+
+    var label: String {
+        switch self {
+        case .name: return T("Nome", "Name")
+        case .dateAdded: return T("Data di aggiunta", "Date added")
+        case .dateModified: return T("Data di modifica", "Date modified")
+        case .kind: return T("Tipo", "Kind")
+        case .size: return T("Dimensione", "Size")
+        }
+    }
+}
+
 struct FolderSettings: Equatable {
+    /// What a click on the tile does.
+    enum Click: String, CaseIterable {
+        case preview, open
+
+        var label: String {
+            switch self {
+            case .preview: return T("Apre l'anteprima", "Opens the preview")
+            case .open: return T("Apre la cartella", "Opens the folder")
+            }
+        }
+    }
+
+    /// Whether the Dock holds our tile or its own folder stack.
+    enum Place: String, CaseIterable {
+        case widget, stack
+
+        var label: String {
+            self == .widget
+                ? T("Widget", "Widget")
+                : T("Pila di sistema", "System stack")
+        }
+    }
+
     /// Empty means no folder chosen yet.
     var path: String = ""
+    var place: Place = .widget
+    var stackView: FolderStack.View = .automatic
+    var stackSort: FolderStack.Sort = .dateAdded
+    var stackDisplay: FolderStack.Display = .folder
+    var click: Click = .preview
     var showsCount = true
+    var sort: FolderSort = .dateAdded
+    var sortReversed = false
+    var showsHidden = false
     var accentHex = "#0A84FF"
     /// Empty leaves the folder the colour the Finder gives it.
     var tintHex = ""
@@ -15,6 +123,14 @@ struct FolderSettings: Equatable {
 
     enum Key {
         static func path(_ instance: String) -> String { "\(instance).path" }
+        static func place(_ instance: String) -> String { "\(instance).place" }
+        static func stackView(_ instance: String) -> String { "\(instance).stackView" }
+        static func stackSort(_ instance: String) -> String { "\(instance).stackSort" }
+        static func stackDisplay(_ instance: String) -> String { "\(instance).stackDisplay" }
+        static func click(_ instance: String) -> String { "\(instance).click" }
+        static func sort(_ instance: String) -> String { "\(instance).sort" }
+        static func sortReversed(_ instance: String) -> String { "\(instance).sortReversed" }
+        static func showsHidden(_ instance: String) -> String { "\(instance).showsHidden" }
         static func showsCount(_ instance: String) -> String { "\(instance).showsCount" }
         static func accent(_ instance: String) -> String { "\(instance).accent" }
         static func tint(_ instance: String) -> String { "\(instance).tint" }
@@ -28,7 +144,24 @@ struct FolderSettings: Equatable {
         let defaults = FolderSettings()
         return FolderSettings(
             path: store.string(Key.path(instance), or: defaults.path),
+            place: Place(rawValue: store.string(Key.place(instance),
+                                                or: defaults.place.rawValue)) ?? defaults.place,
+            stackView: FolderStack.View(rawValue: store.string(Key.stackView(instance),
+                                                               or: defaults.stackView.rawValue))
+                ?? defaults.stackView,
+            stackSort: FolderStack.Sort(rawValue: store.string(Key.stackSort(instance),
+                                                               or: defaults.stackSort.rawValue))
+                ?? defaults.stackSort,
+            stackDisplay: FolderStack.Display(rawValue: store.string(Key.stackDisplay(instance),
+                                                                     or: defaults.stackDisplay.rawValue))
+                ?? defaults.stackDisplay,
+            click: Click(rawValue: store.string(Key.click(instance),
+                                                or: defaults.click.rawValue)) ?? defaults.click,
             showsCount: store.bool(Key.showsCount(instance), or: defaults.showsCount),
+            sort: FolderSort(rawValue: store.string(Key.sort(instance),
+                                                    or: defaults.sort.rawValue)) ?? defaults.sort,
+            sortReversed: store.bool(Key.sortReversed(instance), or: defaults.sortReversed),
+            showsHidden: store.bool(Key.showsHidden(instance), or: defaults.showsHidden),
             accentHex: store.string(Key.accent(instance), or: defaults.accentHex),
             tintHex: store.string(Key.tint(instance), or: defaults.tintHex),
             symbol: store.string(Key.symbol(instance), or: defaults.symbol)
@@ -38,6 +171,14 @@ struct FolderSettings: Equatable {
     func save(_ instance: String = "folder") {
         SettingsStore.shared.set([
             Key.path(instance): path,
+            Key.place(instance): place.rawValue,
+            Key.stackView(instance): stackView.rawValue,
+            Key.stackSort(instance): stackSort.rawValue,
+            Key.stackDisplay(instance): stackDisplay.rawValue,
+            Key.click(instance): click.rawValue,
+            Key.sort(instance): sort.rawValue,
+            Key.sortReversed(instance): sortReversed,
+            Key.showsHidden(instance): showsHidden,
             Key.showsCount(instance): showsCount,
             Key.accent(instance): accentHex,
             Key.tint(instance): tintHex,
@@ -206,6 +347,9 @@ final class FolderTileView: TileView {
 
     override func draw(_ dirtyRect: NSRect) {
         let card = TileGeometry.artworkRect(in: bounds)
+        Diagnostics.once("folder-tile-size",
+                         "tile cartella disegnata a \(Int(bounds.width))x\(Int(bounds.height)) "
+                            + "punti, scala \(window?.backingScaleFactor ?? 0)")
         let side = card.width
         let palette = self.palette
 
@@ -236,8 +380,9 @@ final class FolderTileView: TileView {
             let box = NSRect(x: card.midX - size / 2 + CGFloat(index) * size * 0.42,
                              y: card.maxY - size * (0.92 + CGFloat(index) * 0.10),
                              width: size, height: size)
-            NSWorkspace.shared.icon(forFile: item.path)
-                .draw(in: box, from: .zero, operation: .sourceOver,
+            let preview = NSWorkspace.shared.icon(forFile: item.path)
+            preview.size = box.size
+            preview.draw(in: box, from: .zero, operation: .sourceOver,
                       fraction: index == 0 ? 1 : 0.75, respectFlipped: true, hints: nil)
         }
 
@@ -291,43 +436,4 @@ final class FolderDockTilePlugin: TilePlugin {
         token = nil
     }
 
-    /// The menu is the folder: the most recent things in it, one click away.
-    override func customMenuItems() -> [NSMenuItem] {
-        guard FolderSettings.current(instanceID).url != nil else { return [] }
-        var items: [NSMenuItem] = []
-
-        let open = NSMenuItem(title: T("Apri la cartella", "Open the folder"),
-                              action: #selector(openFolder), keyEquivalent: "")
-        open.target = self
-        items.append(open)
-        items.append(.separator())
-
-        for item in monitor.items.prefix(8) {
-            let entry = NSMenuItem(title: item.lastPathComponent, action: #selector(openItem(_:)),
-                                   keyEquivalent: "")
-            entry.target = self
-            entry.representedObject = item
-            let icon = NSWorkspace.shared.icon(forFile: item.path)
-            icon.size = NSSize(width: 16, height: 16)
-            entry.image = icon
-            items.append(entry)
-        }
-        if monitor.items.isEmpty {
-            let empty = NSMenuItem(title: T("Cartella vuota", "The folder is empty"),
-                                   action: nil, keyEquivalent: "")
-            empty.isEnabled = false
-            items.append(empty)
-        }
-        return items
-    }
-
-    @objc private func openFolder() {
-        guard let url = FolderSettings.current(instanceID).url else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    @objc private func openItem(_ sender: NSMenuItem) {
-        guard let url = sender.representedObject as? URL else { return }
-        NSWorkspace.shared.open(url)
-    }
 }

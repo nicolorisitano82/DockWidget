@@ -15,24 +15,16 @@ enum WidgetDrop {
         // shelf keeps its own files.
         switch WidgetInstance.kind(of: widgetID) {
         case "folder":
-            // The key is spelled out rather than imported: the helper links
-            // only the shared code, and this is the one thing it needs from
-            // the folder widget.
+            // Not moved where the widget happens to point: dropping something
+            // is a question — into this folder, or into one of the folders
+            // inside it — and the answer is the user's. The panel that asks is
+            // the agent's, which is also the one that can put a window up.
             let path = SettingsStore.shared.string("\(widgetID).path", or: "")
             guard !path.isEmpty else { return false }
-            let destination = URL(fileURLWithPath: path)
-            for file in files {
-                var target = destination.appendingPathComponent(file.lastPathComponent)
-                var attempt = 2
-                while FileManager.default.fileExists(atPath: target.path), attempt < 100 {
-                    // Never overwrite something already in the folder.
-                    let name = file.deletingPathExtension().lastPathComponent
-                    let suffix = file.pathExtension.isEmpty ? "" : ".\(file.pathExtension)"
-                    target = destination.appendingPathComponent("\(name) \(attempt)\(suffix)")
-                    attempt += 1
-                }
-                try? FileManager.default.moveItem(at: file, to: target)
-            }
+            DistributedNotificationCenter.default().postNotificationName(
+                WidgetClick.dropRequested,
+                object: ([widgetID] + files.map(\.path)).joined(separator: "\n"),
+                userInfo: nil, deliverImmediately: true)
             return true
         case "shelf":
             // Nothing is moved: the shelf keeps where the file is.
@@ -54,6 +46,30 @@ enum WidgetDrop {
 /// something better to do: clicking a folder should open the folder, not ask
 /// you about it. Settings stay one right-click away.
 enum WidgetClick {
+    /// Sent when a tile wants its preview shown, carrying the instance.
+    static let previewRequested = Notification.Name("dev.nicolo.underdock.previewRequested")
+
+    /// Sent when files are dropped on a folder tile: the widget asks where
+    /// they should go rather than deciding for itself.
+    static let dropRequested = Notification.Name("dev.nicolo.underdock.dropRequested")
+
+    /// Sent when something chosen inside a tile's menu has to be opened,
+    /// carrying the path. The menu is built by the plug-in, which lives inside
+    /// the Dock's host and is in no position to open anything itself.
+    static let openRequested = Notification.Name("dev.nicolo.underdock.openRequested")
+
+    /// Opens a file, from wherever there is a process allowed to.
+    ///
+    /// The request always goes out. Asking first whether anyone is listening
+    /// was the mistake: inside the Dock's plug-in host — a sandboxed service —
+    /// `NSRunningApplication` sees no other applications at all, so the answer
+    /// was always "nobody", and the fallback it fell back to is precisely the
+    /// call that sandbox refuses. Posting costs nothing and crosses the fence.
+    static func requestOpen(_ url: URL) {
+        DistributedNotificationCenter.default().postNotificationName(
+            openRequested, object: url.path, userInfo: nil, deliverImmediately: true)
+    }
+
     /// Returns true when the click was dealt with here.
     @discardableResult
     static func handle(widgetID: String) -> Bool {
@@ -61,7 +77,17 @@ enum WidgetClick {
         case "folder":
             let path = SettingsStore.shared.string("\(widgetID).path", or: "")
             guard !path.isEmpty else { return false }
-            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+            // The preview is drawn by the bar agent: it is the process that is
+            // already there, already allowed to ask the Dock where its tiles
+            // are, and already in the business of putting panels on screen.
+            // This one is about to quit.
+            guard SettingsStore.shared.string("\(widgetID).click", or: "preview") == "preview" else {
+                NSWorkspace.shared.open(URL(fileURLWithPath: path))
+                return true
+            }
+            DistributedNotificationCenter.default().postNotificationName(
+                WidgetClick.previewRequested, object: widgetID, userInfo: nil,
+                deliverImmediately: true)
             return true
         default:
             return false
