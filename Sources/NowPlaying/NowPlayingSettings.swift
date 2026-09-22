@@ -13,6 +13,8 @@ struct NowPlayingSettings: Equatable {
     var mode: Mode = .tile
     var showsArtwork = true
     var showsProgress = true
+    /// Synced lyrics on the second line, where there are any to be had.
+    var showsLyrics = false
     var dimsWhenPaused = true
     var accentHex = "#0A84FF"
 
@@ -20,6 +22,7 @@ struct NowPlayingSettings: Equatable {
 
     enum Key {
         static func mode(_ instance: String) -> String { "\(instance).mode" }
+        static func showsLyrics(_ instance: String) -> String { "\(instance).showsLyrics" }
         static func showsArtwork(_ instance: String) -> String { "\(instance).showsArtwork" }
         static func showsProgress(_ instance: String) -> String { "\(instance).showsProgress" }
         static func dimsWhenPaused(_ instance: String) -> String { "\(instance).dimsWhenPaused" }
@@ -40,6 +43,7 @@ struct NowPlayingSettings: Equatable {
                     ?? defaults.mode,
             showsArtwork: store.bool(Key.showsArtwork(instance), or: defaults.showsArtwork),
             showsProgress: store.bool(Key.showsProgress(instance), or: defaults.showsProgress),
+            showsLyrics: store.bool(Key.showsLyrics(instance), or: defaults.showsLyrics),
             dimsWhenPaused: store.bool(Key.dimsWhenPaused(instance), or: defaults.dimsWhenPaused),
             accentHex: store.string(Key.accent(instance), or: defaults.accentHex)
         )
@@ -50,6 +54,7 @@ struct NowPlayingSettings: Equatable {
             Key.mode(instance): mode.rawValue,
             Key.showsArtwork(instance): showsArtwork,
             Key.showsProgress(instance): showsProgress,
+            Key.showsLyrics(instance): showsLyrics,
             Key.dimsWhenPaused(instance): dimsWhenPaused,
             Key.accent(instance): accentHex,
         ])

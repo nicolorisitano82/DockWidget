@@ -173,8 +173,25 @@ final class NowPlayingSource {
             next.elapsed = state.elapsed
             next.elapsedSampledAt = state.elapsedSampledAt
         }
-        next.artwork = playerIcon(for: bundleID)
+        // The player's own icon stands in until the cover arrives, so the bar
+        // has something to show straight away.
+        let key = next.artworkKey
+        if let cover = BroadcastArtwork.cached(for: key) {
+            next.artwork = cover
+            next.fetchedCoverArt = true
+        } else {
+            next.artwork = playerIcon(for: bundleID)
+        }
         publish(next, from: .broadcast)
+
+        guard !next.fetchedCoverArt, next.hasTrack else { return }
+        BroadcastArtwork.fetch(bundleID: bundleID, key: key) { [weak self] cover in
+            guard let self, self.state.artworkKey == key else { return }
+            var updated = self.state
+            updated.artwork = cover
+            updated.fetchedCoverArt = true
+            self.publish(updated, from: updated.origin)
+        }
     }
 
     private func playerIcon(for bundleID: String) -> NSImage? {

@@ -31,8 +31,19 @@ struct NowPlayingState {
 
     var hasTrack: Bool { !(title ?? "").isEmpty }
 
+    /// Set when the cover was fetched from the player itself, which is how a
+    /// broadcast — who otherwise only knows the title — comes to have one.
+    var fetchedCoverArt = false
+
     /// True when `artwork` is real cover art rather than a stand-in player icon.
-    var hasCoverArt: Bool { origin == .mediaRemote || origin == .published }
+    var hasCoverArt: Bool {
+        fetchedCoverArt || origin == .mediaRemote || origin == .published
+    }
+
+    /// What identifies the track for the purpose of fetching its cover once.
+    var artworkKey: String {
+        [playerBundleID, title, album].compactMap { $0 }.joined(separator: "|")
+    }
 
     var subtitle: String? {
         let parts = [artist, album].compactMap { $0 }.filter { !$0.isEmpty }
@@ -45,6 +56,14 @@ struct NowPlayingState {
             elapsed += date.timeIntervalSince(elapsedSampledAt)
         }
         return min(max(elapsed / duration, 0), 1)
+    }
+
+    /// Where the track is, in seconds, projected forward from when it was
+    /// last reported — which is what the lyrics have to line up with.
+    func progressSeconds(at date: Date = Date()) -> TimeInterval? {
+        guard var elapsed else { return nil }
+        if isPlaying { elapsed += date.timeIntervalSince(elapsedSampledAt) }
+        return max(elapsed, 0)
     }
 
     /// Everything the tile draws — used to skip redraws that would change nothing.

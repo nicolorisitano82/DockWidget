@@ -83,6 +83,18 @@ final class NowPlayingPaneController: PaneViewController {
                                           action: #selector(artworkChanged)))
         stack.addArrangedSubview(checkbox(T("Mostra l'avanzamento", "Show progress"), isOn: model.value.showsProgress,
                                           action: #selector(progressChanged)))
+
+        stack.addArrangedSubview(checkbox(T("Testi sincronizzati", "Synced lyrics"),
+                                          isOn: model.value.showsLyrics,
+                                          action: #selector(lyricsChanged)))
+
+        let lyricsHint = NSTextField(wrappingLabelWithString: T(
+            "Le parole prendono la seconda riga, al posto dell'artista, e scorrono col brano. Vengono da LRCLIB, che risponde senza chiave e senza account; se un brano non c'è, resta l'artista.",
+            "The words take the second line, in place of the artist, and follow the track. They come from LRCLIB, which answers without a key and without an account; where a track is not in it, the artist stays."))
+        lyricsHint.font = .systemFont(ofSize: 11)
+        lyricsHint.textColor = .tertiaryLabelColor
+        lyricsHint.preferredMaxLayoutWidth = 392
+        stack.addArrangedSubview(lyricsHint)
         stack.addArrangedSubview(checkbox(T("Attenua in pausa", "Dim when paused"), isOn: model.value.dimsWhenPaused,
                                           action: #selector(dimChanged)))
 
@@ -173,6 +185,11 @@ final class NowPlayingPaneController: PaneViewController {
 
     @objc private func artworkChanged(_ sender: NSButton) {
         model.value.showsArtwork = sender.state == .on
+        reloadTile()
+    }
+
+    @objc private func lyricsChanged(_ sender: NSButton) {
+        model.value.showsLyrics = sender.state == .on
         reloadTile()
     }
 
