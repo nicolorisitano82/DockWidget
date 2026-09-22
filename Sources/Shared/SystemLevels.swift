@@ -151,10 +151,14 @@ enum SystemLevels {
             return nil
         }()
 
-        /// The display the notch is on — the built-in one, which is the only
-        /// one whose backlight these calls reach.
+        /// The built-in display, which is the only one whose backlight these
+        /// calls reach. It is the one with a notch where there is one, and
+        /// otherwise the main one — asked for here rather than through the
+        /// notch's own geometry, which does not exist in every target this
+        /// file is compiled into.
         private static var display: CGDirectDisplayID? {
-            guard let screen = NotchGeometry.screen,
+            let builtIn = NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
+            guard let screen = builtIn,
                   let number = screen.deviceDescription[
                     NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
             else { return nil }

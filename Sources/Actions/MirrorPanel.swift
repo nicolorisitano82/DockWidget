@@ -14,6 +14,10 @@ final class MirrorPanel: NSObject {
     /// thing nobody asked for and nobody could find the switch to.
     private var studioLightWas: Bool?
     private var ringLightWas: Bool?
+    /// The still output, when the session took one, and the screen the mirror
+    /// is on — which is the one that flashes.
+    private var photo: AVCapturePhotoOutput?
+    private var screen: NSScreen?
 
     func toggle() {
         panel == nil ? show() : close()
@@ -68,6 +72,18 @@ final class MirrorPanel: NSObject {
         }
         session.addInput(input)
 
+        // The still output rides along with the preview: asking for a frame
+        // out of the preview layer gives what the screen has, which is a
+        // smaller picture than the camera can take.
+        let photo = AVCapturePhotoOutput()
+        if session.canAddOutput(photo) {
+            session.addOutput(photo)
+            self.photo = photo
+        } else {
+            self.photo = nil
+            Diagnostics.write("specchio: la sessione rifiuta l'uscita foto")
+        }
+
         let side = settings.side
         let frame = NSRect(x: screen.visibleFrame.midX - side / 2,
                            y: screen.visibleFrame.midY - side / 2,
@@ -109,6 +125,7 @@ final class MirrorPanel: NSObject {
         let controls = MirrorControlsView(frame: view.bounds)
         controls.autoresizingMask = [.width, .height]
         controls.onClose = { [weak self] in self?.close() }
+        controls.onShoot = { [weak self] in self?.shoot() }
         view.addSubview(controls)
         view.controls = controls
         // Mirrored across the middle, which is what a mirror does and a camera
@@ -164,8 +181,28 @@ final class MirrorPanel: NSObject {
 
         self.panel = panel
         self.session = session
+        self.screen = screen
         Diagnostics.write("specchio aperto: \(Int(frame.width))x\(Int(frame.height)) "
             + "a \(Int(frame.minX)),\(Int(frame.minY))")
+    }
+
+    /// One picture, with the screen for a flash.
+    func shoot() {
+        guard let photo, let screen else {
+            Diagnostics.write("specchio: niente uscita foto, scatto saltato")
+            return
+        }
+        MirrorShot.take(with: photo, on: screen,
+                        mirrored: MirrorSettings.current.isFlipped) { url, problem in
+            if let url {
+                Diagnostics.write("specchio: foto in \(url.lastPathComponent)")
+                // Shown where it landed, which is the whole of the feedback a
+                // shutter needs: the file is on the Desktop, in plain sight.
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } else {
+                Diagnostics.write("specchio: la foto non è riuscita — \(problem ?? "")")
+            }
+        }
     }
 
     func close() {
@@ -179,6 +216,8 @@ final class MirrorPanel: NSObject {
         }
         session?.stopRunning()
         session = nil
+        photo = nil
+        screen = nil
         panel?.orderOut(nil)
         panel = nil
     }
@@ -296,6 +335,7 @@ final class MirrorView: NSView {
 /// the way when you are looking at yourself.
 final class MirrorControlsView: NSView {
     var onClose: (() -> Void)?
+    var onShoot: (() -> Void)?
 
     private var ringOn = VideoEffects.isRingLightOn
     private var intensity = VideoEffects.ringLightIntensity
@@ -311,7 +351,7 @@ final class MirrorControlsView: NSView {
     private var hovered: Target?
     private var scrubbing = false
 
-    private enum Target { case close, light, colour, track }
+    private enum Target { case close, shutter, light, colour, track }
 
     private var colour = Float(MirrorSettings.current.ringColour)
 
@@ -325,26 +365,38 @@ final class MirrorControlsView: NSView {
         NSRect(x: bounds.maxX - 34, y: bounds.maxY - 34, width: 24, height: 24)
     }
 
-    private var lightRect: NSRect {
-        // Bottom left of centre, with the track beside it when it is lit.
-        let width: CGFloat = ringOn ? 24 : 28
-        return NSRect(x: ringOn ? bounds.midX - 78 : bounds.midX - width / 2,
-                      y: 12, width: width, height: 24)
+    /// The row along the bottom, laid out as one thing and then centred: the
+    /// shutter, the light, and — only while the light is on — its colour and
+    /// how much of it. Placing each piece from the middle instead leaves the
+    /// row leaning to one side the moment a piece comes or goes.
+    private var row: (shutter: NSRect, light: NSRect, colour: NSRect, track: NSRect) {
+        let gap: CGFloat = 8
+        let shutterSide: CGFloat = 28
+        let lightWidth: CGFloat = ringOn ? 24 : 28
+        var total = shutterSide + gap + lightWidth
+        if ringOn { total += gap + 18 + gap + 74 }
+
+        var x = bounds.midX - total / 2
+        let shutter = NSRect(x: x, y: 10, width: shutterSide, height: shutterSide)
+        x += shutterSide + gap
+        let light = NSRect(x: x, y: 12, width: lightWidth, height: 24)
+        x += lightWidth + gap
+        let colour = NSRect(x: x, y: light.midY - 9, width: 18, height: 18)
+        x += 18 + gap
+        let track = NSRect(x: x, y: light.midY - 3, width: 74, height: 6)
+        return (shutter, light, colour, track)
     }
 
-    /// Beside the light, and only while it is on: a dot in the colour it is
-    /// set to, tapped to go from white to amber and back.
-    private var colourRect: NSRect {
-        NSRect(x: lightRect.maxX + 8, y: lightRect.midY - 9, width: 18, height: 18)
-    }
-
-    private var trackRect: NSRect {
-        NSRect(x: colourRect.maxX + 8, y: lightRect.midY - 3, width: 74, height: 6)
-    }
+    private var shutterRect: NSRect { row.shutter }
+    private var lightRect: NSRect { row.light }
+    private var colourRect: NSRect { row.colour }
+    private var trackRect: NSRect { row.track }
 
     override func draw(_ dirtyRect: NSRect) {
         draw(chip: closeRect, symbol: "xmark", lit: false,
              emphasised: hovered == .close)
+        draw(chip: shutterRect, symbol: "camera.fill", lit: false,
+             emphasised: hovered == .shutter)
         draw(chip: lightRect, symbol: ringOn ? "sun.max.fill" : "sun.max",
              lit: ringOn, emphasised: hovered == .light)
 
@@ -400,8 +452,10 @@ final class MirrorControlsView: NSView {
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let next: Target? = closeRect.insetBy(dx: -4, dy: -4).contains(point) ? .close
+            : shutterRect.insetBy(dx: -4, dy: -4).contains(point) ? .shutter
             : lightRect.insetBy(dx: -4, dy: -4).contains(point) ? .light
-            : (ringOn && colourRect.insetBy(dx: -4, dy: -4).contains(point)) ? .colour : nil
+            : (ringOn && colourRect.insetBy(dx: -4, dy: -4).contains(point)) ? .colour
+            : (ringOn && trackRect.insetBy(dx: -6, dy: -10).contains(point)) ? .track : nil
         guard next != hovered else { return }
         hovered = next
         needsDisplay = true
@@ -417,6 +471,7 @@ final class MirrorControlsView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         let local = convert(point, from: superview)
         let live = closeRect.insetBy(dx: -4, dy: -4).contains(local)
+            || shutterRect.insetBy(dx: -4, dy: -4).contains(local)
             || lightRect.insetBy(dx: -4, dy: -4).contains(local)
             || (ringOn && colourRect.insetBy(dx: -4, dy: -4).contains(local))
             || (ringOn && trackRect.insetBy(dx: -6, dy: -10).contains(local))
@@ -427,6 +482,10 @@ final class MirrorControlsView: NSView {
         let point = convert(event.locationInWindow, from: nil)
         if closeRect.insetBy(dx: -4, dy: -4).contains(point) {
             onClose?()
+            return
+        }
+        if shutterRect.insetBy(dx: -4, dy: -4).contains(point) {
+            onShoot?()
             return
         }
         if lightRect.insetBy(dx: -4, dy: -4).contains(point) {
