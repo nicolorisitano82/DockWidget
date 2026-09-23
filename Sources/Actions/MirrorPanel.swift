@@ -361,8 +361,10 @@ final class MirrorControlsView: NSView {
     /// out from under a slider unless the view says the drag is its own.
     override var mouseDownCanMoveWindow: Bool { false }
 
+    /// Top left, where macOS has kept the button that closes a window since
+    /// there were windows.
     private var closeRect: NSRect {
-        NSRect(x: bounds.maxX - 34, y: bounds.maxY - 34, width: 24, height: 24)
+        NSRect(x: bounds.minX + 10, y: bounds.maxY - 34, width: 24, height: 24)
     }
 
     /// The row along the bottom, laid out as one thing and then centred: the
