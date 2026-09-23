@@ -63,8 +63,9 @@ un'app, un indirizzo, un comando rapido, un'azione di sistema — più lo specch
 
 **Lo specchio** apre una finestra senza bordi con quello che vede la fotocamera,
 centrata sullo schermo e rovesciata, come si aspetta chi ci si guarda. Si chiude
-con la X in alto a sinistra, dove macOS tiene la chiusura da sempre. Pizzicando si zooma verso il puntatore, la rotella
-sposta l'inquadratura, il doppio clic rimette tutto a posto.
+con la X in alto a sinistra, dove macOS tiene la chiusura da sempre. Pizzicando
+si zooma verso il puntatore, la rotella sposta l'inquadratura, il doppio clic
+rimette tutto a posto.
 
 L'icona della fotocamera **scatta**: la foto finisce sulla Scrivania col nome
 dell'istante in cui è stata presa, rovesciata come quella che vedevi. Il flash è
